@@ -95,8 +95,8 @@ It isn't on extensions.gnome.org yet, so install it from source. You need
 GNOME Shell 45–50, `make`, and `glib-compile-schemas` (which comes with GLib).
 
 ```bash
-git clone https://github.com/Jackicus/Gnome-Extension-Wallpaper-Engine.git
-cd Gnome-Extension-Wallpaper-Engine
+git clone https://github.com/Jackicus/GNOME-Wallpaper-Engine.git
+cd GNOME-Wallpaper-Engine
 make install
 ```
 
