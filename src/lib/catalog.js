@@ -44,7 +44,7 @@ export const EFFECTS = [
     {
         id: 'wave',
         title: 'Wave',
-        desc: 'The iconic ribbon: folded sheets of light with bright crest glints',
+        desc: 'Folded sheets of light with bright crest glints',
         ...wave,
     },
     {

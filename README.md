@@ -139,5 +139,4 @@ GPL-2.0-or-later. See [LICENSE](LICENSE).
 
 ---
 
-<sub>The background engine started out in [Slider-Overlay](https://github.com/jackt/Slider-Overlay).
-This project is not affiliated with the Wallpaper Engine app on Steam.</sub>
+<sub>Not affiliated with the Wallpaper Engine app on Steam.</sub>

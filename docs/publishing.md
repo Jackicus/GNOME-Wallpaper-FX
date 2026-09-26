@@ -279,8 +279,7 @@ ships.
 GNOME Shell is GPL-2.0-or-later and "derived works like extensions MUST be
 distributed under compatible terms". The extension is GPL-2.0-or-later: the
 GPL-2.0 text is `LICENSE` at the top of the repo, and `make zip` puts it in the
-zip. The README says the engine started out in Slider-Overlay, which is the
-same author's, so no attribution is owed.
+zip. All of the code is the author's own.
 
 ### Copyrights and trademarks: the name
 
@@ -290,8 +289,8 @@ examples. "Wallpaper Engine" is also the name of a well-known commercial Steam
 application for animated wallpapers, which is the same field. Expect a reviewer
 to raise it, and possibly users to confuse the two. If the name is to change,
 change it, and the UUID with it, before the first upload, because the UUID is the
-EGO entry. The README (not shipped) also calls the Wave pattern "the iconic PS3
-ribbon", which is worth keeping out of the EGO description and screenshots.
+EGO entry. Nothing that ships names another product: the Wave pattern is
+described by what it draws, not by the console menu it resembles.
 
 ### Don't include unnecessary files: meets
 
