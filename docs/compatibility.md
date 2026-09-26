@@ -1,8 +1,9 @@
 # Compatibility
 
-`metadata.json` claims GNOME Shell 45 to 50, but one of those has been run.
-This page says which, lists every code path that depends on the version, and
-says what to check first on each version.
+`metadata.json` claims GNOME Shell 50, the one version that has been run. The
+code is written for 45 to 50, and this page lists every code path that depends
+on the version and what to check first on each, so a version can be added to
+`shell-version` once it passes.
 
 ## What has been tested
 
@@ -23,7 +24,7 @@ trusting any other version (checklist step 4).
 
 Nothing else has been tested:
 
-- **GNOME 45, 46, 47, 48 and 49** are claimed and have never been run.
+- **GNOME 45, 46, 47, 48 and 49** have never been run, so they are not claimed.
 - **GNOME 51** (tagged 51.0 on 2026-09-14) is not claimed, and it will not
   work: it removed `Shell.GLSLEffect`, which draws every pattern.
 - **No Mesa GPU** (AMD, Intel), no GLES2-only GPU, no virtual machine.
@@ -41,8 +42,8 @@ const FRAGMENT = Shell.SnippetHook?.FRAGMENT ?? Cogl.SnippetHook.FRAGMENT;
 `Shell.GLSLEffect.add_glsl_snippet()` takes a `Shell.SnippetHook` up to 47 and a
 `Cogl.SnippetHook` from 48 (`src/shell-glsl-effect.h` at the gnome-shell tags
 `47.0` and `48.0`). gjs.guide's GNOME 48 port page says `Cogl.SnippetHook` "is
-exposed in version 45 and later", so the fallback should hold on every claimed
-version. 45 to 47 take the first branch and 48 onwards the second.
+exposed in version 45 and later", so the fallback should hold on every version the
+code supports. 45 to 47 take the first branch and 48 onwards the second.
 
 *Check first on 45 and 47:* each pattern draws, and the journal has no
 `TypeError` from `shader.js`.

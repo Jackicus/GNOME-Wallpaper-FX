@@ -162,6 +162,11 @@ cmd_pack() {
         if [[ -f "$REPO_DIR/$name" ]]; then extra+=(--extra-source="$REPO_DIR/$name"); fi
     done
 
+    # An install compiles the schema with --strict, so a warning here is a
+    # failed install there.
+    require glib-compile-schemas
+    glib-compile-schemas --strict --dry-run "$SRC_DIR/schemas" || die "The schema does not pass --strict."
+
     mkdir -p "$DIST_DIR"
     info "Packing $UUID..."
     gnome-extensions pack "$SRC_DIR" "${extra[@]}" --out-dir="$DIST_DIR" --force

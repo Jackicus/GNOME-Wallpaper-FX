@@ -15,23 +15,27 @@ make zip
 
 This runs `scripts/dev.sh pack`, which:
 
-1. runs `gnome-extensions pack src --extra-source=lib --out-dir=dist --force`.
+1. runs `glib-compile-schemas --strict --dry-run` on `src/schemas`, and stops if
+   it fails: an install compiles the schema with `--strict`, so a warning here
+   would be a failed install;
+2. runs `gnome-extensions pack src --extra-source=lib --out-dir=dist --force`.
    `gnome-extensions` adds `extension.js`, `metadata.json`, `prefs.js` and every
    `schemas/*.gschema.xml` by itself (`command-pack.c`); `lib/`, with `layers/`
    under it, has to be named. A `LICENSE` or `COPYING` at the top of the repo is
-   added too, if one exists;
-2. deletes `schemas/gschemas.compiled` from the zip if the `gnome-extensions`
+   added too (the repo has one: `LICENSE`, GPL-2.0);
+3. deletes `schemas/gschemas.compiled` from the zip if the `gnome-extensions`
    doing the packing put one there. Up to GNOME 45 it compiled the schema into the
    bundle; from 46 it does not (`command-pack.c` at the `45.0` and `46.0` tags);
-3. checks that the zip holds exactly what should ship, which is every `.js` file
-   under `src/lib`, the two entry points, `metadata.json` and the schema XML, and
-   nothing else. A missing module or a stray file (an editor backup, a note) stops
+4. checks that the zip holds exactly what should ship, which is every `.js` file
+   under `src/lib`, the two entry points, `metadata.json`, the schema XML and
+   `LICENSE`, and nothing else. A missing module or a stray file (an editor backup, a note) stops
    the build with the file named;
-4. prints the listing. The output is `dist/wallpaper-engine@jackt.shell-extension.zip`.
+5. prints the listing. The output is `dist/wallpaper-engine@jackt.shell-extension.zip`.
 
 What it contains today:
 
 ```
+LICENSE
 metadata.json
 extension.js
 prefs.js
@@ -93,12 +97,12 @@ the link afterwards. This is also the only way to run the shipped
 |---|---|---|
 | `uuid` | `wallpaper-engine@jackt` | Valid characters and not `gnome.org`. It is the extension's identity on EGO and cannot change after the first upload |
 | `name` | `Wallpaper Engine` | See [the name](#copyrights-and-trademarks-the-name) |
-| `description` | one line | Should say more (below) |
-| `shell-version` | 45 to 50 | All released, so allowed, but only 50 is tested |
+| `description` | two paragraphs | Covers the points below |
+| `shell-version` | 50 | The one version that has been run; the code is written for 45 to 50 |
 | `settings-schema` | set | Correct; `getSettings()` is called without arguments, which is what Best Practices asks |
 | `url` | GitHub repo | Correct |
 | `version` | absent | Correct: "This field SHOULD NOT be set by extension developers" ([Anatomy](https://gjs.guide/extensions/overview/anatomy.html)); EGO assigns it |
-| `version-name` | absent | Worth adding |
+| `version-name` | `1.0` | Bump with each upload |
 | `session-modes` | absent | Correct ("MUST be dropped if you are only using `user` mode") |
 | `donations`, `gettext-domain` | absent | Correct. The schema's `gettext-domain="wallpaper-engine"` attribute is unused and harmless |
 
@@ -106,20 +110,19 @@ the link afterwards. This is also the only way to run the shipped
 counter. From the Anatomy page it "MUST be a string that only contains letters,
 numbers, space and period with a length between 1 and 16 characters",
 matching `/^(?!^[. ]+$)[a-zA-Z0-9 .]{1,16}$/`. So `"1.0"` or `"1.0 beta"` is
-fine, but `"v1.0-beta"` is not, because of the dash. Recommendation: add
-`"version-name": "1.0"` and bump it with each upload.
+fine, but `"v1.0-beta"` is not, because of the dash. It is `"1.0"`; bump it
+with each upload.
 
 **`shell-version`**: the guideline is that it "MUST only contain stable releases
 and up to one development release. Extensions must not claim to support future
-GNOME Shell versions." 45 to 50 are all released, so the list is allowed. It is
-also a promise: "if an extension is tested and found to be fundamentally broken
-it will be rejected". The safest first upload claims what has been run (50).
+GNOME Shell versions." It is also a promise: "if an extension is tested and found to be fundamentally broken
+it will be rejected". So the first upload claims only what has been run (50).
 Add versions as they pass the checklist in [compatibility.md](compatibility.md);
 a new upload can widen the list. GNOME 51 needs the renderer ported off
 `Shell.GLSLEffect` first.
 
 **`description`** is the only place a user or reviewer learns about behaviour
-that could look like a bug. Worth saying:
+that could look like a bug. It says:
 
 - in the Accent, Color and Custom Picture modes it replaces the wallpaper
   the shell shows (the desktop, the overview, and extensions that blur it)
@@ -271,14 +274,13 @@ The ID `org.gnome.shell.extensions.wallpaper-engine` and the path
 is named `<schema-id>.gschema.xml`, the XML is in the zip, and no compiled schema
 ships.
 
-### Licensing: needs a file
+### Licensing: meets
 
 GNOME Shell is GPL-2.0-or-later and "derived works like extensions MUST be
-distributed under compatible terms". The repo has no licence file. Add one (for
-example GPL-2.0-or-later) as `LICENSE` at the top of the repo, and `make zip`
-then includes it. The README says the engine is based on Slider-Overlay. If any
-of that code is someone else's, "it MUST include attribution to the original
-author in the distributed files".
+distributed under compatible terms". The extension is GPL-2.0-or-later: the
+GPL-2.0 text is `LICENSE` at the top of the repo, and `make zip` puts it in the
+zip. The README says the engine started out in Slider-Overlay, which is the
+same author's, so no attribution is owed.
 
 ### Copyrights and trademarks: the name
 
@@ -295,11 +297,12 @@ ribbon", which is worth keeping out of the EGO description and screenshots.
 
 `make zip` refuses anything but the shipped modules.
 
-### Use a linter: recommended
+### Use a linter: meets
 
-There is no ESLint configuration in the repo. GNOME Shell's rules are on
-GitLab, as the guideline says, and running them once before the first upload is
-cheap.
+`make lint` runs ESLint with gjs.guide's recommended configuration
+([Style Guide](https://gjs.guide/guides/gjs/style-guide.html)), copied unchanged
+into `eslint.config.mjs`, over `src/` and `scripts/dev-extension.js`. It is
+clean. `package.json` exists only to pin ESLint; nothing from it ships.
 
 ## Private API
 
@@ -385,19 +388,25 @@ its `url` points at, and two entry points would drift.
    the wallpaper back.
 10. **`?.` on `index()`** is gone from `workspace.metaWorkspace?.index()`; only
    the private `metaWorkspace`, null for a monitor's extra workspace view, keeps it.
+11. **A licence.** `LICENSE` (GPL-2.0-or-later) at the top of the repo, packed
+    by `make zip`.
+12. **`metadata.json`.** `version-name` is `1.0`, the description covers the
+    behaviour that could look like a bug, and `shell-version` claims only 50.
+13. **A linter.** `make lint`, gjs.guide's configuration; clean. It asked for
+    `PreviewHost` to use `constructor()` rather than `_init()`.
+14. **The schema is checked** with `--strict` by `make zip`.
 
 ### Still open
 
-1. **The GNOME 51 port.** `Shell.GLSLEffect` is gone in 51; the replacement is
+1. **The name, and the UUID with it.** Settle it before the first upload
+   ([the name](#copyrights-and-trademarks-the-name)); the UUID cannot change
+   afterwards.
+2. **The GNOME 51 port.** `Shell.GLSLEffect` is gone in 51; the replacement is
    `Clutter.ShaderEffect` with `vfunc_get_static_snippet()`, which mutter 50
    lacks, so 50 and 51 need two code paths or two releases
    ([compatibility.md](compatibility.md)). Until then, do not claim 51.
-2. **`metadata.json`.** Add `version-name`, write a fuller description (the
-   points in [metadata.json](#metadatajson)), narrow `shell-version` to what has
-   been tested, and settle the name, and the UUID with it, before the first
-   upload.
-3. **A licence** (outside `src/`). Add a `LICENSE` at the top of the repo;
-   `make zip` includes it automatically.
+3. **More versions.** Each of 45 to 49 can join `shell-version` once the zip
+   has been through the checklist in [compatibility.md](compatibility.md) on it.
 4. **Optional tidying.** Move `lib/scenes.js`, which only the preferences use,
    into a `prefs/` directory, as Best Practices suggests (and add it to the
    `pack` step's sources).
@@ -419,8 +428,8 @@ the extension's EGO page. EGO numbers each upload in `version`.
 Before every upload:
 
 1. Bump `version-name`.
-2. Run `glib-compile-schemas --strict --dry-run src/schemas` and `make check`.
-3. Run `make zip`, and read the listing.
+2. Run `make lint` and `make check`.
+3. Run `make zip` (it checks the schema with `--strict`), and read the listing.
 4. Install that zip (not the link) and go through the checklist in
    [compatibility.md](compatibility.md) on each version you claim.
 5. Confirm `make logs` is quiet through enable, use, lock, unlock and disable.
