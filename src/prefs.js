@@ -49,7 +49,7 @@ export default class WallpaperEnginePreferences extends ExtensionPreferences {
      *
      * The guard matters: showing a value fires the row's own change signal,
      * and without it the write-back can land mid-update -- a combo row reports
-     * no selection then, which used to rewrite the key to its first choice.
+     * no selection then, and would rewrite the key to its first choice.
      */
     _follow({ watch }, key, show, onUserChange) {
         let showing = false;

@@ -25,8 +25,8 @@ trusting any other version (checklist step 4).
 Nothing else has been tested:
 
 - **GNOME 45, 46, 47, 48 and 49** have never been run, so they are not claimed.
-- **GNOME 51** (tagged 51.0 on 2026-09-14) is not claimed, and it will not
-  work: it removed `Shell.GLSLEffect`, which draws every pattern.
+- **GNOME 51** (tag `51.0`) is not claimed, and it will not work: it removed
+  `Shell.GLSLEffect`, which draws every pattern.
 - **No Mesa GPU** (AMD, Intel), no GLES2-only GPU, no virtual machine.
 - **No X11 session.** 45 to 48 have one, 49 turns it off by default, and 50
   removed it (gjs.guide, "Port Extensions to GNOME Shell 49" and "... 50").

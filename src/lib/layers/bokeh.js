@@ -1,9 +1,8 @@
 // Large out-of-focus lights, fading in, rising softly and fading out again.
 //
 // Wide columns this time, two discs to a column, each living its life somewhere
-// in the frame and the next one born somewhere else. They used to be born below
-// the frame and rarely lived long enough to climb past its lower third; now
-// they fill it.
+// in the frame and the next one born somewhere else, filling the frame from top
+// to bottom.
 
 const COLUMN = 160;         // in U
 const SLOTS = 2;            // discs per column at any moment, as designed

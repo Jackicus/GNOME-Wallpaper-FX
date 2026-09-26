@@ -4,8 +4,7 @@ How to build the upload, what goes in it, and how the extension stands against
 the EGO review guidelines. Web sources are named where they are used; the
 guidelines are gjs.guide's
 [Review Guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html)
-and [Best Practices](https://gjs.guide/extensions/review-guidelines/best-practices.html),
-as fetched on 2026-09-24.
+and [Best Practices](https://gjs.guide/extensions/review-guidelines/best-practices.html).
 
 ## Building the zip
 
@@ -235,10 +234,10 @@ inconsistent code style, imaginary API usage, comments serving as LLM prompts,
 or other indications of AI-generated output will be rejected". Best Practices
 lists the patterns reviewers look for. In this code:
 
-- **Optional chaining on guaranteed APIs** ("Avoid Unnecessary Checks"): the
-  ones called out before (`global.display?.get_n_monitors?.()`,
-  `error.matches?.()`) are gone. What is left is on private shell paths, where
-  it is how they degrade and [private-api.md](private-api.md) explains each; on
+- **Optional chaining on guaranteed APIs** ("Avoid Unnecessary Checks"): none
+  remain — `global.display.get_n_monitors()` and `error.matches()` are called
+  directly. What optional chaining is left is on private shell paths, where it
+  is how they degrade and [private-api.md](private-api.md) explains each; on
   the parts of `WallpaperEngineApp` that `disable()` may find missing; and
   `workspace.metaWorkspace?.index()` in `overview.js`, where `metaWorkspace`
   is null for a monitor's extra workspace view.
@@ -314,15 +313,9 @@ throw inside `enable()` after the wallpaper is taken over (see
 
 ## The development path in extension.js
 
-**Done.** GJS caches a module by URL for the life of the shell, so an edit under
-`lib/` is never picked up without logging out, unless `lib/` is imported from a
-new URL each time. That staging used to live in the shipped `extension.js`,
-behind a test for a symlinked extension directory. A reviewer would have read
-code that copies JavaScript out of the extension directory into
-`$XDG_RUNTIME_DIR`, deletes a directory tree there, and imports from the copy,
-all to defeat the shell's module cache ("Avoid interfering with the Extension
-System"). It would also have been dead code in every install EGO produces. It
-now lives outside what ships:
+GJS caches a module by URL for the life of the shell, so an edit under `lib/`
+is never picked up without logging out, unless `lib/` is imported from a new
+URL each time. That staging lives outside what ships:
 
 - `src/extension.js`, the entry point that ships, imports `./lib/app.js`
   statically. Its `enable()` and `disable()` are synchronous and carry no
@@ -351,51 +344,11 @@ ships. The development link never runs `src/extension.js`, so test the shipped
 entry point from an installed zip
 ([Testing the zip](#testing-the-zip-before-uploading)).
 
-The alternative was swapping in a plain `extension.js` at pack time. It was
-rejected because the zip would then ship a file that is not in the repository
-its `url` points at, and two entry points would drift.
+Swapping in a plain `extension.js` at pack time instead would ship a file that
+is not in the repository the zip's `url` points at, and give two entry points
+that could drift, so packing does not do that.
 
-## Things a reviewer will notice, and the minimal fix
-
-### Done
-
-1. **The development path in `extension.js`** moved to
-   `scripts/dev-extension.js`, as described above.
-2. **Logging.** The `console.log` in `app.js` `_build()` is gone, and the one in
-   the old `extension.js` went with the development path. The shipped code logs
-   only failures.
-3. **`_backgroundGroup` is checked.** `_build()` warns and draws nothing when
-   it is missing. Deliberately there is no `global.window_group` fallback,
-   which would put the patterns over the windows. `disable()` uses `?.` on
-   `_interface`, `_overview`, `_system` and `_background`, so it gets through a
-   partial enable and always reaches `this._background.destroy()`.
-4. **Secondary monitors in the overview.** `_workspacePreviews()` reads
-   `view._workspacesView ?? view`, then `_workspaces` or `[_workspace]`. It was
-   checked in a two-monitor nested shell on 50.5: the secondary monitor's
-   preview shows the patterns.
-5. **The holder's container** is kept as `_holderContainer` and destroyed in
-   `release()`, and on the path where building the holder fails.
-6. **The class cache in `shader.js`** has a comment saying why it survives
-   `disable()`.
-7. **Defensive checks on guaranteed APIs.** `global.display.get_n_monitors()`,
-   `error.matches()` in `system.js` and `e.matches()` in
-   `scripts/dev-extension.js` no longer use `?.`.
-8. **The try/catch in `extension.js`** is gone from the shipped entry point.
-9. **`enable()` undoes itself when it throws** (`app.js`): the shell never
-   calls `disable()` for an extension whose `enable()` threw, so `enable()` now
-   calls it itself and rethrows, keeping the shell's error state and handing
-   the wallpaper back.
-10. **`?.` on `index()`** is gone from `workspace.metaWorkspace?.index()`; only
-   the private `metaWorkspace`, null for a monitor's extra workspace view, keeps it.
-11. **A licence.** `LICENSE` (GPL-2.0-or-later) at the top of the repo, packed
-    by `make zip`.
-12. **`metadata.json`.** `version-name` is `1.0`, the description covers the
-    behaviour that could look like a bug, and `shell-version` claims only 50.
-13. **A linter.** `make lint`, gjs.guide's configuration; clean. It asked for
-    `PreviewHost` to use `constructor()` rather than `_init()`.
-14. **The schema is checked** with `--strict` by `make zip`.
-
-### Still open
+## Still open
 
 1. **The name, and the UUID with it.** Settle it before the first upload
    ([the name](#copyrights-and-trademarks-the-name)); the UUID cannot change

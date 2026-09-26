@@ -96,10 +96,10 @@ except that its entry point is `scripts/dev-extension.js`.
 
 Every pattern is a fragment shader, evaluated at the monitor's full resolution.
 The CPU's part of a frame is setting a few uniforms, so what a pattern costs is
-GPU time — `make bench`; on this desk's GTX 1080 at 1080p the patterns take
-0.11–0.65 ms a frame each, all twelve together 3.2 ms and wave and sparkles
-0.26 — and the compositor thread does the same work whichever patterns are on
-(about 4% of a core at 60 FPS in the nested shell).
+GPU time (`make bench`; per-pattern numbers are in `docs/patterns.md`). All
+twelve together take about 3.2 ms of GPU time on a GTX 1080 at 1080p, and the
+compositor thread does the same work whichever patterns are on — about 4% of a
+core at 60 FPS in the nested shell.
 
 `background-mode` picks the base — `desktop` (the system wallpaper, left alone),
 `accent` (a gradient in GNOME's accent colour, which it follows as it changes;

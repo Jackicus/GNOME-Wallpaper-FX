@@ -133,10 +133,10 @@ randomness from a hash of the event's index.
 
 Measure, don't guess: `make bench` (or `node scripts/shaders.mjs bench
 PATTERN`) times each pattern on the real GPU, at 1080p unless told otherwise.
-On the GTX 1080 this was written on, the patterns range from 0.11 ms (wave)
-to 0.65 ms (constellation) a frame; a 240 Hz frame is 4.2 ms in all, shared with
-every other pattern and the rest of the desktop. A new pattern should come in
-under about 0.3 ms.
+On a GTX 1080, the patterns range from 0.11 ms (wave) to 0.65 ms
+(constellation) a frame; a 240 Hz frame is 4.2 ms in all, shared with every
+other pattern and the rest of the desktop. A new pattern should come in under
+about 0.3 ms.
 
 - **Let a pixel look at a few candidates, never all of them.** Put particles
   in a grid of cells (sparkles, starfield) or columns of slots (embers, bokeh)
