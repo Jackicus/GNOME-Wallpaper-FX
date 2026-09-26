@@ -4,7 +4,7 @@ allowed-tools: Bash(make status), Bash(./scripts/dev.sh status), Bash(gsettings:
 ---
 
 Run `make status`, then read the current settings with
-`gsettings get org.gnome.shell.extensions.wallpaper-engine <key>` (or
+`gsettings get org.gnome.shell.extensions.wallpaper-fx <key>` (or
 `list-recursively` for the lot), and report:
 
 - **install** — a symlink to `src/` means dev mode (edits are live); a real

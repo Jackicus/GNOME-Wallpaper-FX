@@ -8,10 +8,10 @@ Apply the current `src/` edits to the running shell, then confirm they took.
 1. Run `make reload`.
 2. Run `./scripts/dev.sh logs "1 min ago"` to see what the shell logged.
 3. Report whether it came up clean. A healthy reload logs
-   `[WallpaperEngine] Enabled from /run/user/1000/wallpaper-engine/lib-<stamp>`
+   `[WallpaperFx] Enabled from /run/user/1000/wallpaper-fx/lib-<stamp>`
    (the development entry point's only line; the shipped code logs nothing on a
    good enable). Anything with `Failed to load`, `Error during disable`, a
-   warning from Wallpaper Engine, or a JS stack trace is a real failure — quote
+   warning from Wallpaper FX, or a JS stack trace is a real failure — quote
    it and say which file it points at. A shader that failed to compile shows as
    a Cogl warning at best: run `make check` if a pattern is missing.
 

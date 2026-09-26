@@ -1,6 +1,6 @@
-# Wallpaper Engine
+# Wallpaper FX
 
-A GNOME Shell extension (UUID `wallpaper-engine@jackt`; written for shell 45–50, claims only the tested 50) that paints
+A GNOME Shell extension (UUID `wallpaper-fx@jackicus`; written for shell 45–50, claims only the tested 50) that paints
 stackable animated patterns over the desktop — GPU shaders on actors sitting on
 the wallpaper itself, no window. Settings are a Libadwaita prefs dialog.
 
@@ -47,7 +47,7 @@ except that its entry point is `scripts/dev-extension.js`.
   reused across every lock and unlock. For development it would mean an edit is
   never picked up without logging out, so the link's entry point,
   `scripts/dev-extension.js`, copies `lib/` to a fresh
-  `$XDG_RUNTIME_DIR/wallpaper-engine/lib-<stamp>/` on every enable and imports
+  `$XDG_RUNTIME_DIR/wallpaper-fx/lib-<stamp>/` on every enable and imports
   from there — which is what makes `make reload` work. Nothing of it ships.
 - `lib/app.js` — reads settings, works out what each monitor draws (its own
   canvas, or its part of one spanning all of them), builds one `MonitorRenderer`

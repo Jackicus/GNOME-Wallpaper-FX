@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Wallpaper Engine development helper.
+# Wallpaper FX development helper.
 #
 #   ./scripts/dev.sh link       link src/ into the extensions dir (dev mode)
 #   ./scripts/dev.sh install    copy src/ into the extensions dir (real install)
@@ -13,7 +13,7 @@
 #
 set -euo pipefail
 
-UUID="wallpaper-engine@jackt"
+UUID="wallpaper-fx@jackicus"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SRC_DIR="$REPO_DIR/src"
 DIST_DIR="$REPO_DIR/dist"
@@ -125,12 +125,12 @@ cmd_prefs() {
 cmd_logs() {
     require journalctl
     if [[ -n "${1:-}" ]]; then
-        info "Wallpaper Engine log output since '$1':"
+        info "Wallpaper FX log output since '$1':"
         journalctl -o cat /usr/bin/gnome-shell --since "$1" 2>/dev/null \
-            | grep -i "WallpaperEngine" || info "(nothing logged in that window)"
+            | grep -i "WallpaperFx" || info "(nothing logged in that window)"
     else
         info "Following GNOME Shell logs (Ctrl+C to stop)..."
-        journalctl -f -o cat /usr/bin/gnome-shell | grep --line-buffered -i "WallpaperEngine"
+        journalctl -f -o cat /usr/bin/gnome-shell | grep --line-buffered -i "WallpaperFx"
     fi
 }
 
@@ -214,7 +214,7 @@ Commands:
   install      Copy src/ into extensions dir and enable
   reload       Recompile schemas and reload extension (no shell restart needed)
   prefs        Open the extension preferences / settings menu
-  logs [since] Show or follow GNOME Shell logs for WallpaperEngine
+  logs [since] Show or follow GNOME Shell logs for WallpaperFx
   uninstall    Disable and remove the extension
   status       Show current installation and activation status
   pack         Build dist/$UUID.shell-extension.zip for extensions.gnome.org

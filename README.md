@@ -1,6 +1,6 @@
 <div align="center">
 
-# Wallpaper Engine
+# Wallpaper FX
 
 **Animated wallpapers for GNOME, drawn by your GPU.**
 
@@ -95,8 +95,8 @@ It isn't on extensions.gnome.org yet, so install it from source. You need
 GNOME Shell 45–50, `make`, and `glib-compile-schemas` (which comes with GLib).
 
 ```bash
-git clone https://github.com/Jackicus/GNOME-Wallpaper-Engine.git
-cd GNOME-Wallpaper-Engine
+git clone https://github.com/Jackicus/GNOME-Wallpaper-FX.git
+cd GNOME-Wallpaper-FX
 make install
 ```
 
@@ -104,11 +104,11 @@ GNOME Shell only looks for new extensions when you log in. Log out, log back in,
 then turn it on:
 
 ```bash
-gnome-extensions enable wallpaper-engine@jackt
+gnome-extensions enable wallpaper-fx@jackicus
 ```
 
 To choose a scene, open the settings in the Extensions app, or run
-`gnome-extensions prefs wallpaper-engine@jackt`.
+`gnome-extensions prefs wallpaper-fx@jackicus`.
 
 To update, run `git pull && make install`, then log out and back in. To remove
 it, run `make uninstall`.
@@ -136,7 +136,3 @@ depends on, compatibility, and publishing.
 ## Licence
 
 GPL-2.0-or-later. See [LICENSE](LICENSE).
-
----
-
-<sub>Not affiliated with the Wallpaper Engine app on Steam.</sub>

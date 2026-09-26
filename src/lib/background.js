@@ -46,7 +46,7 @@ export class ShellBackground {
         this._shellSettings = null;
         this._applied = null;
 
-        this._cacheDir = GLib.build_filenamev([GLib.get_user_cache_dir(), 'wallpaper-engine']);
+        this._cacheDir = GLib.build_filenamev([GLib.get_user_cache_dir(), 'wallpaper-fx']);
     }
 
     /** Whether the shell is showing our base rather than the user's wallpaper. */
@@ -181,7 +181,7 @@ export class ShellBackground {
                 surface.writeToPNG(path);
                 surface.finish();
             } catch (e) {
-                console.error(`[WallpaperEngine] Could not render a gradient: ${e}`);
+                console.error(`[WallpaperFx] Could not render a gradient: ${e}`);
                 return null;
             }
         }
@@ -200,7 +200,7 @@ export class ShellBackground {
         // behind a settings object, the patterns still draw -- over the
         // user's own wallpaper, which is a missing feature, not a break.
         if (!source?._settings) {
-            console.warn('[WallpaperEngine] No background source to take over; the base will not change');
+            console.warn('[WallpaperFx] No background source to take over; the base will not change');
             return;
         }
 
@@ -220,7 +220,7 @@ export class ShellBackground {
                     controlPosition: false,
                 });
             } catch (e) {
-                console.error(`[WallpaperEngine] Could not reach the shell's backgrounds: ${e}`);
+                console.error(`[WallpaperFx] Could not reach the shell's backgrounds: ${e}`);
                 this._holderContainer.destroy();
                 this._holderContainer = null;
                 return null;

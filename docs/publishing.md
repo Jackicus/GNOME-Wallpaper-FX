@@ -29,7 +29,7 @@ This runs `scripts/dev.sh pack`, which:
    under `src/lib`, the two entry points, `metadata.json`, the schema XML and
    `LICENSE`, and nothing else. A missing module or a stray file (an editor backup, a note) stops
    the build with the file named;
-5. prints the listing. The output is `dist/wallpaper-engine@jackt.shell-extension.zip`.
+5. prints the listing. The output is `dist/wallpaper-fx@jackicus.shell-extension.zip`.
 
 What it contains today:
 
@@ -38,7 +38,7 @@ LICENSE
 metadata.json
 extension.js
 prefs.js
-schemas/org.gnome.shell.extensions.wallpaper-engine.gschema.xml
+schemas/org.gnome.shell.extensions.wallpaper-fx.gschema.xml
 lib/app.js  lib/background.js  lib/catalog.js  lib/engine.js  lib/layer.js
 lib/overview.js  lib/palettes.js  lib/scenes.js  lib/shader.js  lib/system.js
 lib/layers/{aurora,bokeh,constellation,contours,embers,fireflies,nebula,
@@ -79,7 +79,7 @@ compiled schema.
 ```sh
 make uninstall
 make zip
-gnome-extensions install dist/wallpaper-engine@jackt.shell-extension.zip
+gnome-extensions install dist/wallpaper-fx@jackicus.shell-extension.zip
 # log out and back in, then enable it
 ```
 
@@ -94,8 +94,8 @@ the link afterwards. This is also the only way to run the shipped
 
 | Key | Now | Verdict |
 |---|---|---|
-| `uuid` | `wallpaper-engine@jackt` | Valid characters and not `gnome.org`. It is the extension's identity on EGO and cannot change after the first upload |
-| `name` | `Wallpaper Engine` | See [the name](#copyrights-and-trademarks-the-name) |
+| `uuid` | `wallpaper-fx@jackicus` | Valid characters and not `gnome.org`. It is the extension's identity on EGO and cannot change after the first upload |
+| `name` | `Wallpaper FX` | See [the name](#copyrights-and-trademarks-meets) |
 | `description` | two paragraphs | Covers the points below |
 | `shell-version` | 50 | The one version that has been run; the code is written for 45 to 50 |
 | `settings-schema` | set | Correct; `getSettings()` is called without arguments, which is what Best Practices asks |
@@ -103,7 +103,7 @@ the link afterwards. This is also the only way to run the shipped
 | `version` | absent | Correct: "This field SHOULD NOT be set by extension developers" ([Anatomy](https://gjs.guide/extensions/overview/anatomy.html)); EGO assigns it |
 | `version-name` | `1.0` | Bump with each upload |
 | `session-modes` | absent | Correct ("MUST be dropped if you are only using `user` mode") |
-| `donations`, `gettext-domain` | absent | Correct. The schema's `gettext-domain="wallpaper-engine"` attribute is unused and harmless |
+| `donations`, `gettext-domain` | absent | Correct. The schema carries no `gettext-domain` attribute either |
 
 **`version-name`** is the version users see; without it EGO shows its own
 counter. From the Anatomy page it "MUST be a string that only contains letters,
@@ -129,7 +129,7 @@ that could look like a bug. It says:
 - it stays still when animations are off. GNOME also turns animations off in
   virtual machines without 3D acceleration and during remote-desktop sessions;
 - it stays still in power-saver, and optionally on battery;
-- gradients are cached as images in `~/.cache/wallpaper-engine`.
+- gradients are cached as images in `~/.cache/wallpaper-fx`.
 
 ## The review guidelines, item by item
 
@@ -142,7 +142,7 @@ D-Bus interfaces from `makeProxyWrapper()` in `system.js`, the catalog and its
 shader strings, the `LOAD` string and an empty `Map` in `shader.js`, and a
 `Set` of key names in `app.js`. Nothing is instantiated, connected or scheduled.
 That is what the guideline allows ("static data structures and instances of
-built-in JavaScript objects"). `WallpaperEngineApp` calls `getSettings()` in its
+built-in JavaScript objects"). `WallpaperFxApp` calls `getSettings()` in its
 constructor, but it is constructed inside `enable()`.
 
 ### Destroy all objects: meets
@@ -238,7 +238,7 @@ lists the patterns reviewers look for. In this code:
   remain — `global.display.get_n_monitors()` and `error.matches()` are called
   directly. What optional chaining is left is on private shell paths, where it
   is how they degrade and [private-api.md](private-api.md) explains each; on
-  the parts of `WallpaperEngineApp` that `disable()` may find missing; and
+  the parts of `WallpaperFxApp` that `disable()` may find missing; and
   `workspace.metaWorkspace?.index()` in `overview.js`, where `metaWorkspace`
   is null for a monitor's extra workspace view.
 - **try/catch that only swallows** ("Avoid Unnecessary try-catch Wrappers"):
@@ -268,8 +268,8 @@ operate correctly", and it is not.
 
 ### GSettings schemas: meets
 
-The ID `org.gnome.shell.extensions.wallpaper-engine` and the path
-`/org/gnome/shell/extensions/wallpaper-engine/` use the required bases, the file
+The ID `org.gnome.shell.extensions.wallpaper-fx` and the path
+`/org/gnome/shell/extensions/wallpaper-fx/` use the required bases, the file
 is named `<schema-id>.gschema.xml`, the XML is in the zip, and no compiled schema
 ships.
 
@@ -280,16 +280,12 @@ distributed under compatible terms". The extension is GPL-2.0-or-later: the
 GPL-2.0 text is `LICENSE` at the top of the repo, and `make zip` puts it in the
 zip. All of the code is the author's own.
 
-### Copyrights and trademarks: the name
+### Copyrights and trademarks: meets
 
-"Extensions MUST NOT include copyrighted or trademarked content without proof of
-express permission from the owner", and brand names come first in its list of
-examples. "Wallpaper Engine" is also the name of a well-known commercial Steam
-application for animated wallpapers, which is the same field. Expect a reviewer
-to raise it, and possibly users to confuse the two. If the name is to change,
-change it, and the UUID with it, before the first upload, because the UUID is the
-EGO entry. Nothing that ships names another product: the Wave pattern is
-described by what it draws, not by the console menu it resembles.
+Nothing that ships names another product or reuses trademarked branding: the
+name "Wallpaper FX" does not collide with an existing product in this field, and
+the Wave pattern is described by what it draws, not by the console menu it
+resembles.
 
 ### Don't include unnecessary files: meets
 
@@ -322,7 +318,7 @@ URL each time. That staging lives outside what ships:
   try/catch:
   ```js
   enable() {
-      this._app = new WallpaperEngineApp(this);
+      this._app = new WallpaperFxApp(this);
       this._app.enable();
   }
 
@@ -333,7 +329,7 @@ URL each time. That staging lives outside what ships:
   ```
 - `scripts/dev-extension.js` is the development entry point: an async
   `enable()` that copies `lib/` to a fresh
-  `$XDG_RUNTIME_DIR/wallpaper-engine/lib-<stamp>/` and imports `app.js` from
+  `$XDG_RUNTIME_DIR/wallpaper-fx/lib-<stamp>/` and imports `app.js` from
   there, with the `_enabling` guard and the logging that belong to it.
 - `scripts/dev.sh link` (`link_tree()`) builds the extension directory as a real
   directory of links, one for each entry in `src/` except `extension.js`, which
@@ -350,26 +346,23 @@ that could drift, so packing does not do that.
 
 ## Still open
 
-1. **The name, and the UUID with it.** Settle it before the first upload
-   ([the name](#copyrights-and-trademarks-the-name)); the UUID cannot change
-   afterwards.
-2. **The GNOME 51 port.** `Shell.GLSLEffect` is gone in 51; the replacement is
+1. **The GNOME 51 port.** `Shell.GLSLEffect` is gone in 51; the replacement is
    `Clutter.ShaderEffect` with `vfunc_get_static_snippet()`, which mutter 50
    lacks, so 50 and 51 need two code paths or two releases
    ([compatibility.md](compatibility.md)). Until then, do not claim 51.
-3. **More versions.** Each of 45 to 49 can join `shell-version` once the zip
+2. **More versions.** Each of 45 to 49 can join `shell-version` once the zip
    has been through the checklist in [compatibility.md](compatibility.md) on it.
-4. **Optional tidying.** Move `lib/scenes.js`, which only the preferences use,
+3. **Optional tidying.** Move `lib/scenes.js`, which only the preferences use,
    into a `prefs/` directory, as Best Practices suggests (and add it to the
    `pack` step's sources).
 
 ## Uploading
 
 - **Web:** log in at https://extensions.gnome.org/upload/, choose
-  `dist/wallpaper-engine@jackt.shell-extension.zip`, and accept the terms.
+  `dist/wallpaper-fx@jackicus.shell-extension.zip`, and accept the terms.
 - **Command line** (gnome-extensions 49 and later; gjs.guide,
   [Port Extensions to GNOME Shell 49](https://gjs.guide/extensions/upgrading/gnome-shell-49.html)):
-  `gnome-extensions upload --accept-tos dist/wallpaper-engine@jackt.shell-extension.zip`.
+  `gnome-extensions upload --accept-tos dist/wallpaper-fx@jackicus.shell-extension.zip`.
   It prompts for the EGO username and password. `--user`, `--password` and
   `--password-file` exist for CI; gjs.guide warns that a password in a command
   line can end up in logs, the environment or the filesystem.

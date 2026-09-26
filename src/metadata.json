@@ -1,11 +1,11 @@
 {
-  "name": "Wallpaper Engine",
-  "description": "Animated wallpapers drawn by your GPU: aurora, nebulae, starfields, snow, rain and more. Twelve patterns you can stack and tune, or nine ready-made scenes, painted behind your windows and in the overview.\n\nThe patterns hold still when animations are off (GNOME also turns them off in virtual machines without 3D acceleration and in remote-desktop sessions), in power-saver mode, and optionally on battery. The Accent, Color and Custom Picture backgrounds replace the wallpaper the shell draws without changing your wallpaper setting. Gradients are cached as images in ~/.cache/wallpaper-engine.",
-  "uuid": "wallpaper-engine@jackt",
+  "name": "Wallpaper FX",
+  "description": "Animated wallpapers drawn by your GPU: aurora, nebulae, starfields, snow, rain and more. Twelve patterns you can stack and tune, or nine ready-made scenes, painted behind your windows and in the overview.\n\nThe patterns hold still when animations are off (GNOME also turns them off in virtual machines without 3D acceleration and in remote-desktop sessions), in power-saver mode, and optionally on battery. The Accent, Color and Custom Picture backgrounds replace the wallpaper the shell draws without changing your wallpaper setting. Gradients are cached as images in ~/.cache/wallpaper-fx.",
+  "uuid": "wallpaper-fx@jackicus",
   "shell-version": [
     "50"
   ],
-  "settings-schema": "org.gnome.shell.extensions.wallpaper-engine",
-  "url": "https://github.com/Jackicus/GNOME-Wallpaper-Engine",
+  "settings-schema": "org.gnome.shell.extensions.wallpaper-fx",
+  "url": "https://github.com/Jackicus/GNOME-Wallpaper-FX",
   "version-name": "1.0"
 }

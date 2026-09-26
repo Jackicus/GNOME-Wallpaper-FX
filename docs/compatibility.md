@@ -270,7 +270,7 @@ should open the file chooser, and you should be able to save and delete a scene.
    changed, add it to `DIALECTS`, then run `make check`.
 4. Install the zip rather than the development link: `make uninstall`, then
    `make zip`, then
-   `gnome-extensions install dist/wallpaper-engine@jackt.shell-extension.zip`,
+   `gnome-extensions install dist/wallpaper-fx@jackicus.shell-extension.zip`,
    then log out and in. This tests what users get: the shipped
    `src/extension.js`, the schema compiled on install, and `lib/` imported in
    place. `make link` puts the link back afterwards. **Do not use

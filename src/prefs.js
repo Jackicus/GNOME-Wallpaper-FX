@@ -21,7 +21,7 @@ function writeTuning(settings, id, key, value) {
     settings.set_value('pattern-tuning', new GLib.Variant('a{sa{sd}}', all));
 }
 
-export default class WallpaperEnginePreferences extends ExtensionPreferences {
+export default class WallpaperFxPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         const settings = this.getSettings();
         window.set_default_size(640, 700);

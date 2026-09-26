@@ -148,7 +148,7 @@ export class OverviewCanvas {
             if (!source || !monitor) continue;
 
             const host = new PreviewHost({
-                name: `WallpaperEnginePreview:${index}`,
+                name: `WallpaperFxPreview:${index}`,
                 x_align: Clutter.ActorAlign.FILL,
                 y_align: Clutter.ActorAlign.FILL,
                 x_expand: true,

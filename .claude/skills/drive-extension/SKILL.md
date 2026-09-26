@@ -1,9 +1,9 @@
 ---
 name: drive-extension
-description: Run Wallpaper Engine in a throwaway nested GNOME Shell, mirrored live on the user's desktop — screenshot it, compare frames, then shut it down. Use whenever a change must be SEEN (a pattern's look, colours, palettes, opacity, motion, prefs layout), or needs a fresh shell start (extension.js, metadata.json, the schema, a new UUID).
+description: Run Wallpaper FX in a throwaway nested GNOME Shell, mirrored live on the user's desktop — screenshot it, compare frames, then shut it down. Use whenever a change must be SEEN (a pattern's look, colours, palettes, opacity, motion, prefs layout), or needs a fresh shell start (extension.js, metadata.json, the schema, a new UUID).
 ---
 
-# Driving Wallpaper Engine in a nested shell
+# Driving Wallpaper FX in a nested shell
 
 The extension paints on the desktop background, so the only way to verify a
 visual change is to look at it. The nested shell is a complete second GNOME
@@ -19,7 +19,7 @@ the user through that window. Drive it so both can follow.
 
 ```bash
 S=/tmp/claude-1000/...scratchpad        # your scratchpad; keep shots out of the repo
-./scripts/nested.sh start               # ~2 s; Wallpaper Engine is ACTIVE when it returns
+./scripts/nested.sh start               # ~2 s; Wallpaper FX is ACTIVE when it returns
 ./scripts/nested.sh do "say Baseline" "shot $S/before.png"
 # ... edit src/ ...
 ./scripts/nested.sh reload
@@ -70,9 +70,9 @@ Everything visible is a GSettings key, so the way to exercise a pattern is to
 set one inside the nested session and take a shot:
 
 ```bash
-./scripts/nested.sh run gsettings set org.gnome.shell.extensions.wallpaper-engine \
+./scripts/nested.sh run gsettings set org.gnome.shell.extensions.wallpaper-fx \
     enabled-effects "['aurora']"
-./scripts/nested.sh run gsettings set org.gnome.shell.extensions.wallpaper-engine \
+./scripts/nested.sh run gsettings set org.gnome.shell.extensions.wallpaper-fx \
     background-mode color
 ```
 
@@ -86,7 +86,7 @@ brightness, and set `speed` to something very low if a frame needs to be
 comparable at all.
 
 **Driving the prefs dialog:**
-`./scripts/nested.sh run gnome-extensions prefs wallpaper-engine@jackt &` opens
+`./scripts/nested.sh run gnome-extensions prefs wallpaper-fx@jackicus &` opens
 it inside the nested session, where `shot` and the mirror both show it — this is
 how prefs layout gets checked without touching the real desktop.
 
@@ -99,7 +99,7 @@ while iterating and `reload` into it; `start` reuses a running one.
 Backstops, so a forgotten `stop` never strands a window on the user's desktop:
 - the mirror window closes by itself when the nested shell stops or crashes;
 - a shell started from a Claude Code session stops itself after 10 minutes with
-  no `nested.sh` command (`WALLPAPER_NESTED_IDLE=<seconds>` at `start`, `0` = never);
+  no `nested.sh` command (`WALLPAPER_FX_NESTED_IDLE=<seconds>` at `start`, `0` = never);
 - the project's SessionEnd hook stops it when that session ends.
 
 Do not rely on them — they are for accidents. If the idle stop hit mid-task,
@@ -117,7 +117,7 @@ one (and a schema edit needs `glib-compile-schemas src/schemas` first —
 `logs` first. A JS exception during enable leaves a bare wallpaper, which reads
 as "no change", and `engine.js` catches a throwing layer per frame — so a broken
 pattern looks like one that was never enabled. `logs` hides D-Bus activation and
-portal chatter; `logs 200 --all` shows everything. `[WallpaperEngine]` lines are
+portal chatter; `logs 200 --all` shows everything. `[WallpaperFx]` lines are
 the extension's own.
 
 ## Gotchas

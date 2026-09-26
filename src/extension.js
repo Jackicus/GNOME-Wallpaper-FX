@@ -1,10 +1,10 @@
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
-import { WallpaperEngineApp } from './lib/app.js';
+import { WallpaperFxApp } from './lib/app.js';
 
-export default class WallpaperEngineExtension extends Extension {
+export default class WallpaperFxExtension extends Extension {
     enable() {
-        this._app = new WallpaperEngineApp(this);
+        this._app = new WallpaperFxApp(this);
         this._app.enable();
     }
 

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<schemalist gettext-domain="wallpaper-engine">
-  <schema id="org.gnome.shell.extensions.wallpaper-engine" path="/org/gnome/shell/extensions/wallpaper-engine/">
+<schemalist>
+  <schema id="org.gnome.shell.extensions.wallpaper-fx" path="/org/gnome/shell/extensions/wallpaper-fx/">
     <key name="enabled-effects" type="as">
       <default>['wave', 'sparkles']</default>
       <summary>Enabled animated patterns</summary>

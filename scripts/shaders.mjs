@@ -29,7 +29,7 @@ import { execFileSync } from 'child_process';
 
 const here = path.dirname(new URL(import.meta.url).pathname);
 const lib = path.join(here, '..', 'src', 'lib');
-const work = fs.mkdtempSync(path.join(os.tmpdir(), 'wallpaper-engine-shaders-'));
+const work = fs.mkdtempSync(path.join(os.tmpdir(), 'wallpaper-fx-shaders-'));
 
 // shader.js wraps the GLSL in GObject classes the shell provides. Only its pure
 // half is wanted here, so the gi imports become a stand-in that absorbs any use.

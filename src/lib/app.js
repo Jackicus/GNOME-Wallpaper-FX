@@ -9,7 +9,7 @@ import { ShellBackground } from './background.js';
 // Keys that decide the base under the patterns, which the shell draws for us.
 const BASE_KEYS = new Set(['background-mode', 'color-palette', 'custom-image', 'span-monitors']);
 
-export class WallpaperEngineApp {
+export class WallpaperFxApp {
     constructor(extension) {
         this._settings = extension.getSettings();
         this._clock = new SceneClock();
@@ -149,7 +149,7 @@ export class WallpaperEngineApp {
         // it there is nowhere to draw that would not cover the windows.
         const group = Main.layoutManager._backgroundGroup;
         if (!group) {
-            console.warn('[WallpaperEngine] No background group to draw in');
+            console.warn('[WallpaperFx] No background group to draw in');
             return;
         }
 

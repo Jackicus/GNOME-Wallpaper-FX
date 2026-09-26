@@ -76,7 +76,7 @@ export class SystemState {
         new Proxy(Gio.DBus.system, name, path, (proxy, error) => {
             if (error) {
                 if (!error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                    console.warn(`[WallpaperEngine] ${name} unavailable: ${error.message}`);
+                    console.warn(`[WallpaperFx] ${name} unavailable: ${error.message}`);
                 return;
             }
             if (this._cancellable.is_cancelled()) return;

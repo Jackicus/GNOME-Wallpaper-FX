@@ -79,7 +79,7 @@ export class MonitorRenderer {
         this._layers = new Map(); // pattern id -> { id, actor, effect, state, density, t }
 
         this.actor = new Clutter.Actor({
-            name: `WallpaperEngine-Monitor-${monitor.index}`,
+            name: `WallpaperFx-Monitor-${monitor.index}`,
             x: monitor.x,
             y: monitor.y,
             width: monitor.width,

@@ -1,6 +1,6 @@
 # Private and deep GNOME Shell API
 
-Wallpaper Engine puts a canvas between the wallpaper and the windows, makes its
+Wallpaper FX puts a canvas between the wallpaper and the windows, makes its
 base the shell's own wallpaper, and follows both into the overview and the
 workspace slide. None of that has a public API. This is everything it reaches
 into, for reviewers on extensions.gnome.org and for whoever ports it to the next
@@ -42,7 +42,7 @@ the only sign.
 ```js
 const group = Main.layoutManager._backgroundGroup;
 if (!group) {
-    console.warn('[WallpaperEngine] No background group to draw in');
+    console.warn('[WallpaperFx] No background group to draw in');
     return;
 }
 ...
@@ -122,7 +122,7 @@ fallback base; the GPU renderer has no base canvas.
 
 ```js
 } catch (e) {
-    console.error(`[WallpaperEngine] Could not reach the shell's backgrounds: ${e}`);
+    console.error(`[WallpaperFx] Could not reach the shell's backgrounds: ${e}`);
     this._holderContainer.destroy();
     this._holderContainer = null;
     return null;
@@ -169,7 +169,7 @@ used.
 
 ```js
 if (!source?._settings) {
-    console.warn('[WallpaperEngine] No background source to take over; the base will not change');
+    console.warn('[WallpaperFx] No background source to take over; the base will not change');
     return;
 }
 ```
@@ -224,7 +224,7 @@ ever written to dconf and the base is gone the moment the shell restarts. `updat
 `picture-uri` and `picture-uri-dark` to the same file (so the colour scheme does
 not matter), `picture-options`, `primary-color`, `secondary-color` and
 `color-shading-type`, between `delay()` and `apply()` so a mode change costs one
-crossfade. The gradient files are PNGs in `~/.cache/wallpaper-engine/`, named by
+crossfade. The gradient files are PNGs in `~/.cache/wallpaper-fx/`, named by
 a digest of the stops and size, and never pruned.
 
 ## The overview (overview.js)
@@ -391,7 +391,7 @@ strip and die with it; they are not tracked.
 
 ```js
 return GObject.registerClass({
-    GTypeName: `WallpaperEngine_${effect.id}_${LOAD}`,
+    GTypeName: `WallpaperFx_${effect.id}_${LOAD}`,
 }, class extends Shell.GLSLEffect {
     vfunc_build_pipeline() {
         this.add_glsl_snippet(FRAGMENT, declarations, code, true);
@@ -549,7 +549,7 @@ pace at one rate there.
 ## Not shell internals: the development entry point
 
 `scripts/dev-extension.js`, the entry point `make link` installs, copies `lib/`
-into `$XDG_RUNTIME_DIR/wallpaper-engine/` on every enable and imports it from
+into `$XDG_RUNTIME_DIR/wallpaper-fx/` on every enable and imports it from
 there, deliberately working around the shell's module cache. It is not in the
 zip; the shipped `src/extension.js` imports `./lib/app.js` statically. See
 [publishing.md](publishing.md#the-development-path-in-extensionjs).

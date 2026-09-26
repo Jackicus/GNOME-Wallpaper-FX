@@ -177,7 +177,7 @@ function buildEffectClass(effect) {
     const { declarations, code } = shaderSource(effect);
 
     return GObject.registerClass({
-        GTypeName: `WallpaperEngine_${effect.id}_${LOAD}`,
+        GTypeName: `WallpaperFx_${effect.id}_${LOAD}`,
     }, class extends Shell.GLSLEffect {
         vfunc_build_pipeline() {
             this.add_glsl_snippet(FRAGMENT, declarations, code, true);

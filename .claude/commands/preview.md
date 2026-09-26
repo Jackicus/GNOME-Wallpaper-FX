@@ -1,5 +1,5 @@
 ---
-description: Show Wallpaper Engine running in a nested shell, mirrored live on the desktop, and describe what it looks like
+description: Show Wallpaper FX running in a nested shell, mirrored live on the desktop, and describe what it looks like
 argument-hint: "[optional: what to show, e.g. 'aurora over the dusk palette']"
 allowed-tools: Bash(./scripts/nested.sh:*), Bash(make nested:*), Read
 ---
@@ -12,7 +12,7 @@ Requested: $ARGUMENTS
 1. `./scripts/nested.sh start` (reuses one if already running; opens the mirror
    window; the extension is ACTIVE when it returns).
 2. If the request names particular patterns, a palette or a mode, set them with
-   `./scripts/nested.sh run gsettings set org.gnome.shell.extensions.wallpaper-engine …`
+   `./scripts/nested.sh run gsettings set org.gnome.shell.extensions.wallpaper-fx …`
    — the running extension repaints on the key change.
 3. In **one** `./scripts/nested.sh do …` call: `say` what is being shown, `wait`
    a beat, then `shot` into your scratchpad.

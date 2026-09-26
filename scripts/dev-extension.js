@@ -5,7 +5,7 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
-export default class WallpaperEngineExtension extends Extension {
+export default class WallpaperFxExtension extends Extension {
     async enable() {
         const enabling = {};
         this._enabling = enabling;
@@ -16,11 +16,11 @@ export default class WallpaperEngineExtension extends Extension {
             if (this._enabling !== enabling)
                 return;
 
-            this._app = new module.WallpaperEngineApp(this);
+            this._app = new module.WallpaperFxApp(this);
             this._app.enable();
-            console.log(`[WallpaperEngine] Enabled from ${lib.get_path()}`);
+            console.log(`[WallpaperFx] Enabled from ${lib.get_path()}`);
         } catch (e) {
-            console.error('[WallpaperEngine] Failed to load lib/app.js:', e);
+            console.error('[WallpaperFx] Failed to load lib/app.js:', e);
         }
     }
 
@@ -30,7 +30,7 @@ export default class WallpaperEngineExtension extends Extension {
             try {
                 this._app.disable();
             } catch (e) {
-                console.error('[WallpaperEngine] Error during disable:', e);
+                console.error('[WallpaperFx] Error during disable:', e);
             }
             this._app = null;
         }
@@ -47,7 +47,7 @@ export default class WallpaperEngineExtension extends Extension {
      * runs whatever is on disk.
      */
     _libDir() {
-        const base = GLib.build_filenamev([GLib.get_user_runtime_dir(), 'wallpaper-engine']);
+        const base = GLib.build_filenamev([GLib.get_user_runtime_dir(), 'wallpaper-fx']);
         removeTree(Gio.File.new_for_path(base));
         const staged = Gio.File.new_for_path(GLib.build_filenamev([base, `lib-${Date.now()}`]));
         staged.make_directory_with_parents(null);
@@ -85,6 +85,6 @@ function removeTree(file) {
         file.delete(null);
     } catch (e) {
         if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_FOUND))
-            console.warn(`[WallpaperEngine] Could not clean ${file.get_path()}: ${e.message}`);
+            console.warn(`[WallpaperFx] Could not clean ${file.get_path()}: ${e.message}`);
     }
 }
