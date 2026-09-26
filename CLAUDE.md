@@ -1,6 +1,6 @@
 # Wallpaper Engine
 
-A GNOME Shell extension (UUID `wallpaper-engine@jackt`, shell 45–50) that paints
+A GNOME Shell extension (UUID `wallpaper-engine@jackt`; written for shell 45–50, claims only the tested 50) that paints
 stackable animated patterns over the desktop — GPU shaders on actors sitting on
 the wallpaper itself, no window. Settings are a Libadwaita prefs dialog.
 
@@ -20,6 +20,9 @@ line. `make bench` times each pattern on the real GPU, and
 `node scripts/shaders.mjs render PATTERN` draws frames of one to a PNG with no
 shell at all — the quick loop for a pattern's look, and the one that works
 while something else has the nested shell.
+
+`make lint` runs ESLint (gjs.guide's configuration, `eslint.config.mjs`) over
+the GJS code; keep it clean.
 
 `make` targets just delegate to `scripts/dev.sh` (install/reload/logs/prefs/
 pack), `scripts/nested.sh` (the nested shell) and `scripts/shaders.mjs`

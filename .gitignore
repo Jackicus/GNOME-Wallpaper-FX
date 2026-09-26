@@ -5,3 +5,4 @@ __pycache__/
 *.log
 scripts/test_*.js
 scripts/*.png
+node_modules/

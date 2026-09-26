@@ -7,7 +7,8 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 export default class WallpaperEngineExtension extends Extension {
     async enable() {
-        const enabling = this._enabling = {};
+        const enabling = {};
+        this._enabling = enabling;
 
         try {
             const lib = this._libDir();

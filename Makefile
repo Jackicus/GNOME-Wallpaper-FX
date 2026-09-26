@@ -2,7 +2,7 @@ DEV := ./scripts/dev.sh
 NESTED := ./scripts/nested.sh
 
 .PHONY: all link install reload prefs logs uninstall status clean help \
-        check bench nested nested-headless nested-stop nested-status preview zip
+        check bench lint nested nested-headless nested-stop nested-status preview zip
 
 all: install
 
@@ -16,6 +16,14 @@ zip:
 # Every pattern's shader, compiled (check) or timed on the GPU (bench), outside the shell.
 check bench:
 	@node scripts/shaders.mjs $@
+
+# gjs.guide's ESLint rules over the GJS code (eslint.config.mjs).
+lint: node_modules
+	@npx --no-install eslint .
+
+node_modules: package.json
+	npm install --no-audit --no-fund
+	@touch $@
 
 clean:
 	rm -f src/schemas/gschemas.compiled

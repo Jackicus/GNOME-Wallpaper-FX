@@ -38,7 +38,7 @@ float nebulaGlow(vec2 p, vec4 g) {
 // testing every glow 15%.
 vec4 nebula(vec2 p) {
     vec4 a = vec4(0.0);
-    ${HUES.flatMap((_, h) => Array.from({ length: PER_HUE / 4 }, (_, b) =>
+    ${HUES.flatMap((_hue, h) => Array.from({ length: PER_HUE / 4 }, (_, b) =>
         `if (nebula_count.${LANES[h]} > ${b * 4}.5) a.${LANES[h]} += ` +
         [0, 1, 2, 3].map(k => `nebulaGlow(p, nebula_glow${h}[${b * 4 + k}])`).join(' + ') + ';')).join('\n    ')}
     return vec4(${HUES.map((h, i) => `${rgb(h)} * a.${LANES[i]}`).join(' + ')}, a.x + a.y + a.z + a.w);

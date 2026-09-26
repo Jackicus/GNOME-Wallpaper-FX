@@ -25,8 +25,8 @@ import Clutter from 'gi://Clutter';
 // re-allocates without always notifying its size.
 const PreviewHost = GObject.registerClass(
 class PreviewHost extends Clutter.Actor {
-    _init(props, monitor) {
-        super._init(props);
+    constructor(props, monitor) {
+        super(props);
         this._monitor = monitor;
     }
 
