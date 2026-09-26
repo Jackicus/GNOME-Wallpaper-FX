@@ -8,7 +8,7 @@ Aurora, nebulae, starfields, snow, rain and more: twelve patterns you can stack,
 painted straight onto the desktop behind your windows.<br>
 No extra window, no video file, and next to no CPU.
 
-![GNOME Shell 45–50](https://img.shields.io/badge/GNOME_Shell-45--50-4a86cf?logo=gnome&logoColor=white)
+![GNOME Shell 50](https://img.shields.io/badge/GNOME_Shell-50-4a86cf?logo=gnome&logoColor=white)
 
 ![Deep Space: nebula clouds, a starfield and drifting constellations](docs/screenshots/deep-space.jpg)
 <sub>*Deep Space*: nebula clouds, a starfield and drifting constellations, with a meteor on its way through.</sub>
@@ -132,6 +132,10 @@ A pattern is a single GLSL function plus one line in `src/lib/catalog.js`.
 [docs/patterns.md](docs/patterns.md) explains how to write one and what keeps it
 cheap. The rest of [`docs/`](docs/) covers the shell internals the extension
 depends on, compatibility, and publishing.
+
+## Licence
+
+GPL-2.0-or-later. See [LICENSE](LICENSE).
 
 ---
 
