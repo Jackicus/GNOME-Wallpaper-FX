@@ -22,6 +22,7 @@ import GDesktopEnums from 'gi://GDesktopEnums';
 import Clutter from 'gi://Clutter';
 import cairo from 'cairo';
 import * as Background from 'resource:///org/gnome/shell/ui/background.js';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import { accentStops, paintGradient, paletteStops } from './palettes.js';
 
@@ -45,6 +46,7 @@ export class ShellBackground {
         this._source = null;
         this._shellSettings = null;
         this._applied = null;
+        this._retakeId = 0;
 
         this._cacheDir = GLib.build_filenamev([GLib.get_user_cache_dir(), 'wallpaper-fx']);
     }
@@ -97,7 +99,13 @@ export class ShellBackground {
         this._shellSettings = null;
         this._applied = null;
 
+        if (this._retakeId) {
+            GLib.source_remove(this._retakeId);
+            this._retakeId = 0;
+        }
+
         if (source && shellSettings) {
+            delete source.destroy;
             source._settings = shellSettings;
             reloadBackgrounds(source);
         }
@@ -208,6 +216,36 @@ export class ShellBackground {
         this._source = source;
         source._settings = this._settings;
         reloadBackgrounds(source);
+        adoptStranded(source);
+
+        // The shell counts who holds a source and destroys it at zero, and
+        // any extension that destroys a BackgroundManager twice takes one
+        // too many off. The source we hold can then go from under us, and
+        // the next wallpaper built comes from a fresh one reading the
+        // user's real settings. So watch for it, and take the new one.
+        const destroy = source.destroy;
+        source.destroy = (...args) => {
+            destroy.apply(source, args);
+            this._sourceLost();
+        };
+    }
+
+    _sourceLost() {
+        this._source = null;
+        this._shellSettings = null;
+
+        // The holder's claim died with the source; releasing it now would take
+        // one from whichever source replaces it, and repeat the damage.
+        this._holder = null;
+        this._holderContainer?.destroy();
+        this._holderContainer = null;
+
+        // Idle, so the cache is done with the old one before we ask again.
+        this._retakeId ||= GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+            this._retakeId = 0;
+            this._attach();
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     _obtainSource() {
@@ -241,6 +279,24 @@ function reloadBackgrounds(source) {
 
     for (const key of Object.keys(backgrounds))
         backgrounds[key]?._emitChangedSignal?.();
+}
+
+/**
+ * Moves the desktop's wallpapers off a source the shell has destroyed and onto
+ * the live one. Left where they are, they show whatever they last had until
+ * the next monitor change rebuilds them. Each takes a claim on the new source,
+ * as it would have had it been built there, so its eventual release balances.
+ */
+function adoptStranded(source) {
+    for (const manager of Main.layoutManager._bgManagers ?? []) {
+        const old = manager._backgroundSource;
+        if (!old || old === source || old._backgrounds || !manager._updateBackgroundActor)
+            continue;
+
+        manager._backgroundSource = source;
+        source._useCount++;
+        manager._updateBackgroundActor();
+    }
 }
 
 // One image serves every monitor, so it is rendered for the largest of them.

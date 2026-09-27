@@ -21,6 +21,7 @@ because `src/` is changing; functions are named instead.
 | `new Background.BackgroundManager(...)._backgroundSource` | background.js | Base modes show the user's own wallpaper | Yes, logs a warning |
 | `source._settings` (read, replaced, restored) | background.js | Same | Yes, logs a warning |
 | `source._backgrounds`, `background._emitChangedSignal()` | background.js | A new base appears only at the shell's next wallpaper reload | Yes, silently |
+| `source.destroy` (wrapped), `source._useCount`, `Main.layoutManager._bgManagers`, `manager._backgroundSource`, `manager._updateBackgroundActor()` | background.js | After another extension over-releases the source, base modes show the user's own wallpaper until the next log in | Yes, silently |
 | `Main.overview._overview.controls._workspacesDisplay._workspacesViews`, `view._workspaces` | overview.js | Patterns vanish in the overview only | Yes, silently |
 | `workspace._background._backgroundGroup`, `._monitorIndex` | overview.js | Same | Yes, silently |
 | `Main.overview._overview.controls._thumbnailsBox._thumbnails`, `thumbnail._contents` | overview.js | Patterns vanish from the thumbnail strip only | Yes, silently |
@@ -207,6 +208,54 @@ would lose the idle debounce that folds several changes into one crossfade.
 shell reloads the wallpaper for its own reasons: a monitor change, the user
 changing their wallpaper, a light/dark switch. Until then the desktop keeps
 showing the previous one.
+
+### `source.destroy`, `source._useCount`, and the desktop's managers
+
+In `_attach()`, after the swap, and `adoptStranded()`:
+
+```js
+const destroy = source.destroy;
+source.destroy = (...args) => {
+    destroy.apply(source, args);
+    this._sourceLost();
+};
+
+for (const manager of Main.layoutManager._bgManagers ?? []) {
+    const old = manager._backgroundSource;
+    if (!old || old === source || old._backgrounds || !manager._updateBackgroundActor)
+        continue;
+    manager._backgroundSource = source;
+    source._useCount++;
+    manager._updateBackgroundActor();
+}
+```
+
+**What for.** The cache counts the managers holding a source and destroys it
+when the count reaches zero, and `BackgroundManager.destroy()` releases every
+time it is called, by schema rather than by source. An extension that destroys
+a manager twice therefore takes one too many off. (Blur My Shell's screenshot
+component can do this: each of its window-selector destroy handlers destroys
+every manager in its list.) Enough of that and the source
+we swapped our settings into is destroyed while we still hold it. The next
+manager built gets a fresh source reading the user's real settings, and the
+desktop shows their wallpaper under an accent or palette base until they log
+out. Wrapping `destroy` on that one instance tells us when it happens. The
+holder is then dropped without releasing it, because its claim died with the
+source and releasing it would take one from the replacement. On an idle we take
+whichever source is live now. The desktop's own managers are still pointing at
+the dead source, so they are moved over and each takes a claim, which puts the
+count right again for them. Managers owned by other code (the overview's,
+another extension's) stay on the dead source, showing the last base, until
+their owners rebuild them.
+
+**Why nothing public.** The count and the cache are both module-private. There
+is no signal for a source being dropped.
+
+**If it changes.** Nothing is logged. If `destroy` stops being how the cache
+drops a source, the wrap never fires and an over-release leaves the base
+showing the user's wallpaper until the next log in. That was the state before
+this existed. If `_bgManagers` or `_updateBackgroundActor` goes, the desktop
+keeps the last base it had until the next monitor change rebuilds it.
 
 ### A second `Gio.Settings` for `org.gnome.desktop.background`
 
