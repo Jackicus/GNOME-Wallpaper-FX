@@ -4,7 +4,7 @@
 // premultiplied colour, named after its id; this wraps one in a
 // `Shell.GLSLEffect`, which paints an actor with it. Nothing is drawn on the
 // CPU and nothing is uploaded per frame but a handful of uniforms, so the
-// compositor thread no longer pays per pixel, and the patterns are drawn at the
+// compositor thread pays nothing per pixel, and the patterns are drawn at the
 // monitor's full resolution.
 //
 // One shader per pattern rather than one for the lot: a shader is compiled for

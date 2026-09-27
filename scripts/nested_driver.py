@@ -70,8 +70,8 @@ def _keysym(name):
 class Driver:
     """One bus connection, one bus name and one input session for a whole batch.
 
-    Every step used to be its own process, re-acquiring the name and re-creating
-    the virtual input devices -- and paying the first-event workaround -- each time.
+    Shared across every step, so the name and the virtual input devices are
+    acquired once, and the first-event workaround below is paid once too.
     """
 
     def __init__(self):
