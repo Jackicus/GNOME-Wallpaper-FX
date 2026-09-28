@@ -40,7 +40,8 @@ extension.js
 prefs.js
 schemas/org.gnome.shell.extensions.wallpaper-fx.gschema.xml
 lib/app.js  lib/background.js  lib/catalog.js  lib/engine.js  lib/layer.js
-lib/overview.js  lib/palettes.js  lib/scenes.js  lib/shader.js  lib/system.js
+lib/looks.js  lib/overview.js  lib/palettes.js  lib/places.js  lib/scenes.js
+lib/shader.js  lib/sun.js  lib/system.js  lib/weather.js
 lib/layers/{aurora,bokeh,clouds,constellation,contours,embers,fireflies,fog,
             lightning,nebula,rain,snow,sparkles,starfield,sunbeams,wave}.js
 ```
@@ -129,7 +130,13 @@ that could look like a bug. It says:
 - it stays still when animations are off. GNOME also turns animations off in
   virtual machines without 3D acceleration and during remote-desktop sessions;
 - it stays still in power-saver, and optionally on battery;
-- gradients are cached as images in `~/.cache/wallpaper-fx`.
+- gradients are cached as images in `~/.cache/wallpaper-fx`;
+- Follow the Weather, off until the user turns it on, is the only thing that
+  uses the network. Through GWeather it sends the coordinates of the nearest
+  town in GWeather's list to MET Norway, and that town's station code to
+  aviationweather.gov. With Find My Location it also asks Location Services
+  where the user is, to city accuracy, the way GNOME Shell's own weather does,
+  and never while Location Services are off in Settings.
 
 ## The review guidelines, item by item
 
@@ -139,8 +146,9 @@ that could look like a bug. It says:
 the module scope of everything under `lib/` runs when the extension is loaded,
 before `enable()`. All of it is definitions: the `PreviewHost` class, the
 D-Bus interfaces from `makeProxyWrapper()` in `system.js`, the catalog and its
-shader strings, the `LOAD` string and an empty `Map` in `shader.js`, and a
-`Set` of key names in `app.js`. Nothing is instantiated, connected or scheduled.
+shader strings, the `LOAD` string and an empty `Map` in `shader.js`, a `Set` of
+key names in `app.js`, and in `weather.js` the tables from GWeather's enums to
+plain words. Nothing is instantiated, connected or scheduled.
 That is what the guideline allows ("static data structures and instances of
 built-in JavaScript objects"). `WallpaperFxApp` calls `getSettings()` in its
 constructor, but it is constructed inside `enable()`.
@@ -149,8 +157,11 @@ constructor, but it is constructed inside `enable()`.
 
 `disable()` tears down, in order: the layout-manager, settings and interface
 signal connections; the overview clones and the slide override
-(`InjectionManager.clear()`); `SystemState` (its `Gio.Cancellable` is cancelled
-and its D-Bus proxies and `St.Settings` connection are dropped); the wallpaper
+(`InjectionManager.clear()`); the `WeatherWatcher`, if the weather is on (its
+`Gio.Cancellable` is cancelled, its timer removed, its GWeather request aborted,
+and its GWeather, Geoclue and settings connections dropped); `SystemState` (its
+`Gio.Cancellable` is cancelled and its D-Bus proxies and `St.Settings`
+connection are dropped); the wallpaper
 takeover, including the holder `BackgroundManager` and its container actor; and
 every `MonitorRenderer` (its timer, then its actor and every layer and effect
 under it). It uses `?.` on the parts `enable()` builds, so it also gets through a
@@ -172,15 +183,16 @@ there is a GNOME without `Shell.GLSLEffect`, which is not claimed.
 
 Every connection uses `connectObject()`/`disconnectObject()` and is dropped in
 the owner's `destroy()`/`disable()`. The `destroy` handlers on overview clones
-are on the clones themselves. The preferences disconnect their one settings
-handler on `close-request`.
+are on the clones themselves. The preferences disconnect their settings handler
+and their Location Services handler on `close-request`.
 
 ### Remove main loop sources: meets
 
 There is one source per monitor: `GLib.timeout_add()` in
 `MonitorRenderer._onPaint()`, guarded by `if (this._timerId || ...) return;` on
-the line before it is created, and removed in `MonitorRenderer.destroy()`.
-Nothing else adds one.
+the line before it is created, and removed in `MonitorRenderer.destroy()`. The
+other is the `WeatherWatcher`'s five-minute `GLib.timeout_add_seconds()`, added
+in its constructor and removed in its `destroy()`. Nothing else adds one.
 
 ### Do not use deprecated modules: meets
 
@@ -189,12 +201,13 @@ There is no `ByteArray`, `Lang` or `Mainloop`, and no `run_dispose()`.
 ### No GTK in the shell, no shell libraries in the preferences: meets
 
 The shell side imports Gio, GLib, GObject, GDesktopEnums, Clutter, Cogl, Meta,
-Shell, St and cairo, and no Gtk, Gdk or Adw. `prefs.js` imports Adw, Gtk, Gio
-and GLib, plus `lib/catalog.js` (the layers and `lib/layer.js`, all pure JS),
-`lib/palettes.js` (cairo) and `lib/scenes.js` (GLib), none of which imports
-Clutter, Meta, St or Shell. Best Practices suggests keeping modules used only by
-the preferences in a `prefs/` directory. `scenes.js` is one, so moving it is
-optional tidying.
+Shell, St, GWeather, Geoclue and cairo, and no Gtk, Gdk or Adw. `prefs.js`
+imports Adw, Gtk, Gio and GLib, plus `lib/catalog.js` (the layers and
+`lib/layer.js`, all pure JS), `lib/palettes.js` (cairo), `lib/scenes.js` (GLib)
+and `lib/places.js` (GWeather), none of which imports Clutter, Meta, St or
+Shell. Best Practices suggests keeping modules used only by the preferences in
+a `prefs/` directory. `scenes.js` and `places.js` are such modules, so moving
+them is optional tidying.
 
 ### Avoid interfering with the extension system: meets
 
@@ -211,12 +224,14 @@ This is plain ES modules, unminified.
 The shipped code logs nothing on a good enable, a lock or an unlock. Every
 `console.warn`/`console.error` is on a failure path: no background group, no
 background source, a gradient that could not be rendered, a D-Bus service that
-answered with an error. The only informational line, `Enabled from ...`, is in
+answered with an error, Location Services refusing a location. The only informational line, `Enabled from ...`, is in
 `scripts/dev-extension.js`, which does not ship.
 
 ### Scripts and binaries, clipboard, privileged subprocesses, telemetry: meets
 
-None of these are used. `scripts/` is not in the zip.
+None of these are used. `scripts/` is not in the zip. The only network traffic
+is GWeather's own weather requests while the user has Follow the Weather on,
+which the description discloses (above).
 
 ### Extensions must be functional: a risk worth knowing
 

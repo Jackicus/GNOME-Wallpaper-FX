@@ -5,9 +5,12 @@ import { MonitorRenderer, SceneClock } from './engine.js';
 import { SystemState } from './system.js';
 import { OverviewCanvas } from './overview.js';
 import { ShellBackground } from './background.js';
+import { WeatherWatcher } from './weather.js';
 
 // Keys that decide the base under the patterns, which the shell draws for us.
-const BASE_KEYS = new Set(['background-mode', 'color-palette', 'custom-image', 'span-monitors']);
+const BASE_KEYS = new Set([
+    'background-mode', 'color-palette', 'custom-image', 'span-monitors', 'weather', 'weather-background',
+]);
 
 export class WallpaperFxApp {
     constructor(extension) {
@@ -32,6 +35,8 @@ export class WallpaperFxApp {
         this._interface = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' });
         this._hasAccent = this._interface.settings_schema.has_key('accent-color');
         this._system = new SystemState(() => this._push(this._state()));
+        this._weather = null;
+        this._followWeather();
 
         // The base goes to the shell's own wallpaper, so it is already right
         // everywhere a wallpaper is shown: the overview, the workspace slide,
@@ -49,6 +54,9 @@ export class WallpaperFxApp {
         Main.layoutManager.connectObject('monitors-changed', () => this._rebuild(), this);
 
         this._settings.connectObject('changed', (_s, key) => {
+            // Written by the weather itself, which says when its look changes.
+            if (key === 'weather-status') return;
+            if (key === 'weather') this._followWeather();
             if (key === 'span-monitors') {
                 this._rebuild();
                 return;
@@ -75,6 +83,9 @@ export class WallpaperFxApp {
         this._overview?.destroy();
         this._overview = null;
 
+        this._weather?.destroy();
+        this._weather = null;
+
         this._system?.destroy();
         this._system = null;
 
@@ -86,13 +97,39 @@ export class WallpaperFxApp {
         this._teardown();
     }
 
+    /**
+     * A watcher on the weather while the Weather scene is on. Turning it off
+     * also forgets what it knew, the place included.
+     */
+    _followWeather() {
+        const on = this._settings.get_boolean('weather');
+        if (on && !this._weather) {
+            // Built before the background at enable, so that the first base
+            // is already the weather's; a change while it is being built
+            // comes before there is a background to update.
+            this._weather = new WeatherWatcher(this._settings, () => {
+                const state = this._state();
+                this._background?.update(state);
+                this._push(state);
+            });
+        } else if (!on && this._weather) {
+            this._weather.destroy();
+            this._weather = null;
+            this._settings.reset('weather-status');
+        }
+    }
+
     _state() {
         const s = this._settings;
+        // The weather's look stands in for the user's own while there is one;
+        // their keys are left as they are, for when it is turned off.
+        const look = this._weather?.look ?? null;
+        const sky = look && s.get_boolean('weather-background') ? look : null;
         return {
-            enabledEffects: s.get_strv('enabled-effects'),
-            tuning: s.get_value('pattern-tuning').deepUnpack(),
-            mode: s.get_string('background-mode'),
-            colorPalette: s.get_string('color-palette'),
+            enabledEffects: look?.['enabled-effects'] ?? s.get_strv('enabled-effects'),
+            tuning: look?.['pattern-tuning'] ?? s.get_value('pattern-tuning').deepUnpack(),
+            mode: sky?.['background-mode'] ?? s.get_string('background-mode'),
+            colorPalette: sky?.['color-palette'] ?? s.get_string('color-palette'),
             customImage: s.get_string('custom-image'),
             // GNOME 47 on; before it, the blue it had always been.
             accent: this._hasAccent ? this._interface.get_string('accent-color') : 'blue',

@@ -21,6 +21,31 @@
       <summary>Saved scenes</summary>
       <description>Scenes saved from the preferences: each a "name" and the values of the keys a scene covers.</description>
     </key>
+    <key name="weather" type="b">
+      <default>false</default>
+      <summary>Follow the weather</summary>
+      <description>Let the weather where the user is choose the patterns, and the time of day the background, instead of enabled-effects, pattern-tuning and the background keys. Those keep the user's own look for when this is turned off.</description>
+    </key>
+    <key name="weather-auto-location" type="b">
+      <default>true</default>
+      <summary>Find the location automatically</summary>
+      <description>Ask Location Services where the user is, while they are turned on. Otherwise, or when they are off, weather-place is used.</description>
+    </key>
+    <key name="weather-place" type="(sdd)">
+      <default>('', 0.0, 0.0)</default>
+      <summary>Chosen place</summary>
+      <description>A place chosen in the preferences: its name, latitude and longitude in degrees. An empty name is none.</description>
+    </key>
+    <key name="weather-background" type="b">
+      <default>true</default>
+      <summary>Weather sets the background</summary>
+      <description>While following the weather, draw the patterns over a sky for the time of day and the weather, instead of the background chosen on the Background page.</description>
+    </key>
+    <key name="weather-status" type="a{sv}">
+      <default>{}</default>
+      <summary>Weather status</summary>
+      <description>Written by the extension while following the weather: the place, the last report and when it came, for the preferences to show and for the next start to pick up. Cleared when weather is turned off.</description>
+    </key>
     <key name="background-mode" type="s">
       <default>'desktop'</default>
       <summary>Background base mode</summary>

@@ -85,13 +85,24 @@ except that its entry point is `scripts/dev-extension.js`.
 - `lib/system.js` — the system's say: UPower's `OnBattery` (for
   `pause-on-battery`), power-profiles-daemon's active profile, and St's
   `enable-animations`.
-- `lib/scenes.js` — the built-in scenes and saving, applying and matching them;
+- `lib/weather.js` — `WeatherWatcher`, for the Weather scene: the place (Geoclue
+  under the shell's desktop id, or the one chosen in prefs), a GWeather report
+  for the nearest city in GWeather's list (its METAR station now, MET Norway's
+  next hour where there is none), read into plain conditions, and the time of
+  day. What it knows goes into `weather-status`, for prefs to show and for the
+  next enable — every unlock — to start from.
+- `lib/looks.js` — the weather's look: conditions and the time of day to the
+  same values a scene holds (patterns, tuning, palette). Pure, so
+  `node` can run it. `lib/sun.js` — the sun's elevation, and so dawn, day, dusk
+  or night, from a place and a time.
+- `lib/scenes.js` — the user's saved scenes: saving, applying and matching them;
   used only by prefs. A scene is just the values of `SCENE_KEYS`.
-- `lib/palettes.js` — the named gradients for `color` mode, and the accent
-  colours for `accent`. `lib/layer.js` — the seeded PRNG for what layers work
-  out on the CPU.
-- `prefs.js`, `schemas/` — the settings dialog (Scenes, Patterns, Background,
-  Performance) and the keys behind it.
+  `lib/places.js` — searching GWeather's city list, for prefs.
+- `lib/palettes.js` — the named gradients for `color` mode (the last three are
+  the weather's skies), and the accent colours for `accent`. `lib/layer.js` —
+  the seeded PRNG for what layers work out on the CPU.
+- `prefs.js`, `schemas/` — the settings dialog (Scenes — the weather and the
+  user's own — Patterns, Background, Performance) and the keys behind it.
 
 ## How it fits together
 
@@ -115,8 +126,17 @@ each shader multiplies in.
 With `span-monitors`, every monitor draws its part of one canvas — the box
 around them all, sized by the primary monitor, one seed — and because every
 `State` is a pure function of time and every clock is shared, the parts agree
-without talking to each other. Scenes are prefs-only: applying one writes a
-handful of keys, and the extension simply follows them.
+without talking to each other. Saved scenes are prefs-only: applying one writes
+a handful of keys, and the extension simply follows them.
+
+**The weather is a scene that changes by itself.** With `weather` on, app.js
+keeps a `WeatherWatcher`, and while it has a report its look stands in for
+`enabled-effects`, `pattern-tuning` and — with `weather-background` — the base,
+in `_state()`; the user's own keys are never written, so turning it off brings
+their look straight back, and prefs locks the Patterns and Background pages
+meanwhile. Only the watcher writes `weather-status`, and app.js ignores changes
+to it. A report is asked for every half hour, on moving more than 10 km, or on
+a new place; a remembered one is shown for up to six hours.
 
 **Pacing hangs off the paint.** Each pattern's effect calls back from
 `vfunc_paint_target`; the first paint of a frame books the next repaint for
