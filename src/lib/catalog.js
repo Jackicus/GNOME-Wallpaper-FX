@@ -8,6 +8,10 @@ import * as sparkles from './layers/sparkles.js';
 import * as embers from './layers/embers.js';
 import * as fireflies from './layers/fireflies.js';
 import * as bokeh from './layers/bokeh.js';
+import * as clouds from './layers/clouds.js';
+import * as sunbeams from './layers/sunbeams.js';
+import * as lightning from './layers/lightning.js';
+import * as fog from './layers/fog.js';
 import * as snow from './layers/snow.js';
 import * as rain from './layers/rain.js';
 
@@ -76,6 +80,30 @@ export const EFFECTS = [
         title: 'Bokeh',
         desc: 'Large out-of-focus lights rising softly through the frame',
         ...bokeh,
+    },
+    {
+        id: 'clouds',
+        title: 'Clouds',
+        desc: 'Soft clouds drifting overhead, lit from above and flattening towards the horizon',
+        ...clouds,
+    },
+    {
+        id: 'sunbeams',
+        title: 'Sunbeams',
+        desc: 'Shafts of warm sunlight fanning down from above, with dust turning in the light',
+        ...sunbeams,
+    },
+    {
+        id: 'lightning',
+        title: 'Lightning',
+        desc: 'A distant storm: flashes deep in the clouds and now and then a forked bolt',
+        ...lightning,
+    },
+    {
+        id: 'fog',
+        title: 'Fog',
+        desc: 'Low banks of mist rolling slowly past, thickest near the ground',
+        ...fog,
     },
     {
         id: 'snow',

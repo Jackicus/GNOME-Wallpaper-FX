@@ -70,7 +70,8 @@ except that its entry point is `scripts/dev-extension.js`.
   premultiplied colour; `density`, the range of its Amount setting, if it has
   one; and, only if the shader needs something worked out on the CPU each frame,
   a `State` whose `uniforms(t, density)` is a pure function of time (wave's
-  crest peaks, nebula's cloud positions, starfield's meteor).
+  crest peaks, nebula's cloud positions, starfield's meteor, lightning's
+  strikes).
 - `lib/background.js` — **the base, handed to the shell instead of painted.**
   Every wallpaper the shell shows comes from one `BackgroundSource` reading
   `org.gnome.desktop.background`; this gives that source a `Gio.Settings` of our
@@ -97,7 +98,7 @@ except that its entry point is `scripts/dev-extension.js`.
 Every pattern is a fragment shader, evaluated at the monitor's full resolution.
 The CPU's part of a frame is setting a few uniforms, so what a pattern costs is
 GPU time (`make bench`; per-pattern numbers are in `docs/patterns.md`). All
-twelve together take about 3.2 ms of GPU time on a GTX 1080 at 1080p, and the
+sixteen together take about 3.8 ms of GPU time on a GTX 1080 at 1080p, and the
 compositor thread does the same work whichever patterns are on — about 4% of a
 core at 60 FPS in the nested shell.
 

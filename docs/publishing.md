@@ -41,8 +41,8 @@ prefs.js
 schemas/org.gnome.shell.extensions.wallpaper-fx.gschema.xml
 lib/app.js  lib/background.js  lib/catalog.js  lib/engine.js  lib/layer.js
 lib/overview.js  lib/palettes.js  lib/scenes.js  lib/shader.js  lib/system.js
-lib/layers/{aurora,bokeh,constellation,contours,embers,fireflies,nebula,
-            rain,snow,sparkles,starfield,wave}.js
+lib/layers/{aurora,bokeh,clouds,constellation,contours,embers,fireflies,fog,
+            lightning,nebula,rain,snow,sparkles,starfield,sunbeams,wave}.js
 ```
 
 What it leaves out: `src/schemas/gschemas.compiled` (a local artefact of

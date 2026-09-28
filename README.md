@@ -4,7 +4,7 @@
 
 **Animated wallpapers for GNOME, drawn by your GPU.**
 
-Aurora, nebulae, starfields, snow, rain and more: twelve patterns you can stack,
+Aurora, nebulae, starfields, every kind of weather and more: sixteen patterns you can stack,
 painted straight onto the desktop behind your windows.<br>
 No extra window, no video file, and next to no CPU.
 
@@ -41,7 +41,7 @@ on your desktop every one of them moves.
 
 ## Patterns
 
-Twelve patterns, and you can turn on any combination of them. Each one is shown
+Sixteen patterns, and you can turn on any combination of them. Each one is shown
 here by itself, over the palette it's usually paired with. Some are cropped in
 close, and Starfield, Sparkles and Embers have their Amount and Brightness turned
 up so they're visible at this size.
@@ -64,7 +64,15 @@ up so they're visible at this size.
   </tr>
   <tr>
     <td align="center"><img src="docs/screenshots/patterns/bokeh.jpg" alt="Bokeh pattern"><br><b>Bokeh</b><br><sub>Out-of-focus lights rising and fading</sub></td>
+    <td align="center"><img src="docs/screenshots/patterns/clouds.jpg" alt="Clouds pattern"><br><b>Clouds</b><br><sub>Soft clouds drifting overhead, lit from above</sub></td>
+    <td align="center"><img src="docs/screenshots/patterns/sunbeams.jpg" alt="Sunbeams pattern"><br><b>Sunbeams</b><br><sub>Shafts of warm light, with dust turning in them</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/patterns/lightning.jpg" alt="Lightning pattern"><br><b>Lightning</b><br><sub>Flashes in the clouds and forked bolts</sub></td>
+    <td align="center"><img src="docs/screenshots/patterns/fog.jpg" alt="Fog pattern"><br><b>Fog</b><br><sub>Low banks of mist rolling slowly past</sub></td>
     <td align="center"><img src="docs/screenshots/patterns/snow.jpg" alt="Snow pattern"><br><b>Snow</b><br><sub>Flakes at several depths, swaying in the wind</sub></td>
+  </tr>
+  <tr>
     <td align="center"><img src="docs/screenshots/patterns/rain.jpg" alt="Rain pattern"><br><b>Rain</b><br><sub>Fine slanted streaks, the near drops faster</sub></td>
   </tr>
 </table>
