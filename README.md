@@ -120,7 +120,7 @@ up so they're visible at this size.
 ## Install
 
 It isn't on extensions.gnome.org yet, so install it from source. You need
-GNOME Shell 45–50, `make`, and `glib-compile-schemas` (which comes with GLib).
+GNOME Shell 50, `make`, and `glib-compile-schemas` (which comes with GLib).
 
 ```bash
 git clone https://github.com/Jackicus/GNOME-Wallpaper-FX.git
@@ -142,8 +142,8 @@ To update, run `git pull && make install`, then log out and back in. To remove
 it, run `make uninstall`.
 
 > [!NOTE]
-> It has been built and tested on GNOME Shell 50. Versions 45–49 are listed as
-> supported but haven't been tested yet. GNOME 51 dropped the effect that draws
+> It has been built and tested on GNOME Shell 50, the only version it lists. The
+> code is written for 45–50, but 45–49 haven't been tested, so they aren't listed. GNOME 51 dropped the effect that draws
 > the patterns, so it needs a port. See [docs/compatibility.md](docs/compatibility.md).
 
 ## Development
@@ -152,11 +152,11 @@ it, run `make uninstall`.
 make link      # install as links into src/, for development
 make reload    # apply your edits to the running shell, no logout needed
 make nested    # start a throwaway nested GNOME Shell, mirrored in a window
-make check     # compile every pattern's shader offline
+make check     # ESLint, the schema, and every pattern's shader compiled offline
 make bench     # time each pattern on your GPU
 ```
 
-A pattern is a single GLSL function plus one line in `src/lib/catalog.js`.
+A pattern is a single GLSL function plus one entry in `src/lib/catalog.js`.
 [docs/patterns.md](docs/patterns.md) explains how to write one and what keeps it
 cheap. The rest of [`docs/`](docs/) covers the shell internals the extension
 depends on, compatibility, and publishing.

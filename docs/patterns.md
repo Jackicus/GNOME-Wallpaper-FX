@@ -30,8 +30,8 @@ export class State { ... }
 
 - `glsl` must define a function named exactly like the catalog id, taking a
   pixel `p` and returning a **premultiplied** RGBA colour: `vec4(rgb * a, a)`.
-  The engine clamps it, multiplies in the pattern's Brightness setting and
-  draws it over whatever is below — the wallpaper and the patterns before it in
+  The engine multiplies in the pattern's Brightness setting, clamps the
+  result, multiplies in the overall Opacity and draws it over whatever is below — the wallpaper and the patterns before it in
   catalog order — with ordinary premultiplied "over" blending.
 - Every other function, constant or uniform the pattern declares is prefixed
   with its id (`drizzleDrop`, `drizzle_meteor`), because a pattern's GLSL is
@@ -76,7 +76,7 @@ that moves.** Use the helpers, which fold the epoch in safely:
 
 The epoch is folded in by reducing `v·u_epoch` first, which is exact only when
 the product is: a fast scroll with an arbitrary speed can jump by a few U once
-an epoch after days of uptime. Rain, whose near streaks fall at 600 U/s, rounds
+an epoch after days of uptime. Rain, whose near streaks fall at up to 880 U/s, rounds
 each speed to a whole number of U a second and makes its period a power of two,
 so the product is a whole multiple of the period and nothing is lost. Do the
 same for anything fast.

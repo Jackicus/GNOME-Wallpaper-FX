@@ -12,8 +12,10 @@ Requested: $ARGUMENTS
 1. `./scripts/nested.sh start` (reuses one if already running; opens the mirror
    window; the extension is ACTIVE when it returns).
 2. If the request names particular patterns, a palette or a mode, set them with
-   `./scripts/nested.sh run gsettings set org.gnome.shell.extensions.wallpaper-fx …`
-   — the running extension repaints on the key change.
+   `./scripts/nested.sh run timeout 5 gsettings --schemadir src/schemas set
+   org.gnome.shell.extensions.wallpaper-fx …` — the running extension repaints on the
+   key change. There is no `--clean`, so this is the user's real dconf: note the old
+   values and put them back before `stop` (the skill says when it is safe).
 3. In **one** `./scripts/nested.sh do …` call: `say` what is being shown, `wait`
    a beat, then `shot` into your scratchpad.
 4. **Read the PNG** and describe what's actually on screen — which patterns are
@@ -21,5 +23,6 @@ Requested: $ARGUMENTS
 5. `./scripts/nested.sh stop` when done, even if a step failed. It closes the mirror.
 
 Check `./scripts/nested.sh logs` if the screenshot looks empty or unchanged: a JS
-exception during enable leaves a bare wallpaper, and a layer that throws is
-caught per frame, so a broken pattern looks like one that was never turned on.
+exception during enable leaves a bare wallpaper, and a layer that throws in its
+paint draws nothing from then on, so a broken pattern looks like one that was never
+turned on.

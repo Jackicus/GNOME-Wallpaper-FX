@@ -13,9 +13,15 @@ link install reload prefs logs uninstall status:
 zip:
 	@$(DEV) pack
 
-# Every pattern's shader, compiled (check) or timed on the GPU (bench), outside the shell.
-check bench:
-	@node scripts/shaders.mjs $@
+# Everything that needs no shell, display or GPU, and what CI runs: ESLint, the
+# schema under --strict, and every pattern's shader compiled in each GLSL dialect.
+check: lint
+	@$(DEV) schema
+	@node scripts/shaders.mjs check
+
+# Every pattern's shader timed on the real GPU: not in check, which CI runs without one.
+bench:
+	@node scripts/shaders.mjs bench
 
 # gjs.guide's ESLint rules over the GJS code (eslint.config.mjs).
 lint: node_modules

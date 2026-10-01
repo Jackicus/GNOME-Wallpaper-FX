@@ -7,8 +7,10 @@ Run `make status`, then read the current settings with
 `gsettings get org.gnome.shell.extensions.wallpaper-fx <key>` (or
 `list-recursively` for the lot), and report:
 
-- **install** — a symlink to `src/` means dev mode (edits are live); a real
-  directory means a copy that won't pick up edits until `make install` is re-run.
+- **install** — a directory of links into `src/`, with `extension.js` linked to
+  `scripts/dev-extension.js`, means dev mode (edits are live after `make reload`); a
+  directory of real files means a copy that won't pick up edits until `make install`
+  is re-run.
 - **state** — `ACTIVE` is healthy. `doesn't exist` means the running shell never
   registered the UUID, which needs a log out / log back in, not a reload.
 - **drawing** — `enabled-effects`, `background-mode` (and the palette or image
