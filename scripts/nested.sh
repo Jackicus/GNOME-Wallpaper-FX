@@ -9,6 +9,9 @@
 #                                     no mirror window; screenshots are the only view
 #   ./scripts/nested.sh start [--headless] [WxH] --monitors N
 #                                     N such monitors side by side (for span-monitors)
+#   ./scripts/nested.sh start --clean ...
+#                                     wipe the nested shell's own settings first, so
+#                                     every key is back at its default (flags combine)
 #   ./scripts/nested.sh do "STEP" "STEP"...
 #                                     run several steps in one go (one connection):
 #                                     say TEXT | click X Y | move X Y | key KEYSYM |
@@ -33,6 +36,13 @@
 # The nested shell is a complete second GNOME Shell with its own session bus. It
 # reads the same ~/.local/share/gnome-shell/extensions, so it picks up new UUIDs at
 # its own startup -- and if the extension throws, it dies instead of your session.
+#
+# Its settings are its own, never yours: a dconf profile whose writable database
+# is ~/.config/dconf/wallpaper_fx_nested, over read-only defaults made at each
+# start (Wallpaper FX the only extension enabled, your colour scheme, accent and
+# fonts copied in). Everything it, its prefs and 'run gsettings ...' write goes
+# there, and is still there at the next start; ~/.config/dconf/user is never
+# opened for writing. 'start --clean' deletes that database first.
 #
 # It always runs headless: this mutter build has no windowed (nested) backend.
 # The mirror is a screencast of its virtual monitor, played on the real desktop
@@ -60,6 +70,13 @@ ACTIVITY_FILE="$RUN_DIR/activity"
 OWNER_FILE="$RUN_DIR/owner-session"
 IDLE_FILE="$RUN_DIR/idle-seconds"
 GUARD_OWNED_FILE="$RUN_DIR/owns-crash-guard"
+PROFILE_FILE="$RUN_DIR/dconf-profile"
+# The nested session's own settings: ~/.config/dconf/<this>, written only by its
+# own dconf-service, kept across starts and deleted by 'start --clean'. dconf
+# names a database by a D-Bus object path element (/ca/desrt/dconf/Writer/<name>),
+# so letters, digits and underscores only: a hyphen fails every write, and
+# gsettings waits on it forever.
+NESTED_DB="wallpaper_fx_nested"
 # GNOME Shell creates this for its first 60 s; if the shell crashes while it
 # exists, the systemd unit disables every extension. The nested shell shares the
 # runtime dir, so it creates the REAL session's copy -- and a stop inside those
@@ -99,10 +116,41 @@ nested_bus() {
 
 # Run a command against the nested shell's bus rather than the real session's.
 # Without this every gnome-extensions/gdbus call would hit your live desktop.
+# DCONF_PROFILE is the nested session's, so gsettings reads and writes its
+# database; with the profile file missing, dconf falls back to a profile with
+# no database at all, which writes nowhere -- never to the real one.
 nested_env() {
-    env DBUS_SESSION_BUS_ADDRESS="$(nested_bus)" \
+    env DCONF_PROFILE="$PROFILE_FILE" \
+        DBUS_SESSION_BUS_ADDRESS="$(nested_bus)" \
         WAYLAND_DISPLAY="$WL_DISPLAY" \
         "$@"
+}
+
+# The nested session's dconf profile: its own writable database, over a
+# read-only one compiled here with Wallpaper FX alone in enabled-extensions and
+# the real session's look, read with gsettings and never written back.
+setup_profile() {
+    command -v dconf >/dev/null || die "'dconf' not found; the nested shell's own settings need 'dconf compile'."
+    local seed="$RUN_DIR/dconf-seed" key value
+    mkdir -p "$seed" "${XDG_CONFIG_HOME:-$HOME/.config}/dconf"
+    {
+        echo "[org/gnome/shell]"
+        echo "enabled-extensions=['$UUID']"
+        echo "welcome-dialog-last-shown-version='999'"
+        echo
+        echo "[org/gnome/desktop/interface]"
+        for key in color-scheme accent-color gtk-theme icon-theme cursor-theme font-name \
+                   document-font-name monospace-font-name text-scaling-factor; do
+            value="$(gsettings get org.gnome.desktop.interface "$key" 2>/dev/null)" && echo "$key=$value"
+        done
+    } > "$seed/00-nested"
+    dconf compile "$RUN_DIR/dconf-defaults" "$seed" || die "dconf could not compile the nested defaults."
+    printf 'user-db:%s\nfile-db:%s\n' "$NESTED_DB" "$RUN_DIR/dconf-defaults" > "$PROFILE_FILE"
+}
+
+remove_nested_db() {
+    rm -f "${XDG_CONFIG_HOME:-$HOME/.config}/dconf/$NESTED_DB" \
+          "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/dconf/$NESTED_DB"
 }
 
 geometry() { cat "$GEOM_FILE" 2>/dev/null || echo '1600x900'; }
@@ -133,10 +181,11 @@ touch_activity() {
 cmd_start() {
     # Mirrored by default: the whole point of driving the extension is that the
     # user can see what is being tried, without logging out to look.
-    local mirror=1 monitors=1 geometry=1600x900
+    local mirror=1 monitors=1 geometry=1600x900 clean=0
     while (( $# )); do
         case "$1" in
             --headless|--no-mirror) mirror=0 ;;
+            --clean) clean=1 ;;
             --windowed|--mirror) mirror=1 ;;
             --monitors) monitors="${2:-}"; shift ;;
             *) geometry="$1" ;;
@@ -148,6 +197,9 @@ cmd_start() {
 
     if is_running; then
         info "Reusing the nested shell already running (pid $(cat "$PID_FILE"), $(geometry))."
+        [[ -s "$PROFILE_FILE" ]] \
+            || warn "It was started without settings of its own and shares your real dconf: 'stop' and start again."
+        (( clean )) && warn "Its settings are not wiped while it runs: 'stop', then 'start --clean'."
         [[ $mirror -eq 1 ]] && ! mirror_running && cmd_mirror on
         [[ "$(nested_state)" == "ACTIVE" ]] || enable_in_nested
         return 0
@@ -163,8 +215,9 @@ cmd_start() {
     # Make sure the extension is installed before the shell scans for it, since a
     # nested shell only discovers UUIDs at startup -- same as the real one.
     if [[ ! -e "$HOME/.local/share/gnome-shell/extensions/$UUID" ]]; then
-        warn "$UUID is not installed; running 'make link' first."
-        "$REPO_DIR/scripts/dev.sh" link >/dev/null 2>&1 || true
+        # --no-enable: enabling it here would enable it in the real session.
+        warn "$UUID is not installed; linking it first (as 'make link', without enabling it here)."
+        "$REPO_DIR/scripts/dev.sh" link --no-enable >/dev/null 2>&1 || true
     fi
 
     rm -rf "$RUN_DIR"
@@ -179,14 +232,19 @@ cmd_start() {
     # Only a shell a Claude Code session started is that session's to clean up.
     [[ -n "${CLAUDE_CODE_SESSION_ID:-}" ]] && echo "$CLAUDE_CODE_SESSION_ID" > "$OWNER_FILE"
 
+    (( clean )) && remove_nested_db
+    setup_profile
+
     local mode_args=(--wayland --wayland-display "$WL_DISPLAY" --headless)
     for (( i = 0; i < monitors; i++ )); do mode_args+=(--virtual-monitor "$geometry"); done
 
-    info "Starting nested GNOME Shell (headless, $monitors x $geometry)..."
+    info "Starting nested GNOME Shell (headless, $monitors x $geometry, its own settings$( (( clean )) && echo ', wiped'))..."
 
     # dbus-run-session creates the bus; we echo its address out so later commands
-    # can address this shell specifically.
-    setsid dbus-run-session -- bash -c '
+    # can address this shell specifically. The bus daemon hands its environment,
+    # DCONF_PROFILE included, to everything it activates, the prefs window among
+    # them, so nothing of the nested session writes the real dconf.
+    setsid env DCONF_PROFILE="$PROFILE_FILE" dbus-run-session -- bash -c '
         echo "$DBUS_SESSION_BUS_ADDRESS" > "$1"
         exec gnome-shell "${@:2}"
     ' _ "$BUS_FILE" "${mode_args[@]}" >>"$LOG_FILE" 2>&1 &
@@ -216,8 +274,8 @@ cmd_start() {
     done
     ok "Nested shell up (pid $pid)."
 
-    # The shell only enables what dconf lists, and a UUID the real session has never
-    # enabled is not listed: it would sit at INITIALIZED doing nothing.
+    # The shell only enables what dconf lists. The defaults list Wallpaper FX, but a
+    # disable inside the nested shell is kept in its database: enable it again there.
     if nested_env gsettings get org.gnome.shell enabled-extensions 2>/dev/null | grep -qF "'$UUID'"; then
         wait_state ACTIVE \
             || die "Wallpaper FX is $(nested_state) after startup -- check './scripts/nested.sh logs' for a JS error."
@@ -431,6 +489,7 @@ cmd_status() {
         echo "nested:    running (pid $(cat "$PID_FILE")), $(geometry)$idle"
         echo "mirror:    $(mirror_running && echo "open on the desktop" || echo "closed -- 'mirror on' to watch")"
         echo "wallpaper-fx: ${state:-not registered in the nested shell}"
+        echo "settings:  $([[ -s "$PROFILE_FILE" ]] && echo "its own (${XDG_CONFIG_HOME:-$HOME/.config}/dconf/$NESTED_DB)" || echo "SHARED with the real session: stop and start again")"
         echo "log:       $LOG_FILE"
     else
         echo "nested:    not running"

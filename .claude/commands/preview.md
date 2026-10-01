@@ -14,8 +14,8 @@ Requested: $ARGUMENTS
 2. If the request names particular patterns, a palette or a mode, set them with
    `./scripts/nested.sh run timeout 5 gsettings --schemadir src/schemas set
    org.gnome.shell.extensions.wallpaper-fx …` — the running extension repaints on the
-   key change. There is no `--clean`, so this is the user's real dconf: note the old
-   values and put them back before `stop` (the skill says when it is safe).
+   key change. Through `run` this is the nested shell's own database, never the
+   user's; it is kept for the next `start`, and `start --clean` wipes it.
 3. In **one** `./scripts/nested.sh do …` call: `say` what is being shown, `wait`
    a beat, then `shot` into your scratchpad.
 4. **Read the PNG** and describe what's actually on screen — which patterns are

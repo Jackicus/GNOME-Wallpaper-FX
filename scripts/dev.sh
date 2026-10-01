@@ -65,7 +65,9 @@ cmd_link() {
     link_tree
     ok "Linked $EXT_DIR → $SRC_DIR (entry point: scripts/dev-extension.js)"
     warn "Dev mode: edits in src/ are live. Run './scripts/dev.sh reload' to apply them."
-    enable_extension
+    # --no-enable: the links alone, for the nested shell, which enables it in its
+    # own settings; enabling here would enable or reload it in the real session.
+    [[ "${1:-}" == --no-enable ]] || enable_extension
 }
 
 cmd_install() {
@@ -216,7 +218,8 @@ cmd_help() {
 Usage: ./scripts/dev.sh <command>
 
 Commands:
-  link         Symlink src/ into extensions dir and enable (development mode)
+  link [--no-enable]
+               Symlink src/ into extensions dir and enable (development mode)
   install      Copy src/ into extensions dir and enable
   reload       Recompile schemas and reload extension (no shell restart needed)
   prefs        Open the extension preferences / settings menu
@@ -233,7 +236,7 @@ COMMAND="${1:-help}"
 shift || true
 
 case "$COMMAND" in
-    link)      cmd_link ;;
+    link)      cmd_link "${1:-}" ;;
     install)   cmd_install ;;
     reload)    cmd_reload ;;
     prefs)     cmd_prefs ;;
