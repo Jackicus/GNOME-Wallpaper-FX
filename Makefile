@@ -1,59 +1,14 @@
-DEV := ./scripts/dev.sh
-NESTED := ./scripts/nested.sh
+include scripts/kit.mk
 
-.PHONY: all link install reload prefs logs uninstall status clean help \
-        check bench lint nested nested-headless nested-stop nested-status preview zip
+.PHONY: zip bench prefs
 
-all: install
-
-link install reload prefs logs uninstall status:
-	@$(DEV) $@
-
-# The extensions.gnome.org upload, in dist/.
-zip:
-	@$(DEV) pack
-
-# Everything that needs no shell, display or GPU, and what CI runs: ESLint, the
-# schema under --strict, and every pattern's shader compiled in each GLSL dialect.
-check: lint
-	@$(DEV) schema
-	@node scripts/shaders.mjs check
+# The extensions.gnome.org upload, in dist/: the kit's pack under its old name.
+zip: pack
 
 # Every pattern's shader timed on the real GPU: not in check, which CI runs without one.
 bench:
 	@node scripts/shaders.mjs bench
 
-# gjs.guide's ESLint rules over the GJS code (eslint.config.mjs).
-lint: node_modules
-	@npx --no-install eslint .
-
-node_modules: package.json
-	npm install --no-audit --no-fund
-	@touch $@
-
-clean:
-	rm -f src/schemas/gschemas.compiled
-	rm -rf dist
-
-# Nested shell -- a throwaway second GNOME Shell for visual testing.
-nested:
-	@$(NESTED) start
-
-nested-headless:
-	@$(NESTED) start --headless
-
-nested-stop:
-	@$(NESTED) stop
-
-nested-status:
-	@$(NESTED) status
-
-preview:
-	@$(NESTED) start >/dev/null && $(NESTED) shot
-
-help:
-	@$(DEV) help
-	@echo
-	@sed -n '4,7p' scripts/shaders.mjs | sed 's|^// ||'
-	@echo
-	@$(NESTED) help
+# The preferences in the running shell: the user's own session and settings, theirs to run.
+prefs:
+	@$(DEV) prefs

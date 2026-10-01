@@ -17,17 +17,15 @@ names the line.
      current `src/`, so Wallpaper FX is ACTIVE with the edits when it returns;
      skip step 2. Its settings are its own and kept from the last run; add
      `--clean` when the result must not depend on them (every key at its default).
-   - **Running with `settings: SHARED with the real session`** (a shell from an
-     older `nested.sh`): do not reload; a reload there would rewrite
-     `enabled-extensions` in the user's real dconf. Say so, and offer
-     `./scripts/nested.sh stop` then `start`.
-   - **Running with its own settings:** go on.
+   - **Running:** go on.
 2. `./scripts/nested.sh reload`. It waits for ACTIVE.
 3. `./scripts/nested.sh logs 40` and report whether it came up clean. A healthy
    reload ends with `[WallpaperFx] Enabled from
-   /run/user/1000/wallpaper-fx/lib-<stamp>` (the development entry point's only
-   line, a new stamp each enable; the shipped code logs nothing on a good
-   enable). Anything with `Failed to load`, `Error during disable`, a warning
+   /run/user/1000/wallpaper-fx/shell-<pid>/lib-<checksum>` (the development entry
+   point's only line, a new checksum after each edit; the shipped code logs
+   nothing on a good enable). A link made before the kit's scripts has no
+   `dev-extension.json`, and the line reads `[Wallpaper FX]` until the user runs
+   `make link` again (`./scripts/dev.sh status` says so). Anything with `Failed to load`, `Error during disable`, a warning
    from Wallpaper FX, or a JS stack trace under a `[WallpaperFx]` line is a real
    failure: quote it and say which file it points at. A shader that failed to
    compile shows as a Cogl warning at best. Other extensions' errors at startup

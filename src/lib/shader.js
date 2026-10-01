@@ -141,7 +141,7 @@ float segmentDistance(vec2 p, vec2 a, vec2 b) {
 // Kept for the life of the module, across disable and enable: a class compiles
 // its pipeline once, and re-registering it would only leak another. GType names
 // last as long as the process, and under a development link this module is
-// loaded afresh on every enable, so each load names its classes apart.
+// loaded afresh after every edit, so each load names its classes apart.
 const LOAD = GLib.uuid_string_random().slice(0, 8);
 const classes = new Map();
 

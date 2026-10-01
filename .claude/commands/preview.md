@@ -17,7 +17,7 @@ Requested: $ARGUMENTS
 2. If the request names particular patterns, a palette or a mode, set them with
    `./scripts/nested.sh run timeout 5 gsettings --schemadir src/schemas set
    org.gnome.shell.extensions.wallpaper-fx …` — the running extension repaints on the
-   key change. Through `run` this is the nested shell's own database; the same
+   key change. Through `run` these are the nested shell's own settings; the same
    command without `./scripts/nested.sh run` writes the user's real settings,
    which a preview never does.
 3. In **one** `./scripts/nested.sh do …` call: `say` what is being shown, `wait`

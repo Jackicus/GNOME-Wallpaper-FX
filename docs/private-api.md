@@ -523,7 +523,7 @@ alone would do on every claimed version. Both are the same enum values.
 // Kept for the life of the module, across disable and enable: a class compiles
 // its pipeline once, and re-registering it would only leak another. GType names
 // last as long as the process, and under a development link this module is
-// loaded afresh on every enable, so each load names its classes apart.
+// loaded afresh after every edit, so each load names its classes apart.
 const LOAD = GLib.uuid_string_random().slice(0, 8);
 const classes = new Map();
 ```
@@ -541,9 +541,12 @@ A GType can never be unregistered, and registering a name twice throws
   in disable()" would ask, and the comment above, where the map is declared,
   answers them.
 - **Linked for development** the link's entry point,
-  `scripts/dev-extension.js`, copies `lib/` somewhere new on every enable, so
-  each enable registers a fresh set, and the old ones stay for the life of the
-  shell: a small, bounded, development-only leak.
+  `scripts/dev-extension.js`, copies `lib/` somewhere new after every edit (a
+  stage named for a checksum of the files), so each enable after an edit
+  registers a fresh set, and the old ones stay for the life of the shell: a
+  small, bounded, development-only leak. An enable with no edit between (an
+  unlock) imports the same stage and so the same module, whose `classes` it
+  reuses.
 
 `PreviewHost` in `overview.js` has no explicit name. The shell sets
 `GObject.gtypeNameBasedOnJSPath = true` (`ui/environment.js`), so its GType name
@@ -628,7 +631,7 @@ pace at one rate there.
 ## Not shell internals: the development entry point
 
 `scripts/dev-extension.js`, the entry point `make link` installs, copies `lib/`
-into `$XDG_RUNTIME_DIR/wallpaper-fx/` on every enable and imports it from
-there, deliberately working around the shell's module cache. It is not in the
+into `$XDG_RUNTIME_DIR/wallpaper-fx/shell-<pid>/` after every edit and imports it
+from there, deliberately working around the shell's module cache. It is not in the
 zip; the shipped `src/extension.js` imports `./lib/app.js` statically. See
 [publishing.md](publishing.md#the-development-path-in-extensionjs).

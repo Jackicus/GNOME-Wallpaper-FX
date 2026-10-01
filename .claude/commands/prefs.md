@@ -17,8 +17,8 @@ Requested: $ARGUMENTS
 2. `./scripts/nested.sh run gnome-extensions prefs wallpaper-fx@jackicus`. It
    returns once the request is sent; give the window a second.
 3. In **one** `./scripts/nested.sh do …` call: `say` what is shown, `wait 1`,
-   any clicks the request needs, then `shot <scratchpad>/prefs.png` (there is no
-   `window` step: crop the `shot` to the dialog).
+   any clicks the request needs, then `window <scratchpad>/prefs.png` (the
+   dialog alone).
 4. **Read the PNG** and describe what's on screen: the page, its rows, anything
    cut off or broken.
 5. `./scripts/nested.sh stop` when done, even if a step failed. It closes the
