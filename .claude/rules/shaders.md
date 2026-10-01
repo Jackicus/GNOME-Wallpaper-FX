@@ -39,18 +39,18 @@ pattern the prelude: hashes, value noise, `glow()`, `line()`, and the time helpe
 
 - **Measure with `make bench`, one pattern at a time, before and after.** GPU compilers
   do surprising things, and intuition about which line costs has been wrong more often
-  than right here: indexed local arrays (constellation, 2.1 ms → 0.8 as straight-line
-  code), loops with runtime counts (nebula, 0.42 → 0.32 unrolled behind uniform tests),
-  a second noise octave that was worth its 0.06 ms (aurora's rays).
+  than right here (timings on the main desktop's GTX 1080): indexed local arrays
+  (constellation, 2.1 ms → 0.8 as straight-line code), loops with runtime counts
+  (nebula, 0.42 → 0.32 unrolled behind uniform tests), a second noise octave that was worth its 0.06 ms (aurora's rays).
 - **One shader per pattern.** A shader is compiled for the worst case of all its code:
   all eight patterns in one ran at two thirds the speed of the same eight apart. Each
   pattern is its own actor and effect, drawn over the ones before it.
 - **Every `State` is a pure function of time.** Spanned monitors each run their own, and
   a monitor that sat paused must pick up exactly where the others are; anything random
   comes from a hash of an index (starfield's meteors are one per eight-second slot).
-- **All sixteen together** take about 3.8 ms of GPU time on a GTX 1080 at 1080p, and
-  the compositor thread does about 4% of a core at 60 FPS in the nested shell whichever
-  are on.
+- **All sixteen together** take about 3.8 ms of GPU time on the main desktop's GTX 1080 at
+  1080p, and the compositor thread there does about 4% of a core at 60 FPS in the nested
+  shell whichever are on.
 - **GType names are per load**: `shader.js` registers each pattern's effect class as
   `WallpaperFx_<id>_<load>`, because the development entry point loads `lib/` afresh on
   every enable; a fixed name fails the second time and that pattern simply does not
