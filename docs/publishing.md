@@ -21,7 +21,7 @@ This runs `scripts/dev.sh pack`, which:
    `gnome-extensions` adds `extension.js`, `metadata.json`, `prefs.js` and every
    `schemas/*.gschema.xml` by itself (`command-pack.c`); `lib/`, with `layers/`
    under it, has to be named. A `LICENSE` or `COPYING` at the top of the repo is
-   added too (the repo has one: `LICENSE`, GPL-2.0);
+   added too, as one more `--extra-source` (the repo has one: `LICENSE`, GPL-2.0);
 3. deletes `schemas/gschemas.compiled` from the zip if the `gnome-extensions`
    doing the packing put one there. Up to GNOME 45 it compiled the schema into the
    bundle; from 46 it does not (`command-pack.c` at the `45.0` and `46.0` tags);
@@ -181,8 +181,9 @@ there is a GNOME without `Shell.GLSLEffect`, which is not claimed.
 
 ### Disconnect all signals: meets
 
-Every connection uses `connectObject()`/`disconnectObject()` and is dropped in
-the owner's `destroy()`/`disable()`. The `destroy` handlers on overview clones
+Every connection in the shell uses `connectObject()`/`disconnectObject()` and is
+dropped in the owner's `destroy()`/`disable()`, except the clones' `destroy`
+handlers. The `destroy` handlers on overview clones
 are on the clones themselves. The preferences disconnect their settings handler
 and their Location Services handler on `close-request`.
 
@@ -190,9 +191,11 @@ and their Location Services handler on `close-request`.
 
 There is one source per monitor: `GLib.timeout_add()` in
 `MonitorRenderer._onPaint()`, guarded by `if (this._timerId || ...) return;` on
-the line before it is created, and removed in `MonitorRenderer.destroy()`. The
-other is the `WeatherWatcher`'s five-minute `GLib.timeout_add_seconds()`, added
-in its constructor and removed in its `destroy()`. Nothing else adds one.
+the start of the line that books it, and removed in `MonitorRenderer.destroy()`.
+The others are the `WeatherWatcher`'s five-minute `GLib.timeout_add_seconds()`,
+added in its constructor and removed in its `destroy()`, and `ShellBackground`'s
+one-shot `GLib.idle_add()` that takes a replaced background source back
+(`_retakeId`), removed in `release()`. Nothing else adds one.
 
 ### Do not use deprecated modules: meets
 
@@ -203,7 +206,7 @@ There is no `ByteArray`, `Lang` or `Mainloop`, and no `run_dispose()`.
 The shell side imports Gio, GLib, GObject, GDesktopEnums, Clutter, Cogl, Meta,
 Shell, St, GWeather, Geoclue and cairo, and no Gtk, Gdk or Adw. `prefs.js`
 imports Adw, Gtk, Gio and GLib, plus `lib/catalog.js` (the layers and
-`lib/layer.js`, all pure JS), `lib/palettes.js` (cairo), `lib/scenes.js` (GLib)
+`lib/layer.js`, all pure JS), `lib/palettes.js` (cairo), `lib/scenes.js` (Gio, GLib)
 and `lib/places.js` (GWeather), none of which imports Clutter, Meta, St or
 Shell. Best Practices suggests keeping modules used only by the preferences in
 a `prefs/` directory. `scenes.js` and `places.js` are such modules, so moving
@@ -259,8 +262,9 @@ lists the patterns reviewers look for. In this code:
 - **try/catch that only swallows** ("Avoid Unnecessary try-catch Wrappers"):
   gone from the shipped `extension.js`, so a failed load shows as an error in
   the Extensions app. Those that remain handle real failures: rendering a
-  gradient, reaching the shell's backgrounds, and a dismissed file chooser in
-  the preferences.
+  gradient, reaching the shell's backgrounds, a saved weather report that will
+  not parse, Location Services failing, a dismissed file chooser in the
+  preferences, and `enable()` handing the wallpaper back before it rethrows.
 - **A lifecycle flag** ("Lifecycle and Destruction State"): `this._enabling`
   exists only in `scripts/dev-extension.js`, whose `enable()` is async. The
   shipped entry point has none.
@@ -318,9 +322,8 @@ clean. `package.json` exists only to pin ESLint; nothing from it ships.
 Everything the extension reaches into, what it is for, and what happens when a
 future GNOME changes it is in [private-api.md](private-api.md). Reviewers accept
 private API with a reason. What they look for is that it fails safely. Every
-private path is now checked or optional-chained. The one unsafe case left is a
-throw inside `enable()` after the wallpaper is taken over (see
-[the open list](#still-open)).
+private path is now checked or optional-chained, and a throw inside `enable()`
+hands the wallpaper back (`disable()`) before it reaches the shell.
 
 ## The development path in extension.js
 

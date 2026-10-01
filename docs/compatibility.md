@@ -98,7 +98,7 @@ A pattern whose shader fails to compile in the shell draws nothing, and the
 driver's compile log goes to the journal, not to a terminal.
 
 *Check first on 45 and 46 (GLSL 1.20), and on any Mesa machine:* switch on
-every pattern, then read `make logs '5 min ago'` and the full journal for Cogl
+every pattern, then read `./scripts/dev.sh logs '5 min ago'` and the full journal for Cogl
 shader warnings.
 
 ### The workspace slide (overview.js)
@@ -201,8 +201,9 @@ This path follows `St.Settings.get().enable_animations` and its
 false when the user turns animations off
 (`org.gnome.desktop.interface enable-animations`), and also whenever the shell
 inhibits animations itself: when rendering is not hardware-accelerated, while a
-remote-desktop or screen-sharing session is running, or on an X server with the
-VNC extension (`_shouldEnableAnimations()` in `ui/main.js`, the same at `45.0`
+remote-access session that asks for animations off (as remote desktop does) is
+running, or on an X server with the VNC extension, unless `global.force_animations`
+is set (`AnimationsSettings._shouldEnableAnimations()` in `ui/main.js`, the same at `45.0`
 and in 50.5). So the patterns are still in a virtual machine without 3D
 acceleration, which is worth saying in the description, since reviewers often
 test in one ([publishing.md](publishing.md)).
@@ -279,9 +280,9 @@ should open the file chooser, and you should be able to save and delete a scene.
 - **Refresh rate per monitor** (engine.js) comes from `peek_stage_views()`.
   On X11 mutter uses one stage view for the whole screen, so expect every monitor
   to pace at the same rate there.
-- **`Gio.DBus.makeProxyWrapper()`** returns a `Gio.DBusProxy` subclass in 51
-  and must be called with `new` (gjs.guide, 51 port page). `system.js` already
-  calls it that way.
+- **`Gio.DBusProxy.makeProxyWrapper()`** returns a `Gio.DBusProxy` subclass in
+  51, and the wrapper it returns must be called with `new` (gjs.guide, 51 port
+  page). `system.js` already does (`new Proxy(...)` in `_watch()`).
 
 ## Checklist for a new GNOME version
 
@@ -290,7 +291,7 @@ should open the file chooser, and you should be able to save and delete a scene.
    `overview`, `St.Settings` and `makeProxyWrapper`.
 2. Diff the shell between the last working tag and the new one, over the files
    [private-api.md](private-api.md) reaches into:
-   `js/ui/{background,layout,workspace,workspacesView,workspaceThumbnail,workspaceAnimation,overview,overviewControls,main}.js`
+   `js/ui/{background,layout,workspace,workspacesView,workspaceThumbnail,workspaceAnimation,overview,overviewControls,windowManager,main}.js`
    and `src/shell-glsl-effect.h`. Search for every name in its table.
 3. Check Cogl's GLSL version for the new mutter (the driver files above). If it
    changed, add it to `DIALECTS`, then run `make check`.
@@ -304,7 +305,7 @@ should open the file chooser, and you should be able to save and delete a scene.
    `file_delete_recursively()` (extensions-tool `main.c`), which enumerates
    without `NOFOLLOW_SYMLINKS`, so it follows the `lib` and `schemas` links and
    deletes what is in them in `src/`. `make uninstall` removes only the links.
-5. `make logs '10 min ago'` should show no `TypeError`, no `No background
+5. `./scripts/dev.sh logs '10 min ago'` should show no `TypeError`, no `No background
    source`, and no Cogl shader warnings.
 6. Switch each pattern on alone, then all of them together.
 7. Go through every base mode, and switch the extension off in each. The user's

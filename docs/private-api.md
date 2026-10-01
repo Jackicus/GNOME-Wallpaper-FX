@@ -20,14 +20,14 @@ because `src/` is changing; functions are named instead.
 | `Main.layoutManager._backgroundGroup` | app.js | No patterns anywhere; the base still shows | Yes, logs a warning |
 | `new Background.BackgroundManager(...)._backgroundSource` | background.js | Base modes show the user's own wallpaper | Yes, logs a warning |
 | `source._settings` (read, replaced, restored) | background.js | Same | Yes, logs a warning |
-| `source._backgrounds`, `background._emitChangedSignal()` | background.js | A new base appears only at the shell's next wallpaper reload | Yes, silently |
+| `source._backgrounds` (also read as "source destroyed" when null), `background._emitChangedSignal()` | background.js | A new base appears only at the shell's next wallpaper reload | Yes, silently |
 | `source.destroy` (wrapped), `source._useCount`, `Main.layoutManager._bgManagers`, `manager._backgroundSource`, `manager._updateBackgroundActor()` | background.js | After another extension over-releases the source, base modes show the user's own wallpaper until the next log in | Yes, silently |
-| `Main.overview._overview.controls._workspacesDisplay._workspacesViews`, `view._workspaces` | overview.js | Patterns vanish in the overview only | Yes, silently |
+| `Main.overview._overview.controls._workspacesDisplay._workspacesViews`, `view._workspaces`, `view._workspacesView`, `inner._workspace` | overview.js | Patterns vanish in the overview only | Yes, silently |
 | `workspace._background._backgroundGroup`, `._monitorIndex` | overview.js | Same | Yes, silently |
 | `Main.overview._overview.controls._thumbnailsBox._thumbnails`, `thumbnail._contents` | overview.js | Patterns vanish from the thumbnail strip only | Yes, silently |
 | `Main.wm._workspaceAnimation`, override of `_prepareWorkspaceSwitch` | overview.js | Patterns vanish during a workspace slide only | Yes, silently |
 | `this._switchData.monitors`, `strip._monitor`, `strip._workspaceGroups`, `group._background` | overview.js | Same | Yes, silently |
-| `class extends Shell.GLSLEffect` | shader.js | `enable()` throws, rolls itself back and the extension shows as errored (below). **Removed in GNOME 51** | No |
+| `class extends Shell.GLSLEffect` | shader.js | `enable()` throws, rolls itself back and the extension shows as errored (below); with no pattern on at enable, the first one switched on throws instead, without rollback. **Removed in GNOME 51** | No |
 | `vfunc_paint_target(node, paintContext)` | shader.js | Patterns freeze on their first frame | No |
 | `Shell.SnippetHook` / `Cogl.SnippetHook` | shader.js | The module fails to load | Yes, both tried |
 
@@ -475,7 +475,10 @@ shell, which marks the extension as errored and does not call `disable()`: it
 only disables an extension whose state is `ACTIVE` (`extensionSystem.js` in
 50.5). So `enable()` calls `disable()` itself before rethrowing, and the user's
 wallpaper comes back; the extension shows as errored with nothing left on
-screen.
+screen. That holds only if a pattern is on at enable: with none on, `enable()`
+succeeds, and the first pattern switched on later throws from the settings
+handler instead, with no rollback: the extension stays active with the base
+taken over and no patterns.
 
 **Checked.** No. `metadata.json` does not claim 51.
 
@@ -580,13 +583,16 @@ pace at one rate there.
 
 - **`St.Settings.get().enable_animations`** (system.js). This is not only the
   user's switch. The shell also turns it off with `inhibit_animations()`
-  whenever rendering is not hardware-accelerated, a remote-desktop or
-  screen-sharing session is active, or an X server has the VNC extension
-  (`_shouldEnableAnimations()` in `ui/main.js`, the same at `45.0` and in 50.5).
+  whenever rendering is not hardware-accelerated, a remote-access session that
+  asks for animations off (as remote desktop does) is active, or an X server has
+  the VNC extension, unless `global.force_animations` is set
+  (`AnimationsSettings._shouldEnableAnimations()` in `ui/main.js`, the same at `45.0` and in 50.5).
   In all of those the patterns hold still.
 - **`org.gnome.desktop.interface accent-color`** (app.js, prefs.js). This key
-  exists from GNOME 47, and both files check for it with
-  `settings_schema.has_key('accent-color')` before reading it.
+  exists from GNOME 47. `app.js` checks for it with
+  `settings_schema.has_key('accent-color')` before reading it or connecting
+  `changed::accent-color`; `prefs.js` checks only to label the mode "Accent Color
+  (Blue)" when it is missing.
 - **UPower and power-profiles-daemon on the system bus** (system.js). These are
   public D-Bus services, and the version notes are in
   [compatibility.md](compatibility.md).

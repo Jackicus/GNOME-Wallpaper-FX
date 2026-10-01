@@ -10,6 +10,7 @@
 #   ./scripts/dev.sh uninstall  remove the extension
 #   ./scripts/dev.sh status     show what is currently installed and enabled
 #   ./scripts/dev.sh pack       build dist/<uuid>.shell-extension.zip for extensions.gnome.org
+#   ./scripts/dev.sh schema     check the schema compiles under --strict (what an install does)
 #
 set -euo pipefail
 
@@ -162,10 +163,7 @@ cmd_pack() {
         if [[ -f "$REPO_DIR/$name" ]]; then extra+=(--extra-source="$REPO_DIR/$name"); fi
     done
 
-    # An install compiles the schema with --strict, so a warning here is a
-    # failed install there.
-    require glib-compile-schemas
-    glib-compile-schemas --strict --dry-run "$SRC_DIR/schemas" || die "The schema does not pass --strict."
+    cmd_schema
 
     mkdir -p "$DIST_DIR"
     info "Packing $UUID..."
@@ -181,6 +179,14 @@ cmd_pack() {
     check_pack "$zip"
     unzip -l "$zip"
     ok "Packed $zip"
+}
+
+# An install compiles the schema with --strict, so a warning here is a failed
+# install there. Writes nothing.
+cmd_schema() {
+    require glib-compile-schemas
+    glib-compile-schemas --strict --dry-run "$SRC_DIR/schemas" || die "The schema does not pass --strict."
+    ok "The schema compiles under --strict."
 }
 
 # Everything that should ship is in the zip, and nothing else is: every .js
@@ -218,6 +224,7 @@ Commands:
   uninstall    Disable and remove the extension
   status       Show current installation and activation status
   pack         Build dist/$UUID.shell-extension.zip for extensions.gnome.org
+  schema       Check the schema compiles under --strict, as an install does
   help         Show this help
 EOF
 }
@@ -234,6 +241,7 @@ case "$COMMAND" in
     uninstall) cmd_uninstall ;;
     status)    cmd_status ;;
     pack)      cmd_pack ;;
+    schema)    cmd_schema ;;
     help|-h|--help) cmd_help ;;
     *) die "Unknown command '$COMMAND'. Run './scripts/dev.sh help' for usage." ;;
 esac
