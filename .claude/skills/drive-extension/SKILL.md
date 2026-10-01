@@ -1,6 +1,6 @@
 ---
 name: drive-extension
-description: What is particular to driving Wallpaper FX in the nested GNOME Shell - its nested.sh flags (no --clean, --monitors), the settings that change what is drawn, comparing animated frames, measuring, and the README's screenshots. Read the kit's gnome-ext:nested-shell skill first; use this whenever a pattern's look, colours, palettes, opacity, motion, the overview or prefs layout must be SEEN.
+description: What is particular to driving Wallpaper FX in the nested GNOME Shell - its nested.sh flags (its own settings, --clean, --monitors), the settings that change what is drawn, comparing animated frames, measuring, and the README's screenshots. Read the kit's gnome-ext:nested-shell skill first; use this whenever a pattern's look, colours, palettes, opacity, motion, the overview or prefs layout must be SEEN.
 ---
 
 # Driving Wallpaper FX in the nested shell
@@ -18,9 +18,14 @@ to click: everything visible is a GSettings key. Crop `shot`s to the part being 
 
 ## Its own `./scripts/nested.sh`
 
-- **No `--clean`.** Every `start` shares the user's real dconf: the kit's dconf rule in
-  `live-session.md` applies in full, and `start` writes `enabled-extensions` if the UUID
-  is not listed there, so the real session loads it at the next login too.
+- **Its settings are always its own.** Every `start` gives the nested session a dconf
+  profile whose writable database is `~/.config/dconf/wallpaper_fx_nested`, over
+  read-only defaults made at each start: Wallpaper FX the only extension enabled, the
+  real session's colour scheme, accent and fonts copied in. The user's
+  `~/.config/dconf/user` is never written. That database is kept from one `start` to the
+  next; **`start --clean`** deletes it first, so every key is back at its default. Wipe
+  it when the result must not depend on an earlier run (screenshots, an enable-path
+  check). A shell already running is reused as it is: `stop` before `start --clean`.
 - **`start [WxH] --monitors N`** puts N monitors side by side (shots, the mirror and
   pointer coordinates then span all of them). It is the only way to check
   `span-monitors`, the seam between two monitors, or the overview's previews on a
@@ -44,11 +49,9 @@ system-wide, so every `gsettings` call names it:
     set org.gnome.shell.extensions.wallpaper-fx enabled-effects "['aurora']"
 ```
 
-Without `--clean` every such write is a write to the user's real settings, under the
-kit's dconf rule: through `run` only while this is the only nested shell up (`ls
-$XDG_RUNTIME_DIR/*-nested`), otherwise before `start` or after `stop` (the same command
-without `./scripts/nested.sh run`, which the real session follows too if the extension
-is enabled there). Note each key's value first and put it back. Useful keys: `enabled-effects` (`as` of catalog ids),
+Through `run` it reads and writes the nested shell's own database (`run` sets
+`DCONF_PROFILE`); the same command without `./scripts/nested.sh run` is the user's real
+settings, which a test never writes. Useful keys: `enabled-effects` (`as` of catalog ids),
 `background-mode` (`desktop`/`accent`/`color`/`image`), `color-palette`, `speed`,
 `opacity`, `target-fps`, `pause-when-covered`, `span-monitors`.
 
@@ -60,17 +63,12 @@ is enabled there). Note each key's value first and put it back. Useful keys: `en
 
 ## When it looks wrong, or measuring
 
-- **A `reload` that ends "enabled but not ACTIVE" with nothing in `logs`**, or a key set
-  with `run gsettings` that reads back as its old value, is the real session's dconf
-  service rewriting the shared file from a stale copy. `stop` + `start` recovers.
 - **A pattern that is missing** while the others draw is usually a shader that did not
   compile: `make check` names the line.
 - **Headless without the mirror never paints**: with nothing consuming frames the
   compositor does not draw, so a CPU or GPU reading under `start --headless` measures
   nothing. Measure with the mirror on; it adds a constant screencast cost, so compare
   readings with each other, not with zero.
-- **Other extensions load too** (no `--clean`), so their log lines and top-bar icons
-  appear alongside this one.
 
 ## The README's screenshots
 
@@ -78,5 +76,6 @@ JPEGs in `docs/screenshots/`: `deep-space.jpg` at 1600×833, `patterns/*.jpg` an
 `weather/*.jpg` at 960×500, and `prefs.png` the Patterns page of the preferences. Each
 pattern is shown alone over a palette it suits; the particle patterns are cropped close,
 and Starfield, Sparkles and Embers are at twice their Amount and 1.5× their Brightness,
-which the README says. With no `--clean`, put the user's values back afterwards, and
-never show their own wallpaper picture (`background-mode` `desktop` or `image`).
+which the README says. Take them from a `start --clean` shell, whose `desktop`
+base is GNOME's default wallpaper, never the user's; never point `image` at a file of
+theirs.

@@ -19,7 +19,7 @@ dialog. The log prefix is `[WallpaperFx]`.
   shell at all: the quick loop for a pattern's look).
 - **Seen in the nested shell** for motion, the overview, prefs and two monitors: the
   `gnome-ext:nested-shell` skill, then `.claude/skills/drive-extension/SKILL.md` for what
-  is particular here (no `--clean`, `--monitors N`).
+  is particular here (settings of its own, `--clean`, `--monitors N`).
 - The pack target is **`make zip`** (`./scripts/dev.sh pack`), which also checks the zip
   holds exactly what should ship.
 
