@@ -1,19 +1,42 @@
 ---
-description: Report install mode, shell state, and what the extension is currently drawing
-allowed-tools: Bash(make status), Bash(./scripts/dev.sh status), Bash(gsettings:*)
+description: Report the nested shell's state and what it draws, then the install mode and the real session's state (read-only)
+allowed-tools: Bash(make status), Bash(./scripts/dev.sh status), Bash(./scripts/nested.sh status), Bash(./scripts/nested.sh run timeout 5 gsettings --schemadir src/schemas get:*), Bash(./scripts/nested.sh run timeout 5 gsettings --schemadir src/schemas list-recursively:*), Bash(readlink:*)
 ---
 
-Run `make status`, then read the current settings with
-`gsettings get org.gnome.shell.extensions.wallpaper-fx <key>` (or
-`list-recursively` for the lot), and report:
+Run `./scripts/nested.sh status`, `./scripts/dev.sh status` and
+`readlink ~/.local/share/gnome-shell/extensions/wallpaper-fx@jackicus/extension.js`.
+If a nested shell is running, also read what it draws with
+`./scripts/nested.sh run timeout 5 gsettings --schemadir src/schemas get
+org.gnome.shell.extensions.wallpaper-fx <key>` (or `list-recursively
+org.gnome.shell.extensions.wallpaper-fx` for the lot). Report in two parts.
 
-- **install** — a directory of links into `src/`, with `extension.js` linked to
-  `scripts/dev-extension.js`, means dev mode (edits are live after `make reload`); a
-  directory of real files means a copy that won't pick up edits until `make install`
-  is re-run.
-- **state** — `ACTIVE` is healthy. `doesn't exist` means the running shell never
-  registered the UUID, which needs a log out / log back in, not a reload.
-- **drawing** — `enabled-effects`, `background-mode` (and the palette or image
-  path it implies), `speed`, `opacity`, `target-fps`.
+**Nested shell** (where changes are tried):
+
+- **nested** — running or not, its pid, size and idle timeout. Not running is
+  normal between tasks.
+- **wallpaper-fx** — `ACTIVE` is healthy; `ERROR` means `enable()` threw
+  (`/logs`); anything else after a `reload`, see `/logs` too.
+- **settings** — `its own (…/dconf/wallpaper_fx_nested)` is what every `start`
+  gives it, kept between runs (`start --clean` wipes it); `SHARED with the real
+  session` means a shell from an older `nested.sh`: `stop` and start again.
+- **mirror** — open on the desktop, or closed (`./scripts/nested.sh mirror on`).
+- **drawing** — from the nested settings: `enabled-effects`, `background-mode`
+  (and the palette or image path it implies), `speed`, `opacity`, `target-fps`,
+  and `weather` (while it is on, its look stands in for the patterns and tuning).
+
+**Real session (read-only)**, which these commands only read:
+
+- **install** — `extension.js` linked to `scripts/dev-extension.js` means dev
+  mode: the nested shell, and the real one at its next login, run `src/`; a
+  real file means a copy that won't pick up edits until `make install` is re-run.
+  The nested shell reads the same install.
+- **state** — the extension's state in the user's own shell
+  (`./scripts/dev.sh status`). It says nothing about the edits in progress, and
+  is never fixed by reloading or enabling there: that is the user's to do.
+  `doesn't exist` means that shell never registered the UUID, which needs the
+  user to log out and in.
+
+The user's own settings are read only when asked, with the same `gsettings
+--schemadir src/schemas get` without `./scripts/nested.sh run`, never `set`.
 
 If anything is off, say which command fixes it.
