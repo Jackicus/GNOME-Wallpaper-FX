@@ -74,7 +74,8 @@ settings, which a test never writes. Useful keys: `enabled-effects` (`as` of cat
 ## The README's screenshots
 
 JPEGs in `docs/screenshots/`: `deep-space.jpg` at 1600×833, `patterns/*.jpg` and
-`weather/*.jpg` at 960×500, and `prefs.png` the Patterns page of the preferences. Each
+`weather/*.jpg` at 960×500, and `prefs.png` and `scenes.png` the Patterns and Scenes
+pages of the preferences, the dialog cropped from a `shot` with its corners rounded off. Each
 pattern is shown alone over a palette it suits; the particle patterns are cropped close,
 and Starfield, Sparkles and Embers are at twice their Amount and 1.5× their Brightness,
 which the README says. Take them from a `start --clean` shell, whose `desktop`
