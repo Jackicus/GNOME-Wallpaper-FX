@@ -7,10 +7,12 @@ on the version and what to check first on each, so a version can be added to
 
 ## What has been tested
 
-- **GNOME Shell 50.5** on CachyOS (Arch-based), Wayland, with an NVIDIA GeForce
-  GTX 1080 on the proprietary driver 580.178.04. The rest of the stack on that
-  machine: mutter 50.5, GJS 1.88.1, GLib 2.88.3, GTK 4.22.5, libadwaita 1.9.4,
-  power-profiles-daemon 0.30, libgweather 4.6.0, Geoclue 2.8.2.
+- **The main desktop: GNOME Shell 50.5** on CachyOS (Arch-based), Wayland, with
+  an NVIDIA GeForce GTX 1080 on the proprietary driver 580.178.04. The rest of
+  the stack on that machine: mutter 50.5, GJS 1.88.1, GLib 2.88.3, GTK 4.22.5,
+  libadwaita 1.9.4, power-profiles-daemon 0.30, libgweather 4.6.0, Geoclue
+  2.8.2. A bare `50.5` on this page is that machine's installed shell (the Intel
+  all-in-one runs 50.4).
 - **The same shell headless and nested** (`make nested`, which runs
   `gnome-shell --wayland --headless --virtual-monitor ...` on its own session
   bus), for screenshots and multi-monitor layouts, including the overview on a
@@ -18,7 +20,7 @@ on the version and what to check first on each, so a version can be added to
 
 Both of those mostly ran the development link, whose entry point is
 `scripts/dev-extension.js`. The shipped `src/extension.js` runs only from a real
-install; it has been run once that way on 50.5, from a plain copy of `src/` in
+install; it has been run once that way on the main desktop's 50.5, from a plain copy of `src/` in
 the nested shell, through three disable/enable cycles. Install the zip before
 trusting any other version (checklist step 4).
 
@@ -92,7 +94,8 @@ What `make check` cannot tell you:
   class). Cogl's own `precision highp float;` fails there, so nothing draws.
   Even where it compiles, the hashes and the `u_epoch`/`u_time` split assume
   32-bit floats.
-- **Cost.** `make bench` times each shader on this GPU only.
+- **Cost.** `make bench` times each shader on the GPU of the machine it runs
+  on only; the figures in these docs are the main desktop's GTX 1080.
 
 A pattern whose shader fails to compile in the shell draws nothing, and the
 driver's compile log goes to the journal, not to a terminal.
@@ -118,7 +121,7 @@ blink back when it lands.
 The paths into the workspace previews and the thumbnail strip are unchanged
 from `45.0` to `51.0`, including the `SecondaryMonitorDisplay._workspacesView`
 wrapper that secondary monitors are reached through (see
-[private-api.md](private-api.md)). Only 50.5 has been seen, with two monitors.
+[private-api.md](private-api.md)). Only the main desktop's 50.5 has been seen, with two monitors.
 
 *Check first:* open the overview. The patterns should be in the workspace
 preview and in the thumbnails, on each monitor.
@@ -175,7 +178,7 @@ if (proxy.g_name_owner === null && index + 1 < PROFILES.length) { ... this._watc
 - power-profiles-daemon **0.20** moved under the UPower project and began
   answering to `org.freedesktop.UPower.PowerProfiles` "in addition to the
   previous `net.hadess.PowerProfiles` for compatibility reasons" (its `NEWS`).
-  On this machine, 0.30 owns both names.
+  On the main desktop, 0.30 owns both names.
 - GNOME Shell's own power-mode menu moved to the new name in **48**:
   `BUS_NAME` in `js/ui/status/powerProfiles.js` is `net.hadess.PowerProfiles` at
   `45.0`, `46.0` and `47.0`, and `org.freedesktop.UPower.PowerProfiles` from
@@ -224,8 +227,8 @@ claimed version, so they are always there; they are imported as
 - **Geoclue.** `Geoclue.Simple.new()` is called with a callback. The shell
   promisifies it (`Gio._promisify(Geoclue.Simple, 'new')`, 50.5), and a
   promisified function still takes a callback, so this works whether or not
-  that has happened. Automatic location has only been seen failing here: the
-  test machine has Location Services off, and Geoclue answers `AccessDenied:
+  that has happened. Automatic location has only been seen failing: the main
+  desktop has Location Services off, and Geoclue answers `AccessDenied:
   Geolocation disabled for UID 1000`, which is exactly the path that falls back
   to the chosen place. **A located fix has not been tested.**
 - **GWeather** was run against live MET Norway and METAR data on 4.6.0 for
@@ -245,7 +248,7 @@ and the place should become where you are.
 
 The preferences run in a separate process on whatever GTK and libadwaita the
 system has; GNOME Shell does not pin a minimum. GNOME 45 was released with GTK
-4.12 and libadwaita 1.4. Versions below are the ones marked in this machine's
+4.12 and libadwaita 1.4. Versions below are the ones marked in the main desktop's
 `Adw-1.gir` and `Gtk-4.0.gir`.
 
 | Widget or call | Needs | In GNOME 45's stack |

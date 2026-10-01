@@ -6,8 +6,8 @@ workspace slide. None of that has a public API. This is everything it reaches
 into, for reviewers on extensions.gnome.org and for whoever ports it to the next
 GNOME.
 
-Every entry was checked against the GNOME Shell 50.5 JavaScript on the test
-machine (extracted from `/usr/lib/gnome-shell/libshell-18.so`) and against the
+Every entry was checked against the GNOME Shell 50.5 JavaScript on the main
+desktop (extracted from `/usr/lib/gnome-shell/libshell-18.so`; a bare `50.5` below is that) and against the
 `45.0`, `47.0`, `49.0` and `51.0` tags of `GNOME/gnome-shell` and `GNOME/mutter`
 on gitlab.gnome.org. Unless an entry says otherwise, the field or method exists
 with the same meaning in all of them. Line numbers are left out on purpose,
@@ -305,7 +305,7 @@ and a `SecondaryMonitorDisplay` for each of the others
 That is a `WorkspacesView` (`_workspaces`) or, with workspaces on the primary
 monitor only (GNOME's default), an `ExtraWorkspaceView`, which holds a single
 `_workspace`. Hence the three-way read. The secondary monitor's preview was
-checked showing the patterns in a two-monitor nested shell on 50.5.
+checked showing the patterns in a two-monitor nested shell on the main desktop's 50.5.
 
 **Why nothing public.** The overview exposes no list of its workspace actors.
 
