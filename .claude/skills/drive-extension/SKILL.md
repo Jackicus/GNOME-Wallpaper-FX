@@ -30,7 +30,8 @@ to click: everything visible is a GSettings key. Crop `shot`s to the part being 
   pointer coordinates then span all of them). It is the only way to check
   `span-monitors`, the seam between two monitors, or the overview's previews on a
   secondary monitor.
-- **No `window` step**: shoot the preferences with a cropped `shot`.
+- **No `window` step**: shoot the preferences with a cropped `shot`. `/prefs` opens
+  them in the nested shell; `make prefs` opens the user's own, never used to test.
 - **Idle stop**: a shell started from a Claude Code session stops itself after
   `WALLPAPER_FX_NESTED_IDLE` seconds without a `nested.sh` command (default 600, `0`
   never), set at `start`. If it hit mid-task, `start` again.

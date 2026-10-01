@@ -19,7 +19,9 @@ dialog. The log prefix is `[WallpaperFx]`.
   shell at all: the quick loop for a pattern's look).
 - **Seen in the nested shell** for motion, the overview, prefs and two monitors: the
   `gnome-ext:nested-shell` skill, then `.claude/skills/drive-extension/SKILL.md` for what
-  is particular here (settings of its own, `--clean`, `--monitors N`).
+  is particular here (settings of its own, `--clean`, `--monitors N`). `/reload`,
+  `/logs`, `/status`, `/prefs` and `/preview` use the nested shell; `make reload`,
+  `make prefs` and `make logs` are the user's own session, theirs to run.
 - The pack target is **`make zip`** (`./scripts/dev.sh pack`), which also checks the zip
   holds exactly what should ship.
 
@@ -149,4 +151,4 @@ own. Paints through a clone (the overview, the workspace slide) never count as c
   reading taken while something covers the desktop is measuring something else.
 - **A layer whose `State` throws** throws out of the paint: GJS logs it and the layer
   draws nothing and books no further frame, so a broken pattern looks like one that was
-  never enabled. `make logs` (or the nested `logs`) before assuming an edit did nothing.
+  never enabled. `./scripts/nested.sh logs` before assuming an edit did nothing.
