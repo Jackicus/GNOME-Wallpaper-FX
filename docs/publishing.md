@@ -12,23 +12,24 @@ and [Best Practices](https://gjs.guide/extensions/review-guidelines/best-practic
 make zip
 ```
 
-This runs `scripts/dev.sh pack`, which:
+This runs `./scripts/dev.sh pack` (the kit's, shared by every extension), which:
 
 1. runs `glib-compile-schemas --strict --dry-run` on `src/schemas`, and stops if
    it fails: an install compiles the schema with `--strict`, so a warning here
    would be a failed install;
-2. runs `gnome-extensions pack src --extra-source=lib --out-dir=dist --force`.
-   `gnome-extensions` adds `extension.js`, `metadata.json`, `prefs.js` and every
-   `schemas/*.gschema.xml` by itself (`command-pack.c`); `lib/`, with `layers/`
-   under it, has to be named. A `LICENSE` or `COPYING` at the top of the repo is
-   added too, as one more `--extra-source` (the repo has one: `LICENSE`, GPL-2.0);
+2. copies what ships into a scratch directory: the entry points, `metadata.json`,
+   the schema XML, every `.js` file under `src/lib` (`EXT_SHIP` in
+   `scripts/ext.conf`, `layers/` included) and the `LICENSE` at the top of the
+   repo (GPL-2.0), and runs `gnome-extensions pack` on that, naming `lib/` and
+   `LICENSE` as `--extra-source`s. `gnome-extensions` adds `extension.js`,
+   `metadata.json`, `prefs.js` and every `schemas/*.gschema.xml` by itself
+   (`command-pack.c`);
 3. deletes `schemas/gschemas.compiled` from the zip if the `gnome-extensions`
    doing the packing put one there. Up to GNOME 45 it compiled the schema into the
    bundle; from 46 it does not (`command-pack.c` at the `45.0` and `46.0` tags);
-4. checks that the zip holds exactly what should ship, which is every `.js` file
-   under `src/lib`, the two entry points, `metadata.json`, the schema XML and
-   `LICENSE`, and nothing else. A missing module or a stray file (an editor backup, a note) stops
-   the build with the file named;
+4. checks that the zip holds exactly what was copied, and nothing else. A
+   missing module or a stray file stops the build with the file named; an editor
+   backup or a note in `src/lib` is never copied in the first place;
 5. prints the listing. The output is `dist/wallpaper-fx@jackicus.shell-extension.zip`.
 
 What it contains today:
@@ -345,13 +346,15 @@ URL each time. That staging lives outside what ships:
       this._app = null;
   }
   ```
-- `scripts/dev-extension.js` is the development entry point: an async
-  `enable()` that copies `lib/` to a fresh
-  `$XDG_RUNTIME_DIR/wallpaper-fx/lib-<stamp>/` and imports `app.js` from
-  there, with the `_enabling` guard and the logging that belong to it.
-- `scripts/dev.sh link` (`link_tree()`) builds the extension directory as a real
+- `scripts/dev-extension.js` is the development entry point (the kit's): an
+  async `enable()` that copies `lib/` to
+  `$XDG_RUNTIME_DIR/wallpaper-fx/shell-<pid>/lib-<checksum>/`, a directory of the
+  running shell's own named for a checksum of the files, and imports `app.js`
+  from there, with the `_enabling` guard and the logging that belong to it.
+- `./scripts/dev.sh link` (`link_tree()`) builds the extension directory as a real
   directory of links, one for each entry in `src/` except `extension.js`, which
-  links to `scripts/dev-extension.js`. `make reload` still picks up edits.
+  links to `scripts/dev-extension.js`, and writes `dev-extension.json` beside
+  them. A reload still picks up edits.
 
 What is in the repository is what ships, apart from `scripts/`, which never
 ships. The development link never runs `src/extension.js`, so test the shipped

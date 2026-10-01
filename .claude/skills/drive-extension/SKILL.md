@@ -1,6 +1,6 @@
 ---
 name: drive-extension
-description: What is particular to driving Wallpaper FX in the nested GNOME Shell - its nested.sh flags (its own settings, --clean, --monitors), the settings that change what is drawn, comparing animated frames, measuring, and the README's screenshots. Read the kit's gnome-ext:nested-shell skill first; use this whenever a pattern's look, colours, palettes, opacity, motion, the overview or prefs layout must be SEEN.
+description: What is particular to driving Wallpaper FX in the nested GNOME Shell - the start flags that matter here (--clean, --monitors, --stand-in), the settings that change what is drawn, comparing animated frames, measuring, and the README's screenshots. Read the kit's gnome-ext:nested-shell skill first; use this whenever a pattern's look, colours, palettes, opacity, motion, the overview or prefs layout must be SEEN.
 ---
 
 # Driving Wallpaper FX in the nested shell
@@ -16,25 +16,23 @@ again in the overview's workspace previews, its thumbnail strip and the workspac
 (`overview on`, or `key Super+Page_Down` for a slide). There is no panel button or menu
 to click: everything visible is a GSettings key. Crop `shot`s to the part being judged.
 
-## Its own `./scripts/nested.sh`
+## In the nested shell
 
-- **Its settings are always its own.** Every `start` gives the nested session a dconf
-  profile whose writable database is `~/.config/dconf/wallpaper_fx_nested`, over
-  read-only defaults made at each start: Wallpaper FX the only extension enabled, the
-  real session's colour scheme, accent and fonts copied in. The user's
-  `~/.config/dconf/user` is never written. That database is kept from one `start` to the
-  next; **`start --clean`** deletes it first, so every key is back at its default. Wipe
-  it when the result must not depend on an earlier run (screenshots, an enable-path
-  check). A shell already running is reused as it is: `stop` before `start --clean`.
-- **`start [WxH] --monitors N`** puts N monitors side by side (shots, the mirror and
-  pointer coordinates then span all of them). It is the only way to check
-  `span-monitors`, the seam between two monitors, or the overview's previews on a
-  secondary monitor.
-- **No `window` step**: shoot the preferences with a cropped `shot`. `/prefs` opens
-  them in the nested shell; `make prefs` opens the user's own, never used to test.
-- **Idle stop**: a shell started from a Claude Code session stops itself after
-  `WALLPAPER_FX_NESTED_IDLE` seconds without a `nested.sh` command (default 600, `0`
-  never), set at `start`. If it hit mid-task, `start` again.
+`./scripts/nested.sh` is the kit's, with nothing of Wallpaper FX's own (no
+`scripts/nested.d/`). What matters here:
+
+- **`start --clean`** resets the nested settings (kept between starts otherwise) to
+  Wallpaper FX alone and every one of its keys at its default. Use it when the result
+  must not depend on an earlier run (an enable-path check). A shell already running is
+  reused as it is: `stop` before `start --clean`.
+- **`start --monitors N`** puts N monitors side by side (shots, the mirror and pointer
+  coordinates then span all of them). It is the only way to check `span-monitors`, the
+  seam between two monitors, or the overview's previews on a secondary monitor.
+- **`start --stand-in`** runs a copy of `src/` with a scratch home and fresh settings:
+  the `desktop` base is GNOME's default wallpaper and `~/.cache/wallpaper-fx` is the
+  scratch one. For screenshots that are kept.
+- **`/prefs`** opens the preferences in the nested shell (`window` shoots the dialog
+  alone); `make prefs` opens the user's own, never used to test.
 - **No shell at all**: `node scripts/shaders.mjs render PATTERN --out $S/x.png
   --frames 3 [--span 2] [--density D]` draws frames of one pattern straight to a PNG
   (`.claude/rules/shaders.md`). Use it for a pattern's look, and while another session
@@ -50,9 +48,9 @@ system-wide, so every `gsettings` call names it:
     set org.gnome.shell.extensions.wallpaper-fx enabled-effects "['aurora']"
 ```
 
-Through `run` it reads and writes the nested shell's own database (`run` sets
-`DCONF_PROFILE`); the same command without `./scripts/nested.sh run` is the user's real
-settings, which a test never writes. Useful keys: `enabled-effects` (`as` of catalog ids),
+Through `run` it reads and writes the nested shell's own settings (the keyfile backend
+in its own `XDG_CONFIG_HOME`); the same command without `./scripts/nested.sh run` is the
+user's real settings, which a test never writes. Useful keys: `enabled-effects` (`as` of catalog ids),
 `background-mode` (`desktop`/`accent`/`color`/`image`), `color-palette`, `speed`,
 `opacity`, `target-fps`, `pause-when-covered`, `span-monitors`.
 
@@ -78,6 +76,6 @@ JPEGs in `docs/screenshots/`: `deep-space.jpg` at 1600×833, `patterns/*.jpg` an
 pages of the preferences, the dialog cropped from a `shot` with its corners rounded off. Each
 pattern is shown alone over a palette it suits; the particle patterns are cropped close,
 and Starfield, Sparkles and Embers are at twice their Amount and 1.5× their Brightness,
-which the README says. Take them from a `start --clean` shell, whose `desktop`
+which the README says. Take them from a `start --stand-in` shell, whose `desktop`
 base is GNOME's default wallpaper, never the user's; never point `image` at a file of
 theirs.

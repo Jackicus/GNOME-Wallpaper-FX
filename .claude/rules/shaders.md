@@ -52,8 +52,8 @@ pattern the prelude: hashes, value noise, `glow()`, `line()`, and the time helpe
   1080p, and the compositor thread there does about 4% of a core at 60 FPS in the nested
   shell whichever are on.
 - **GType names are per load**: `shader.js` registers each pattern's effect class as
-  `WallpaperFx_<id>_<load>`, because the development entry point loads `lib/` afresh on
-  every enable; a fixed name fails the second time and that pattern simply does not
+  `WallpaperFx_<id>_<load>`, because the development entry point loads `lib/` afresh
+  after every edit; a fixed name fails the second time and that pattern simply does not
   appear.
 - **Look before calling it done.** `render` is the fast loop; the nested shell is where
   motion and the overview are judged, and `start --monitors 2` is the only way to see

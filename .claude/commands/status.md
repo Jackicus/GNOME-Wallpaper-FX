@@ -14,11 +14,12 @@ org.gnome.shell.extensions.wallpaper-fx` for the lot). Report in two parts.
 
 - **nested** — running or not, its pid, size and idle timeout. Not running is
   normal between tasks.
-- **wallpaper-fx** — `ACTIVE` is healthy; `ERROR` means `enable()` threw
+- **extension** — `ACTIVE` is healthy; `ERROR` means `enable()` threw
   (`/logs`); anything else after a `reload`, see `/logs` too.
-- **settings** — `its own (…/dconf/wallpaper_fx_nested)` is what every `start`
-  gives it, kept between runs (`start --clean` wipes it); `SHARED with the real
-  session` means a shell from an older `nested.sh`: `stop` and start again.
+- **settings** — always its own: kept between runs under
+  `~/.local/state/gnome-extensions-nested/wallpaper-fx/` (`start --clean` resets
+  them), or fresh for the run under `--stand-in`, whose **data** line names its
+  scratch home.
 - **mirror** — open on the desktop, or closed (`./scripts/nested.sh mirror on`).
 - **drawing** — from the nested settings: `enabled-effects`, `background-mode`
   (and the palette or image path it implies), `speed`, `opacity`, `target-fps`,
@@ -29,6 +30,8 @@ org.gnome.shell.extensions.wallpaper-fx` for the lot). Report in two parts.
 - **install** — `extension.js` linked to `scripts/dev-extension.js` means dev
   mode: the nested shell, and the real one at its next login, run `src/`; a
   real file means a copy that won't pick up edits until `make install` is re-run.
+  `made before dev-extension.json` is a link from before the kit's scripts: the
+  user's to remake with `make link`.
   The nested shell reads the same install.
 - **state** — the extension's state in the user's own shell
   (`./scripts/dev.sh status`). It says nothing about the edits in progress, and
