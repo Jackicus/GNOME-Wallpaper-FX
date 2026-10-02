@@ -1,14 +1,8 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
-// A scene is a look the user saved: which patterns, tuned how, over what. It is
-// nothing but the values of these keys, so applying one is writing them, saving
-// one is reading them, and a scene is "current" when they all match. The one
-// look that comes with the extension is the weather's, which changes by itself
-// and so lives in the extension rather than here (looks.js, weather.js).
-//
-// Frame rate, pausing and spanning are left out on purpose: they are about the
-// machine and the monitors, not about the look.
+// A scene is the values of these keys. Frame rate, pausing and spanning are about
+// the machine, not the look, so they are left out.
 export const SCENE_KEYS = [
     'enabled-effects',
     'pattern-tuning',
@@ -19,8 +13,7 @@ export const SCENE_KEYS = [
     'opacity',
 ];
 
-// Plain JSON with sorted keys and a sorted pattern list, so the same look
-// compares equal however its patterns and tunings happen to be listed.
+// Sorted, so the same look compares equal however it is listed.
 function canonical(key, variant) {
     const sort = v => (v && typeof v === 'object' && !Array.isArray(v)
         ? Object.fromEntries(Object.keys(v).sort().map(k => [k, sort(v[k])]))
@@ -29,14 +22,8 @@ function canonical(key, variant) {
     return JSON.stringify(key === 'enabled-effects' ? [...value].sort() : sort(value));
 }
 
-/**
- * Writes a scene's values, as one change, and stops following the weather --
- * a scene is a look chosen by hand.
- *
- * Through a settings object of its own: delay() has no way back, so on the
- * shared one every later edit in the window would sit unapplied, shown in the
- * rows but never reaching the shell.
- */
+// A settings object of its own: delay() has no way back, so on the shared one
+// every later edit in the window would sit unapplied.
 export function applyScene(settings, scene) {
     const batch = new Gio.Settings({ settings_schema: settings.settings_schema, backend: settings.backend });
     batch.delay();
@@ -48,7 +35,6 @@ export function applyScene(settings, scene) {
     batch.apply();
 }
 
-/** Whether the settings are showing this scene right now. */
 export function isCurrent(settings, scene) {
     if (settings.get_boolean('weather')) return false;
     return SCENE_KEYS.every(key => {
@@ -58,7 +44,6 @@ export function isCurrent(settings, scene) {
     });
 }
 
-/** The user's own scenes, in the order they were saved. */
 export function savedScenes(settings) {
     return settings.get_value('saved-scenes').deepUnpack().map(({ name, ...values }) => ({
         name: name.unpack(),
@@ -66,7 +51,6 @@ export function savedScenes(settings) {
     }));
 }
 
-/** Saves what is showing now under `name`, replacing a scene of that name. */
 export function saveScene(settings, name) {
     const values = Object.fromEntries(SCENE_KEYS.map(key => [key, settings.get_value(key)]));
     const others = savedScenes(settings).filter(s => s.name !== name);
