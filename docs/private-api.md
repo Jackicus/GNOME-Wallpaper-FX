@@ -377,7 +377,7 @@ if (!group || index === undefined) continue;
 **What for.** `workspace._background` is the preview's `WorkspaceBackground`;
 its `_backgroundGroup` is the `Meta.BackgroundGroup` its wallpaper is in, which
 the overview's own scaling and rounded clipping already apply to. The clone goes
-in there, inside a `PreviewHost` that reads its allocation back as a scale.
+in there, inside a `WallpaperFxPreviewHost` that reads its allocation back as a scale.
 `_monitorIndex` picks the canvas to clone.
 
 **If it changes.** Skipped per preview (the `continue` above): no patterns in
@@ -488,15 +488,15 @@ strip and die with it; they are not tracked.
 `buildEffectClass()`:
 
 ```js
-return GObject.registerClass({
-    GTypeName: `WallpaperFx_${effect.id}_${LOAD}`,
-}, class extends Shell.GLSLEffect {
+const Effect = class extends Shell.GLSLEffect {
     vfunc_build_pipeline() {
-        this.add_glsl_snippet(FRAGMENT, declarations, code, true);
+        this.add_glsl_snippet(Cogl.SnippetHook.FRAGMENT, declarations, code, true);
     }
     ...
     setUniform(name, components, values) { ... this.get_uniform_location(name) ... this.set_uniform_float(location, components, values) ... }
-});
+};
+Object.defineProperty(Effect, 'name', { value: `WallpaperFx_${effect.id}` });
+return GObject.registerClass(Effect);
 ```
 
 **What for.** Each pattern is a fragment shader. `Shell.GLSLEffect` is the
@@ -558,18 +558,23 @@ nothing in the log.
 `CoglSnippetHook` from `48.0`; at `45.0` and `47.0` it took a `ShellSnippetHook`,
 so a port to 47 or earlier passes `Shell.SnippetHook.FRAGMENT` (the same values).
 
-### GType names registered per load
+### GType names, one set per load
 
 ```js
 // Kept across disable and enable: a GType cannot be unregistered, and a class compiles
-// its pipeline once. Each load of the module names its classes apart.
-const LOAD = GLib.uuid_string_random().slice(0, 8);
+// its pipeline once.
 const classes = new Map();
 ```
 
 A GType can never be unregistered, and registering a name twice throws
-("Type name ... is already registered"). The classes carry explicit
-`GTypeName`s, so each evaluation of `shader.js` gets its own suffix.
+("Type name ... is already registered"). No class here sets a `GTypeName`. The
+shell sets `GObject.gtypeNameBasedOnJSPath = true` (`ui/environment.js`), and
+gjs 1.88 then names a class `Gjs_<module's directory>_<module>_<class name>`
+(`_createGTypeName()` in its `GObject.js` override): installed,
+`Gjs_lib_shader_WallpaperFx_aurora` and `Gjs_lib_overview_WallpaperFxPreviewHost`;
+staged for development, `Gjs_lib-<checksum>_shader_WallpaperFx_aurora`. The 16
+pattern classes come from one definition in `buildEffectClass()`, so each is given
+its JS name, with the extension's prefix, before it is registered.
 
 - **Installed from the zip** the module is evaluated once per shell process
   (GJS caches modules by URL), so each pattern's class is registered once, the
@@ -582,14 +587,11 @@ A GType can never be unregistered, and registering a name twice throws
 - **Linked for development** the link's entry point,
   `scripts/dev-extension.js`, copies `lib/` somewhere new after every edit (a
   stage named for a checksum of the files), so each enable after an edit
-  registers a fresh set, and the old ones stay for the life of the shell: a
-  small, bounded, development-only leak. An enable with no edit between (an
-  unlock) imports the same stage and so the same module, whose `classes` it
-  reuses.
-
-`PreviewHost` in `overview.js` has no explicit name. The shell sets
-`GObject.gtypeNameBasedOnJSPath = true` (`ui/environment.js`), so its GType name
-comes from the module's path, and a copy at a new path gets a new name.
+  registers a fresh set under the new directory's name, and the old ones stay
+  for the life of the shell: a small, bounded, development-only leak. An enable
+  with no edit between (an unlock) imports the same stage and so the same module,
+  whose `classes` it reuses. Checked in the nested shell on 50.5: two edits and
+  reloads registered three sets of names, with no "already registered".
 
 ### `Clutter.Actor.is_in_clone_paint()`
 

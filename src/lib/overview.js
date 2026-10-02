@@ -8,8 +8,8 @@ import Clutter from 'gi://Clutter';
 
 // A preview is stretched in x and y as the overview animates, and does not always
 // notify its size, so the clone follows the allocation as a scale.
-const PreviewHost = GObject.registerClass(
-class PreviewHost extends Clutter.Actor {
+const WallpaperFxPreviewHost = GObject.registerClass(
+class WallpaperFxPreviewHost extends Clutter.Actor {
     constructor(props, monitor) {
         super(props);
         this._monitor = monitor;
@@ -111,7 +111,7 @@ export class OverviewCanvas {
             const monitor = monitors[index];
             if (!source || !monitor) continue;
 
-            const host = new PreviewHost({
+            const host = new WallpaperFxPreviewHost({
                 name: `WallpaperFxPreview:${index}`,
                 x_align: Clutter.ActorAlign.FILL,
                 y_align: Clutter.ActorAlign.FILL,

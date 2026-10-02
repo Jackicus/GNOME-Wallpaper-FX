@@ -1,7 +1,6 @@
 // Each pattern's GLSL as a Shell.GLSLEffect, and the prelude they share (docs/patterns.md).
 
 import Cogl from 'gi://Cogl';
-import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Shell from 'gi://Shell';
 
@@ -124,8 +123,7 @@ float segmentDistance(vec2 p, vec2 a, vec2 b) {
 `;
 
 // Kept across disable and enable: a GType cannot be unregistered, and a class compiles
-// its pipeline once. Each load of the module names its classes apart.
-const LOAD = GLib.uuid_string_random().slice(0, 8);
+// its pipeline once.
 const classes = new Map();
 
 export function effectClass(effect) {
@@ -147,9 +145,7 @@ export function shaderSource(effect) {
 function buildEffectClass(effect) {
     const { declarations, code } = shaderSource(effect);
 
-    return GObject.registerClass({
-        GTypeName: `WallpaperFx_${effect.id}_${LOAD}`,
-    }, class extends Shell.GLSLEffect {
+    const Effect = class extends Shell.GLSLEffect {
         vfunc_build_pipeline() {
             this.add_glsl_snippet(Cogl.SnippetHook.FRAGMENT, declarations, code, true);
         }
@@ -169,5 +165,9 @@ function buildEffectClass(effect) {
             }
             if (location >= 0) this.set_uniform_float(location, components, values);
         }
-    });
+    };
+    // GJS names the GType after this module's path and the class name, so a staged
+    // copy of lib/ registers new names on each load.
+    Object.defineProperty(Effect, 'name', { value: `WallpaperFx_${effect.id}` });
+    return GObject.registerClass(Effect);
 }
