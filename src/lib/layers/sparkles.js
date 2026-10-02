@@ -1,11 +1,7 @@
-// Drifting specks of light, nearer ones larger, brighter and faster.
-//
-// Depth comes in four bands, each a grid of cells sliding at its own pace with
-// at most one speck in a cell -- so a pixel only ever looks at the one cell it is
-// in per band, however many specks there are. A speck keeps clear of its cell's
-// edges by more than its glow and its sway, which is what makes one cell enough.
+// Depth bands of sliding cells, one speck to a cell, kept clear of its edges so a
+// pixel looks at one cell per band.
 
-// z range, and the share of the ~90 specks a 1080-line screen holds.
+// z range, and the share of the specks.
 const BANDS = [
     [0.0, 0.1, 0.33],
     [0.1, 0.3, 0.33],
@@ -14,17 +10,14 @@ const BANDS = [
 ];
 const COUNT = 90;
 const OCCUPIED = 0.75;
-// The grid repeats after this many cells -- far off screen -- so the distance
-// it has slid can be kept small.
+// Cells before the grid repeats, so the distance slid stays small.
 const REPEAT = 64;
 
-// More specks are smaller cells: down to a quarter as many, up to twice.
 export const density = [0.25, 2];
 
 function band([z0, z1, share], i) {
     const z = (z0 + z1) / 2;
     const cell = Math.sqrt(1920 * 1080 * OCCUPIED / (COUNT * share));
-    // In 1080-line pixels a second, up and to the right.
     const vx = (0.006 + 0.02 * z) * 1920;
     const vy = -(0.003 + 0.012 * z) * 1080;
     return `c += sparkleBand(p, ${i}.0, ${z0.toFixed(2)}, ${z1.toFixed(2)}, ${cell.toFixed(1)}, ` +
@@ -40,7 +33,7 @@ vec4 sparkleBand(vec2 p, float band, float z0, float z1, float designCell, vec2 
     vec4 h = hash42(key);
     if (h.x > ${OCCUPIED.toFixed(2)}) return vec4(0.0);
 
-    // Nothing to draw this far from where the speck's sway can take it.
+    // Culled before the rest (docs/patterns.md).
     float margin = 5.5 + 12.0 + 2.0;
     vec2 at = floor(q / cell) * cell + margin + h.zw * (cell - 2.0 * margin);
     vec2 off = q - at;

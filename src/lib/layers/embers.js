@@ -1,18 +1,9 @@
-// Sparks rising from a warm glow along the bottom edge, cooling from white
-// through orange to red as they climb and fade.
-//
-// The screen is cut into narrow columns, each running a few sparks one after
-// another: a spark is born just below the bottom edge, rises and dies, and the
-// next takes its place somewhere else in the column. Everything about a spark
-// is a function of its column, its slot and which life it is on, so nothing is
-// kept between frames, and a pixel looks at three columns' worth of sparks.
+// Sparks rising from a glow below the frame, a few to each narrow column.
 
 const COLUMN = 52;          // in U: ~37 columns across a 1920-wide screen
 const SLOTS = 3;            // sparks per column at any moment, as designed
 const MOST = 6;             // and at the most Amount allows
 
-// A spark or two per column up to six; the last one fades in with the setting
-// rather than appearing all at once.
 export const density = [1 / SLOTS, MOST / SLOTS];
 
 export const glsl = `
@@ -27,8 +18,7 @@ vec4 emberSpark(vec2 p, float column, float slot) {
     float size = 2.0 + h.z * h.z * 5.0;
     float r = size * (1.2 - 0.5 * f) * U;
 
-    // Slowing as it cools; born just below the bottom edge. Where it is, and
-    // whether it is anywhere near, is settled before anything else is worked out.
+    // Culled before anything else is worked out (docs/patterns.md).
     float y = (1.02 + h.w * 0.06 - rise * period * (1.3 * f - 0.3 * f * f)) * u_canvas.y;
     float x = ((column + 0.5) * ${COLUMN}.0 + (h.x - 0.5) * ${COLUMN / 2}.0) * U;
     if (abs(p.y - y) > 1.2 * r || abs(p.x - x) > 1.2 * r + 14.0 * U) return vec4(0.0);
@@ -44,14 +34,12 @@ vec4 emberSpark(vec2 p, float column, float slot) {
 }
 
 vec4 embers(vec2 p) {
-    // The fire below the frame.
     float heat = 0.5 + 0.15 * sin(wphase(0.7)) + 0.08 * sin(wphase(2.3));
     float band = (p.y - u_canvas.y * 0.72) / (u_canvas.y * 0.28);
     vec4 c = vec4(1.0, 0.471, 0.157, 1.0) * 0.28 * clamp(band, 0.0, 1.0) * heat;
 
     float column = floor(p.x / (${COLUMN}.0 * U));
-    // Slot by slot, each behind a test on the Amount setting alone, so every
-    // pixel takes the same way and the code stays straight-line.
+    // Slots behind tests on a uniform stay straight-line (docs/patterns.md).
     for (int dc = -1; dc <= 1; dc++) {
         float col = column + float(dc);
         ${Array.from({ length: MOST }, (_, s) => s < SLOTS

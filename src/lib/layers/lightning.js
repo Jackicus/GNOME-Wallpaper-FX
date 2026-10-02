@@ -1,20 +1,7 @@
 import { seeded } from '../layer.js';
 
-// A storm some way off: now and then the clouds light up from inside, the
-// light swelling and flickering as the strokes follow one another, and more
-// often than not a forked bolt comes down through it.
-//
-// Strikes are rare enough to be decided here, once a frame, and handed over as
-// a glow and a list of segments: one chance of a strike to each slot of a few
-// seconds, decided and shaped by a hash of the slot, so every monitor of a
-// spanned sky agrees on it without sharing anything. A bolt is a jagged path
-// from the flash down towards the ground, made by displacing midpoints, with
-// two branches forking off it. The shader draws the glow and, near the bolt,
-// the distance to its nearest segment; with nothing in the sky it draws
-// nothing, and costs next to nothing.
-//
-// The light is kept soft on purpose: the flash is a glow, not the whole screen
-// turning white, and its flickers overlap rather than strobe.
+// One chance of a strike in each slot, decided by a hash of the slot so spanned
+// monitors agree without sharing anything.
 
 const EVERY = 5;            // seconds: one chance of a strike to each slot
 const CHANCE = 0.55;        // of a strike in a slot, at an Amount of 1
@@ -25,17 +12,14 @@ const TWIG = 3;             // of each branch: 8, the first half nearer the bolt
 const MAIN = 2 ** LEVELS;
 const HALF = 2 ** TWIG / 2;
 
-// More or fewer strikes: a quarter as many, up to one in almost every slot.
 export const density = [0.25, 2];
 
-// The nearest of `count` segments from `from` on, four at a time.
 const nearest = (name, from, count) => Array.from({ length: count / 4 }, (_, g) =>
     `${name} = min(${name}, lightningNearest(p, ` +
     `${[0, 1, 2, 3].map(k => `lightning_seg[${from + g * 4 + k}]`).join(', ')}));`).join('\n    ');
 
 export const glsl = `
-// The bolt, then the halves of both branches nearer it, then the far halves;
-// each segment's ends, in canvas pixels.
+// The bolt, then the near halves of both branches, then the far halves.
 uniform vec4 lightning_seg[${MAIN + 4 * HALF}];
 uniform vec2 lightning_light;               // the bolt's brightness, and the flash's
 uniform vec4 lightning_flash;               // the glow's centre, its radius, and the wash over the rest
@@ -50,7 +34,6 @@ vec4 lightning(vec2 p) {
     float flash = lightning_light.y;
     if (flash <= 0.0) return vec4(0.0);
 
-    // The clouds lit from inside, and a little light over everything.
     vec2 g = (p - lightning_flash.xy) / lightning_flash.z;
     float lit = 0.32 * exp(-2.2 * dot(g, g)) + lightning_flash.w;
     vec4 c = vec4(0.76, 0.78, 1.0, 1.0) * lit * flash;
@@ -66,8 +49,6 @@ vec4 lightning(vec2 p) {
     ${nearest('near', MAIN, 2 * HALF)}
     ${nearest('far', MAIN + 2 * HALF, 2 * HALF)}
 
-    // A white-hot channel in a violet glow, the branches thinner, and dimmer
-    // towards their tips.
     float core = max(line(main, 2.2 * U), max(0.65 * line(near, 1.5 * U), 0.35 * line(far, 1.2 * U)));
     float halo = max(exp(-main / (9.0 * U)), max(0.5 * exp(-near / (6.0 * U)), 0.3 * exp(-far / (5.0 * U))));
     float a = 0.55 * halo * bolt;
@@ -75,8 +56,7 @@ vec4 lightning(vec2 p) {
 }
 `;
 
-// A jagged path from a to b: each midpoint pushed aside by a share of its
-// segment's length, `levels` times over, so it zigzags at every scale.
+// Midpoint displacement, `levels` times over, so it zigzags at every scale.
 function jagged(rand, a, b, levels, roughness) {
     let points = [a, b];
     for (let l = 0; l < levels; l++) {
@@ -85,7 +65,6 @@ function jagged(rand, a, b, levels, roughness) {
             const [x0, y0] = points[i - 1];
             const [x1, y1] = points[i];
             const push = (rand() - 0.5) * 2 * roughness;
-            // Aside, across the segment, by a share of its length.
             next.push([(x0 + x1) / 2 + push * (y1 - y0), (y0 + y1) / 2 - push * (x1 - x0)], points[i]);
         }
         points = next;
@@ -93,7 +72,6 @@ function jagged(rand, a, b, levels, roughness) {
     return points;
 }
 
-// A path's segments, as the shader takes them.
 const segments = path => path.slice(1).flatMap((to, i) => [...path[i], ...to]);
 
 export class State {
@@ -110,8 +88,6 @@ export class State {
         const age = t - s?.start;
         if (!s || age < 0 || age >= LIFE) return [['lightning_light', 2, [0, 0]]];
 
-        // Strokes one after another, each lighting up fast and dying away,
-        // the glow in the clouds lingering longer than the bolt.
         let flash = 0;
         let bolt = 0;
         for (const [at, strength] of s.strokes) {
@@ -132,9 +108,7 @@ export class State {
         return uniforms;
     }
 
-    // The strike of the slot t falls in, if there is one. It depends on
-    // nothing but the slot, so it is kept while the slot lasts rather than
-    // worked out again every frame.
+    // A strike depends on nothing but its slot, so it is kept while the slot lasts.
     _strike(t, amount) {
         const slot = Math.floor(t / EVERY);
         if (this._slot?.slot !== slot || this._slot.amount !== amount)
@@ -144,8 +118,7 @@ export class State {
 
     _shape(slot, amount) {
         const rand = seeded(slot * 7919 + this._seed * 104729 + 3);
-        // The first draw alone decides whether there is one, so a higher
-        // Amount adds strikes and leaves the others as they were.
+        // The first draw alone decides, so a higher Amount leaves other strikes as they were.
         if (rand() > CHANCE * amount) return null;
         const start = slot * EVERY + rand() * (EVERY - LIFE);
         const x = (0.08 + rand() * 0.84) * this._width;
@@ -158,8 +131,6 @@ export class State {
         }
         if (rand() > BOLT) return { start, x, y, strokes };
 
-        // Down from the flash, leaning to one side, and forking twice on the
-        // way: each branch off at an angle, shorter and more crooked.
         const u = 1080 * this._unit;
         const end = [x + (rand() - 0.5) * 0.4 * u, y + (0.45 + rand() * 0.5) * this._height];
         const main = jagged(rand, [x, y], end, LEVELS, 0.24);
@@ -172,7 +143,6 @@ export class State {
         const near = branches.map(b => b.slice(0, HALF + 1));
         const far = branches.map(b => b.slice(HALF));
 
-        // Far enough past the bolt for its glow to have faded.
         const reach = 50 * this._unit;
         const points = [main, ...branches].flat();
         const xs = points.map(pt => pt[0]);
