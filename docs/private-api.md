@@ -29,7 +29,7 @@ because `src/` is changing; functions are named instead.
 | `this._switchData.monitors`, `strip._monitor`, `strip._workspaceGroups`, `group._background` | overview.js | Same | Yes, silently |
 | `class extends Shell.GLSLEffect` | shader.js | `enable()` throws, rolls itself back and the extension shows as errored (below); with no pattern on at enable, the first one switched on throws instead, without rollback. **Removed in GNOME 51** | No |
 | `vfunc_paint_target(node, paintContext)` | shader.js | Patterns freeze on their first frame | No |
-| `Shell.SnippetHook` / `Cogl.SnippetHook` | shader.js | The module fails to load | Yes, both tried |
+| `Cogl.SnippetHook.FRAGMENT` | shader.js | Every pattern fails to build | No |
 
 "Silently" means it degrades without a line in the journal, so the symptom is
 the only sign.
@@ -563,17 +563,11 @@ through this vfunc, `onPaint` would never run: each pattern would freeze on its
 first frame and no timer would be booked. That is a still desktop, idle CPU and
 nothing in the log.
 
-### `Shell.SnippetHook` or `Cogl.SnippetHook`
+### `Cogl.SnippetHook`
 
-```js
-// Shell.SnippetHook moved to Cogl in GNOME 48.
-const FRAGMENT = Shell.SnippetHook?.FRAGMENT ?? Cogl.SnippetHook.FRAGMENT;
-```
-
-`shell-glsl-effect.h` takes a `ShellSnippetHook` at `45.0` and `47.0` and a
-`CoglSnippetHook` from `48.0`. gjs.guide's GNOME 48 port page adds that
-`Cogl.SnippetHook` "is exposed in version 45 and later", so the second branch
-alone would do on every claimed version. Both are the same enum values.
+`add_glsl_snippet(Cogl.SnippetHook.FRAGMENT, ...)`: `shell-glsl-effect.h` takes a
+`CoglSnippetHook` from `48.0`; at `45.0` and `47.0` it took a `ShellSnippetHook`,
+so a port to 47 or earlier passes `Shell.SnippetHook.FRAGMENT` (the same values).
 
 ### GType names registered per load
 
@@ -647,11 +641,9 @@ pace at one rate there.
   the VNC extension, unless `global.force_animations` is set
   (`AnimationsSettings._shouldEnableAnimations()` in `ui/main.js`, the same at `45.0` and in 50.5).
   In all of those the patterns hold still.
-- **`org.gnome.desktop.interface accent-color`** (app.js, prefs.js). This key
-  exists from GNOME 47. `app.js` checks for it with
-  `settings_schema.has_key('accent-color')` before reading it or connecting
-  `changed::accent-color`; `prefs.js` checks only to label the mode "Accent Color
-  (Blue)" when it is missing.
+- **`org.gnome.desktop.interface accent-color`** (app.js). This key exists from
+  GNOME 47; `app.js` reads it and follows `changed::accent-color` directly. A port
+  to 45 or 46 checks for it first: GJS throws on a missing key.
 - **UPower and power-profiles-daemon on the system bus** (system.js). These are
   public D-Bus services, and the version notes are in
   [compatibility.md](compatibility.md).

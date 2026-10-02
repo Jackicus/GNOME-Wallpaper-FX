@@ -31,7 +31,6 @@ export class WallpaperFxApp {
 
     _enable() {
         this._interface = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' });
-        this._hasAccent = this._interface.settings_schema.has_key('accent-color');
         this._system = new SystemState(() => this._push(this._state()));
         this._weather = null;
         this._followWeather();
@@ -59,10 +58,8 @@ export class WallpaperFxApp {
             this._push(state);
         }, this);
 
-        if (this._hasAccent) {
-            this._interface.connectObject('changed::accent-color',
-                () => this._background.update(this._state()), this);
-        }
+        this._interface.connectObject('changed::accent-color',
+            () => this._background.update(this._state()), this);
     }
 
     // Gets through a partial enable(), so the wallpaper always comes back.
@@ -116,8 +113,7 @@ export class WallpaperFxApp {
             mode: sky?.['background-mode'] ?? s.get_string('background-mode'),
             colorPalette: sky?.['color-palette'] ?? s.get_string('color-palette'),
             customImage: s.get_string('custom-image'),
-            // GNOME 47 on; before it, the blue it had always been.
-            accent: this._hasAccent ? this._interface.get_string('accent-color') : 'blue',
+            accent: this._interface.get_string('accent-color'),
             span: this._spanning(),
             targetFps: s.get_int('target-fps'),
             speed: s.get_double('speed'),

@@ -2,8 +2,8 @@
 
 Shared rules for every extension come from the GNOME-EXTENSIONS kit: `../CLAUDE.md` and `../.claude/rules/` (loaded with this file), and the `gnome-ext:*` skills. `.claude/kit.sh` pulls the kit at session start, or, with no kit beside this repository, fetches it and prints its rules into the session.
 
-A GNOME Shell extension (UUID `wallpaper-fx@jackicus`; written for shell 45–50, claims
-only the tested 50) that paints stackable animated patterns over the desktop: GPU shaders
+A GNOME Shell extension (UUID `wallpaper-fx@jackicus`; written for and claiming GNOME
+Shell 50) that paints stackable animated patterns over the desktop: GPU shaders
 on actors sitting on the wallpaper itself, no window. Settings are a libadwaita prefs
 dialog. The log prefix is `[WallpaperFx]`.
 
@@ -95,10 +95,10 @@ part of a frame is setting a few uniforms, so what a pattern costs is GPU time; 
 compositor thread does the same work whichever patterns are on.
 
 `background-mode` picks the base: `desktop` (the system wallpaper, left alone), `accent`
-(a gradient in GNOME's accent colour, which it follows as it changes; blue before GNOME
-47), `color` (a palette from `palettes.js`) or `image` (a file the user chose). In all but
-the first, `background.js` makes it the shell's own wallpaper, spanned across the
-monitors when the patterns are. `enabled-effects` is a list of catalog ids, drawn over
+(a gradient in GNOME's accent colour, which it follows as it changes), `color` (a palette
+from `palettes.js`) or `image` (a file the user chose). In all but the first,
+`background.js` makes it the shell's own wallpaper, spanned across the monitors when the
+patterns are. `enabled-effects` is a list of catalog ids, drawn over
 that base in catalog order, each tuned by `pattern-tuning` (brightness, speed, Amount, as
 multipliers of its design). `speed` scales every clock and `opacity` is the monitor
 actor's opacity, which each shader multiplies in.

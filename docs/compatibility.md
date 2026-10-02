@@ -1,9 +1,9 @@
 # Compatibility
 
-`metadata.json` claims GNOME Shell 50, the one version that has been run. The
-code is written for 45 to 50, and this page lists every code path that depends
-on the version and what to check first on each, so a version can be added to
-`shell-version` once it passes.
+`metadata.json` claims GNOME Shell 50, the one version that has been run, and the
+code is written for it alone. This page lists what has been tested, every code
+path that depends on the shell's version, and what a port to another version
+(`gnome-ext:port-shell-version`) has to change or check first.
 
 ## What has been tested
 
@@ -12,7 +12,7 @@ on the version and what to check first on each, so a version can be added to
   the stack on that machine: mutter 50.5, GJS 1.88.1, GLib 2.88.3, GTK 4.22.5,
   libadwaita 1.9.4, power-profiles-daemon 0.30, libgweather 4.6.0, Geoclue
   2.8.2. A bare `50.5` on this page is that machine's installed shell (the Intel
-  all-in-one runs 50.4).
+  all-in-one runs 50.5 too, as of 2026-10-02).
 - **The same shell headless and nested** (`make nested`, which runs
   `gnome-shell --wayland --headless --virtual-monitor ...` on its own session
   bus), for screenshots and multi-monitor layouts, including the overview on a
@@ -37,18 +37,10 @@ Nothing else has been tested:
 
 ### The snippet hook (shader.js)
 
-```js
-const FRAGMENT = Shell.SnippetHook?.FRAGMENT ?? Cogl.SnippetHook.FRAGMENT;
-```
-
-`Shell.GLSLEffect.add_glsl_snippet()` takes a `Shell.SnippetHook` up to 47 and a
-`Cogl.SnippetHook` from 48 (`src/shell-glsl-effect.h` at the gnome-shell tags
-`47.0` and `48.0`). gjs.guide's GNOME 48 port page says `Cogl.SnippetHook` "is
-exposed in version 45 and later", so the fallback should hold on every version the
-code supports. 45 to 47 take the first branch and 48 onwards the second.
-
-*Check first on 45 and 47:* each pattern draws, and the journal has no
-`TypeError` from `shader.js`.
+`Shell.GLSLEffect.add_glsl_snippet()` takes a `Cogl.SnippetHook` from 48 and a
+`Shell.SnippetHook` up to 47 (`src/shell-glsl-effect.h` at the gnome-shell tags
+`47.0` and `48.0`). The code passes `Cogl.SnippetHook.FRAGMENT`; a port to 47 or
+earlier passes `Shell.SnippetHook.FRAGMENT`.
 
 ### `Shell.GLSLEffect` itself (shader.js)
 
@@ -138,60 +130,35 @@ swap is new there even though the fields are not.
 and confirm the user's own wallpaper comes back. A `No background source to take
 over` line in the journal means the takeover failed.
 
-### Accent Color mode (app.js, prefs.js, palettes.js)
+### Accent Color mode (app.js, palettes.js)
 
 The `accent` mode follows `org.gnome.desktop.interface accent-color`, which
-GNOME 47 added (gjs.guide, "Port Extensions to GNOME Shell 47"). Both processes
-check for the key rather than for a shell version:
+GNOME 47 added (gjs.guide, "Port Extensions to GNOME Shell 47"). `app.js` reads
+the key and connects `changed::accent-color` directly. On 45 and 46 the key is
+missing and GJS throws on reading it (`Error: GSettings key ... not found in
+schema org.gnome.desktop.interface` on GJS 1.88), so `enable()` would fail; a
+port there checks `settings_schema.has_key('accent-color')` and draws
+`ACCENTS.blue`, GNOME's default.
 
-```js
-this._hasAccent = this._interface.settings_schema.has_key('accent-color');
-...
-accent: this._hasAccent ? this._interface.get_string('accent-color') : 'blue',
-```
-
-On 45 and 46 the mode is still offered, labelled "Accent Color (Blue)" in the
-preferences, and draws GNOME's default blue (`ACCENTS.blue` in `palettes.js`),
-which never changes. Reading the key without that check would not crash the
-shell: GJS throws instead (on GJS 1.88 here, `Error: GSettings key ... not found
-in schema org.gnome.desktop.interface`), and `enable()` would fail -- rolling
-itself back, but leaving no patterns. The `changed::accent-color` handler is
-only connected when the key exists.
-
-*Check first on 46:* choosing the mode gives a blue gradient and nothing in the
-journal. *On 47 and later:* change the accent in Settings, Appearance, and the
-base should crossfade.
+*Check first:* change the accent in Settings, Appearance, and the base should
+crossfade.
 
 ### Pausing in power-saver (system.js)
 
-This path asks power-profiles-daemon for `ActiveProfile`. It tries the new bus
-name first and falls back to the old one when nobody owns the new one:
-
-```js
-const PROFILES = [
-    ['org.freedesktop.UPower.PowerProfiles', '/org/freedesktop/UPower/PowerProfiles'],
-    ['net.hadess.PowerProfiles', '/net/hadess/PowerProfiles'],
-]...
-if (proxy.g_name_owner === null && index + 1 < PROFILES.length) { ... this._watchProfiles(index + 1); }
-```
+This path asks power-profiles-daemon for `ActiveProfile` on
+`org.freedesktop.UPower.PowerProfiles`, the name GNOME Shell's own power-mode
+menu uses from 48 (`BUS_NAME` in `js/ui/status/powerProfiles.js`; it was
+`net.hadess.PowerProfiles` at `45.0` to `47.0`).
 
 - power-profiles-daemon **0.20** moved under the UPower project and began
-  answering to `org.freedesktop.UPower.PowerProfiles` "in addition to the
-  previous `net.hadess.PowerProfiles` for compatibility reasons" (its `NEWS`).
-  On the main desktop, 0.30 owns both names.
-- GNOME Shell's own power-mode menu moved to the new name in **48**:
-  `BUS_NAME` in `js/ui/status/powerProfiles.js` is `net.hadess.PowerProfiles` at
-  `45.0`, `46.0` and `47.0`, and `org.freedesktop.UPower.PowerProfiles` from
-  `48.0`.
-- The daemon's version does not follow the shell's, so the fallback matters on
-  any system with a daemon older than 0.20, which is most likely alongside 45
-  and 46.
-- Fedora 41 replaced the daemon with **tuned-ppd**, which implements the same
-  API. It began with the old name only; tuned issue #683 (September 2024) asked
-  for the UPower name as well. That is the other case the fallback exists for.
-  It is untested.
-- Proxies are built with `DO_NOT_AUTO_START`, so a machine without the daemon
-  logs nothing and never pauses for this reason.
+  answering to the UPower name "in addition to the previous
+  `net.hadess.PowerProfiles` for compatibility reasons" (its `NEWS`). On the
+  main desktop, 0.30 owns both names, and so does 0.30 on the Intel all-in-one.
+- A system with only the old name (a daemon older than 0.20, or a tuned-ppd
+  without the UPower name, tuned issue #683) never pauses for power-saver, and
+  logs nothing: the proxy is built with `DO_NOT_AUTO_START`. On 50 the shell's
+  own power-mode menu does not work there either. A port to 45 to 47 watches
+  the old name too.
 
 *Check first:* run `powerprofilesctl set power-saver` and the patterns should
 stop. Run `powerprofilesctl set balanced` and they start again on the next

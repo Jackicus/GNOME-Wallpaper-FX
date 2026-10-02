@@ -16,8 +16,7 @@ export const PALETTES = {
     'Dawn': [[0.0, 18, 22, 52], [0.4, 50, 46, 88], [0.7, 118, 76, 86], [1.0, 40, 26, 42]],
 };
 
-// GNOME's accent colours (org.gnome.desktop.interface accent-color, from GNOME
-// 47), as libadwaita draws them.
+// GNOME's accent colours (org.gnome.desktop.interface accent-color), as libadwaita draws them.
 const ACCENTS = {
     blue: [53, 132, 228],
     teal: [33, 144, 164],
