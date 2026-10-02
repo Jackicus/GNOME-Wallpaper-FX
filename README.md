@@ -40,9 +40,11 @@ the clouds, the fog and whatever is falling.
   </tr>
 </table>
 
-It finds where you are with GNOME's Location Services, if they are on and **Find My
-Location** is too, or uses a town you choose with **Search for a Place**. The weather
-comes from [GWeather](https://gitlab.gnome.org/GNOME/libgweather), the library GNOME's own
+It follows the place you chose in [GNOME Weather](https://apps.gnome.org/Weather/): the
+first in its list, which GNOME Shell keeps for the calendar's weather. Choose or change it
+in GNOME Weather (the **Place** row in the preferences opens it); the extension never looks
+for you itself. If GNOME Weather is set to find your location automatically, the extension
+still uses the first place in its list. The weather comes from [GWeather](https://gitlab.gnome.org/GNOME/libgweather), the library GNOME's own
 weather uses: the nearest airport's weather station for what it sees now, and MET Norway's
 forecast for the coming hour where the station has said nothing for two hours. It asks
 again every half hour, and straight away when the place changes by more than 10 km. What
@@ -120,11 +122,11 @@ at this size. How a pattern is written, and what keeps it cheap, is in
 - A GPU with 3D acceleration. Without it GNOME turns animations off (as it does in virtual
   machines without 3D acceleration and in remote-desktop sessions), and the patterns hold
   still.
-- For the weather, a network connection. Location Services are optional: without them you
-  choose a town yourself.
+- For the weather, a network connection and [GNOME Weather](https://apps.gnome.org/Weather/)
+  with a place chosen in it.
 
-Nothing outside GNOME: the weather uses GWeather and Geoclue, which GNOME Shell's own
-weather and location use, and pausing follows UPower and power-profiles-daemon where they
+Nothing outside GNOME: the weather uses GWeather, which GNOME Shell's own weather uses, and
+the place GNOME Weather shares with the shell, and pausing follows UPower and power-profiles-daemon where they
 are installed.
 
 ## Privacy and network
@@ -134,14 +136,11 @@ While it is off, nothing is sent anywhere.
 
 While it is on:
 
-- **Your location**, with Find My Location on and Location Services on in Settings: the
-  extension asks Location Services (Geoclue) where you are, to city accuracy. It asks as
-  GNOME Shell, which Location Services allow without a prompt of their own. How Location
-  Services find you is up to them; with them off it never asks, and the place you chose
-  is used instead.
+- **Your location is never asked for.** The place is the first one in GNOME Weather's
+  list, read from GNOME Shell's own weather settings (`org.gnome.shell.weather`). The
+  extension does not use Location Services.
 - **To MET Norway** (`api.met.no`, its Locationforecast service): the latitude and
-  longitude of the nearest town in GWeather's built-in list of cities, never your own
-  position.
+  longitude of that place, a town from GWeather's built-in list of cities.
 - **To NOAA's Aviation Weather Center** (`aviationweather.gov`): the four-letter code of
   that town's airport weather station.
 - **With every request**, GWeather's user agent, which names libgweather, this extension
@@ -149,15 +148,12 @@ While it is on:
   ask.
 
 Both are asked every half hour, and straight away when the place changes by more than
-10 km; after a failure, again ten minutes later. Searching for a place uses GWeather's
-list on your computer and sends nothing.
+10 km; after a failure, again ten minutes later.
 
 What it keeps, in the extension's settings (dconf, readable by programs running as you):
 
-- While following the weather, the town's name, the coordinates Location Services gave or
-  of the place you chose, and the last report (conditions, temperature, when it came).
-  Turning Follow the Weather off clears them.
-- A place you chose with Search for a Place, until you choose another.
+- While following the weather, the town's name, its coordinates and the last report
+  (conditions, temperature, when it came). Turning Follow the Weather off clears them.
 - Your saved scenes, and the path of a custom picture.
 
 Gradient backgrounds are cached as images in `~/.cache/wallpaper-fx`.
@@ -197,12 +193,13 @@ Open them in the Extensions app, or with `gnome-extensions prefs wallpaper-fx@ja
 
 <table>
   <tr>
-    <td align="center" width="50%"><img src="docs/screenshots/scenes.png" alt="The Scenes page: the Weather group with Follow the Weather off, Weather Sets the Sky and Find My Location on, no place chosen and a place search, then Your Scenes with Save Your Look As…"><br><b>Scenes</b></td>
+    <td align="center" width="50%"><img src="docs/screenshots/scenes.png" alt="The Scenes page: the Weather group with Follow the Weather off, Weather Sets the Sky on and the Place row reading Bergen, from GNOME Weather, then Your Scenes with Save Your Look As…"><br><b>Scenes</b></td>
     <td align="center" width="50%"><img src="docs/screenshots/prefs.png" alt="The Patterns page: a list of patterns, each with a description and a switch, with Nebula, Starfield and Constellation switched on"><br><b>Patterns</b></td>
   </tr>
 </table>
 
-- **Scenes**: Follow the Weather and how it finds you, and your saved scenes.
+- **Scenes**: Follow the Weather and the GNOME Weather place it follows, and your saved
+  scenes.
 - **Patterns**: a switch for each pattern; open one for its Brightness, Speed and, where it
   has one, Amount, and a Reset. Under All Patterns: Animation Speed, Pattern Opacity and Span All Monitors.
 - **Background**: what the patterns are drawn over: Desktop Wallpaper, Accent Color, Color
@@ -240,8 +237,9 @@ From a clone, `make status` says whether the extension is installed and active, 
 - **After a GNOME update, nothing appears, or the patterns vanish in the overview.** The
   extension reaches into the shell's internals to sit on the wallpaper
   ([docs/private-api.md](docs/private-api.md)); open an issue with the journal output.
-- **"Location Services are off: choose a place below".** Turn on Location Services in
-  Settings › Privacy & Security › Location, or choose a town with Search for a Place.
+- **"Choose a place in GNOME Weather".** GNOME Weather has no place in its list: open it
+  (the Place row in the preferences does) and choose one. GNOME Shell picks it up while
+  GNOME Weather is running.
 - **"The weather service could not be reached".** It tries again ten minutes later; check
   the network connection.
 - **An update changed nothing.** GNOME Shell keeps the old code until you log out and back

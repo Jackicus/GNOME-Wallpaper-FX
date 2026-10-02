@@ -12,7 +12,9 @@ dialog. The log prefix is `[WallpaperFx]`.
 The tooling is the kit's (`./scripts/dev.sh`, `./scripts/nested.sh`, `make help`). What is
 this extension's own: `./scripts/ext.conf` (UUID, `[WallpaperFx]`, what ships, its
 checks), `./scripts/dev.d/wallpaper-fx.sh` (`shaders`, `prefs`), and the Makefile's
-`zip`, `bench` and `prefs` after `include scripts/kit.mk`. It has no `nested.d/`.
+`zip`, `bench` and `prefs` after `include scripts/kit.mk`, and
+`./scripts/nested.d/wallpaper-fx.sh` (`weather-place`, a stand-in GNOME Weather place in
+the nested settings, and GNOME Weather's desktop entry under `--stand-in`).
 
 - **`make check`** is everything that needs no shell, display or GPU, and what CI runs:
   `make lint`, then `./scripts/dev.sh check`: the schema under `--strict`, and
@@ -71,18 +73,17 @@ offline tools) and `background.md` (the base and the overview's clones).
   moment any of those appear.
 - `lib/system.js`: the system's say: UPower's `OnBattery` (for `pause-on-battery`),
   power-profiles-daemon's active profile, and St's `enable-animations`.
-- `lib/weather.js`: `WeatherWatcher`, for the weather scene: the place (Geoclue under
-  the shell's desktop id, or the one chosen in prefs), a GWeather report for the nearest
-  city in GWeather's list (its METAR station now, MET Norway's next hour where there is
-  none), read into plain conditions, and the time of day. What it knows goes into
-  `weather-status`, for prefs to show and for the next enable (every unlock) to start
-  from.
+- `lib/weather.js`: `WeatherWatcher`, for the weather scene: the place (the first in
+  GNOME Weather's list, as the shell keeps it in `org.gnome.shell.weather` `locations`;
+  `weatherPlace()`, which prefs shows too), a GWeather report for it (its METAR station
+  now, MET Norway's next hour where there is none), read into plain conditions, and the
+  time of day. What it knows goes into `weather-status`, for prefs to show and for the
+  next enable (every unlock) to start from.
 - `lib/looks.js`: the weather's look: conditions and the time of day to the same values
   a scene holds (patterns, tuning, palette). Pure, so `node` can run it. `lib/sun.js`:
   the sun's elevation, and so dawn, day, dusk or night, from a place and a time.
 - `lib/scenes.js`: the user's saved scenes (saving, applying, matching), used only by
-  prefs; a scene is just the values of `SCENE_KEYS`. `lib/places.js`: searching
-  GWeather's city list, for prefs.
+  prefs; a scene is just the values of `SCENE_KEYS`.
 - `lib/palettes.js`: the named gradients for `color` mode (the last three are the
   weather's skies) and the accent colours for `accent`. `lib/layer.js`: the seeded PRNG
   for what layers work out on the CPU, and the helpers they generate GLSL with (`num`,
@@ -120,8 +121,8 @@ extension simply follows them.
 keys are never written, so turning it off brings their look straight back, and prefs
 locks the Patterns and Background pages meanwhile. Only the watcher writes
 `weather-status`, and app.js ignores changes to it. A report is asked for every half
-hour, on moving more than 10 km, or on a new place; a remembered one is shown for up to
-six hours.
+hour, and on a new place in GNOME Weather more than 10 km from the last; a remembered
+one is shown for up to six hours.
 
 **Pacing hangs off the paint.** Each pattern's effect calls back from
 `vfunc_paint_target`; the first paint of a frame books the next repaint for `divisor`

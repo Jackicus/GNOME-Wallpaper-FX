@@ -24,17 +24,7 @@
     <key name="weather" type="b">
       <default>false</default>
       <summary>Follow the weather</summary>
-      <description>Let the weather where the user is choose the patterns, and the time of day the background, instead of enabled-effects, pattern-tuning and the background keys. Those keep the user's own look for when this is turned off.</description>
-    </key>
-    <key name="weather-auto-location" type="b">
-      <default>true</default>
-      <summary>Find the location automatically</summary>
-      <description>Ask Location Services where the user is, while they are turned on. Otherwise, or when they are off, weather-place is used.</description>
-    </key>
-    <key name="weather-place" type="(sdd)">
-      <default>('', 0.0, 0.0)</default>
-      <summary>Chosen place</summary>
-      <description>A place chosen in the preferences: its name, latitude and longitude in degrees. An empty name is none.</description>
+      <description>Let the weather at the first place in GNOME Weather's list (the shell's org.gnome.shell.weather locations) choose the patterns, and the time of day the background, instead of enabled-effects, pattern-tuning and the background keys. Those keep the user's own look for when this is turned off.</description>
     </key>
     <key name="weather-background" type="b">
       <default>true</default>
