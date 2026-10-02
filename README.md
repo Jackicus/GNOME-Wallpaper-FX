@@ -188,9 +188,8 @@ gnome-extensions enable wallpaper-fx@jackicus
 To update, run `git pull && make install`, then log out and back in. To remove it, run
 `make uninstall`.
 
-It lists GNOME Shell 50, the only version it has been run on. The code is written for 45 to
-50, but those have not been tried; 51 removed the effect that draws the patterns, so it
-needs a port. [docs/compatibility.md](docs/compatibility.md) has the detail.
+It is written for GNOME Shell 50, the only version it has been run on; an older shell, or
+51, which removed the effect that draws the patterns, needs a port. [docs/compatibility.md](docs/compatibility.md) has the detail.
 
 ## Preferences
 

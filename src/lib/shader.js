@@ -5,9 +5,6 @@ import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Shell from 'gi://Shell';
 
-// Shell.SnippetHook moved to Cogl in GNOME 48.
-const FRAGMENT = Shell.SnippetHook?.FRAGMENT ?? Cogl.SnippetHook.FRAGMENT;
-
 export const EPOCH_S = 1024;
 
 // U is a pixel of a 1080-line screen and DESIGN_W a 1920-wide one's width. Time is
@@ -154,7 +151,7 @@ function buildEffectClass(effect) {
         GTypeName: `WallpaperFx_${effect.id}_${LOAD}`,
     }, class extends Shell.GLSLEffect {
         vfunc_build_pipeline() {
-            this.add_glsl_snippet(FRAGMENT, declarations, code, true);
+            this.add_glsl_snippet(Cogl.SnippetHook.FRAGMENT, declarations, code, true);
         }
 
         // The last moment before the frame, so a pattern shows the time it is painted.

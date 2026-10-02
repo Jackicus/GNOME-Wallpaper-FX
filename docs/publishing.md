@@ -73,8 +73,7 @@ here, because the whole of `lib/` is packed.
   an install failure, so run `glib-compile-schemas --strict --dry-run src/schemas`
   before uploading.
 
-Every claimed version (45 and later) compiles on install, so the zip carries no
-compiled schema.
+GNOME 50 compiles it on install, so the zip carries no compiled schema.
 
 ### Testing the zip before uploading
 
@@ -99,7 +98,7 @@ the link afterwards. This is also the only way to run the shipped
 | `uuid` | `wallpaper-fx@jackicus` | Valid characters and not `gnome.org`. It is the extension's identity on EGO and cannot change after the first upload |
 | `name` | `Wallpaper FX` | See [the name](#copyrights-and-trademarks-meets) |
 | `description` | two paragraphs | Covers the points below |
-| `shell-version` | 50 | The one version that has been run; the code is written for 45 to 50 |
+| `shell-version` | 50 | The one version that has been run, and the one the code is written for |
 | `settings-schema` | set | Correct; `getSettings()` is called without arguments, which is what Best Practices asks |
 | `url` | GitHub repo | Correct |
 | `version` | absent | Correct: "This field SHOULD NOT be set by extension developers" ([Anatomy](https://gjs.guide/extensions/overview/anatomy.html)); EGO assigns it |
@@ -374,8 +373,9 @@ that could drift, so packing does not do that.
    `Clutter.ShaderEffect` with `vfunc_get_static_snippet()`, which mutter 50
    lacks, so 50 and 51 need two code paths or two releases
    ([compatibility.md](compatibility.md)). Until then, do not claim 51.
-2. **More versions.** Each of 45 to 49 can join `shell-version` once the zip
-   has been through the checklist in [compatibility.md](compatibility.md) on it.
+2. **More versions.** Another version is a port (`gnome-ext:port-shell-version`):
+   it adds what that version needs, and joins `shell-version` once the zip has
+   been through the checklist in [compatibility.md](compatibility.md) on it.
 3. **Optional tidying.** Move `lib/scenes.js`, which only the preferences use,
    into a `prefs/` directory, as Best Practices suggests (and add it to the
    `pack` step's sources).

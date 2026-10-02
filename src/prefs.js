@@ -385,16 +385,12 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
         lock();
         for (const key of ['weather', 'weather-background']) ui.watch(key, lock);
 
-        // The accent colour came in GNOME 47; before it, the mode draws blue.
-        const hasAccent = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' })
-            .settings_schema.has_key('accent-color');
-
         group.add(this._comboRow(ui, {
             key: 'background-mode',
             title: 'Background',
             choices: [
                 { value: 'desktop', label: 'Desktop Wallpaper' },
-                { value: 'accent', label: hasAccent ? 'Accent Color' : 'Accent Color (Blue)' },
+                { value: 'accent', label: 'Accent Color' },
                 { value: 'color', label: 'Color Gradient' },
                 { value: 'image', label: 'Custom Picture' },
             ],

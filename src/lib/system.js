@@ -8,21 +8,12 @@ const UPower = Gio.DBusProxy.makeProxyWrapper(`
   </interface>
 </node>`);
 
-// power-profiles-daemon took a name under UPower in 0.20; older releases still
-// answer to the one they started with.
-const PROFILES = [
-    ['org.freedesktop.UPower.PowerProfiles', '/org/freedesktop/UPower/PowerProfiles'],
-    ['net.hadess.PowerProfiles', '/net/hadess/PowerProfiles'],
-].map(([name, path]) => ({
-    name,
-    path,
-    Proxy: Gio.DBusProxy.makeProxyWrapper(`
+const PowerProfiles = Gio.DBusProxy.makeProxyWrapper(`
 <node>
-  <interface name="${name}">
+  <interface name="org.freedesktop.UPower.PowerProfiles">
     <property name="ActiveProfile" type="s" access="read"/>
   </interface>
-</node>`),
-}));
+</node>`);
 
 export class SystemState {
     constructor(onChanged) {
@@ -40,7 +31,8 @@ export class SystemState {
 
         this._watch(UPower, 'org.freedesktop.UPower', '/org/freedesktop/UPower',
             proxy => this._set('onBattery', !!proxy.OnBattery));
-        this._watchProfiles(0);
+        this._watch(PowerProfiles, 'org.freedesktop.UPower.PowerProfiles', '/org/freedesktop/UPower/PowerProfiles',
+            proxy => this._set('powerSaver', proxy.ActiveProfile === 'power-saver'));
     }
 
     destroy() {
@@ -51,19 +43,7 @@ export class SystemState {
         this._onChanged = null;
     }
 
-    _watchProfiles(index) {
-        const { Proxy, name, path } = PROFILES[index];
-        this._watch(Proxy, name, path, proxy => this._set('powerSaver', proxy.ActiveProfile === 'power-saver'),
-            proxy => {
-                // Nobody owns the new name: try the old one.
-                if (proxy.g_name_owner === null && index + 1 < PROFILES.length) {
-                    this._forget(proxy);
-                    this._watchProfiles(index + 1);
-                }
-            });
-    }
-
-    _watch(Proxy, name, path, read, ready = () => {}) {
+    _watch(Proxy, name, path, read) {
         new Proxy(Gio.DBus.system, name, path, (proxy, error) => {
             if (error) {
                 if (!error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
@@ -74,13 +54,7 @@ export class SystemState {
             this._proxies.push(proxy);
             proxy.connectObject('g-properties-changed', () => read(proxy), this);
             read(proxy);
-            ready(proxy);
         }, this._cancellable, Gio.DBusProxyFlags.DO_NOT_AUTO_START);
-    }
-
-    _forget(proxy) {
-        proxy.disconnectObject(this);
-        this._proxies = this._proxies.filter(p => p !== proxy);
     }
 
     _set(key, value) {
