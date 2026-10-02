@@ -3,11 +3,12 @@ import Adw from 'gi://Adw';
 import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk';
 import Gio from 'gi://Gio';
+import GioUnix from 'gi://GioUnix';
 
 import { EFFECTS } from './lib/catalog.js';
 import { PALETTES } from './lib/palettes.js';
-import { searchPlaces } from './lib/places.js';
 import { SCENE_KEYS, applyScene, deleteScene, isCurrent, saveScene, savedScenes } from './lib/scenes.js';
+import { weatherPlace } from './lib/weather.js';
 
 const tuningOf = settings => settings.get_value('pattern-tuning').deepUnpack();
 const setTuning = (settings, all) => settings.set_value('pattern-tuning', new GLib.Variant('a{sa{sd}}', all));
@@ -22,12 +23,12 @@ function writeTuning(settings, id, key, value) {
     setTuning(settings, all);
 }
 
-function weatherStatus(settings, location) {
+function weatherStatus(settings) {
     if (!settings.get_boolean('weather'))
         return { text: 'Off: your own patterns are showing', icon: 'weather-few-clouds-symbolic' };
 
     const status = settings.get_value('weather-status').recursiveUnpack();
-    const place = status.place || settings.get_value('weather-place').deepUnpack()[0];
+    const place = status.place;
     const report = status.summary ? `${status.summary}${status.temperature ? `, ${status.temperature}` : ''} in ${place}` : '';
     const icon = status.icon || 'weather-few-clouds-symbolic';
     const waiting = 'content-loading-symbolic';
@@ -40,21 +41,11 @@ function weatherStatus(settings, location) {
             : { text: `The weather service could not be reached for ${place}; trying again shortly`, icon: 'network-offline-symbolic' };
     case 'fetching':
         return { text: `Getting the weather for ${place}…`, icon: waiting };
-    case 'locating':
-        return { text: 'Finding where you are…', icon: waiting };
-    case 'location-off':
-        return { text: 'Location Services are off: choose a place below', icon: 'location-services-disabled-symbolic' };
-    case 'location-failed':
-        return { text: 'Location Services could not find you: choose a place below', icon: 'location-services-disabled-symbolic' };
     case 'no-place':
-        return { text: 'Choose a place below', icon: 'find-location-symbolic' };
+        return { text: 'Choose a place in GNOME Weather', icon: 'find-location-symbolic' };
     default:
         // Nothing written yet: the extension is off, or has only just been asked.
-        return {
-            text: location.get_boolean('enabled') || !settings.get_boolean('weather-auto-location') ? 'Starting…'
-                : 'Location Services are off: choose a place below',
-            icon: waiting,
-        };
+        return { text: 'Starting…', icon: waiting };
     }
 }
 
@@ -69,16 +60,16 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
         const handlerId = settings.connect('changed', (_s, key) => {
             for (const [k, fn] of watchers) if (k === key) fn();
         });
-        const location = new Gio.Settings({ schema_id: 'org.gnome.system.location' });
-        const locationId = location.connect('changed::enabled', () => {
-            for (const [k, fn] of watchers) if (k === 'location-enabled') fn();
+        const shellWeather = new Gio.Settings({ schema_id: 'org.gnome.shell.weather' });
+        const placeId = shellWeather.connect('changed::locations', () => {
+            for (const [k, fn] of watchers) if (k === 'weather-locations') fn();
         });
         window.connect('close-request', () => {
             settings.disconnect(handlerId);
-            location.disconnect(locationId);
+            shellWeather.disconnect(placeId);
         });
 
-        const ui = { window, settings, location, watch: (key, fn) => watchers.push([key, fn]) };
+        const ui = { window, settings, shellWeather, watch: (key, fn) => watchers.push([key, fn]) };
         window.add(this._scenesPage(ui));
         window.add(this._patternsPage(ui));
         window.add(this._backgroundPage(ui));
@@ -132,7 +123,7 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
     }
 
     _weatherGroup(ui) {
-        const { settings, location } = ui;
+        const { settings, shellWeather } = ui;
         const group = new Adw.PreferencesGroup({
             title: 'Weather',
             description: 'Let the weather where you are choose the patterns, and the time of day the sky: ' +
@@ -145,12 +136,12 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
         group.add(follow);
 
         const showStatus = () => {
-            const status = weatherStatus(settings, location);
+            const status = weatherStatus(settings);
             follow.subtitle = status.text;
             icon.icon_name = status.icon;
         };
         showStatus();
-        for (const key of ['weather', 'weather-status', 'weather-place', 'weather-auto-location', 'location-enabled'])
+        for (const key of ['weather', 'weather-status'])
             ui.watch(key, showStatus);
 
         group.add(this._switchRow(ui, 'weather-background', {
@@ -158,42 +149,21 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
             subtitle: 'Draw the patterns over a sky for the time of day, instead of the Background page\'s choice',
         }));
 
-        const automatic = this._switchRow(ui, 'weather-auto-location', { title: 'Find My Location' });
-        const showAutomatic = () => (automatic.subtitle = location.get_boolean('enabled')
-            ? 'Asks Location Services where you are, to the nearest town'
-            : 'Location Services are off in Settings, so the place below is used');
-        showAutomatic();
-        ui.watch('location-enabled', showAutomatic);
-        group.add(automatic);
-
-        const place = new Adw.ActionRow({ title: 'Place' });
+        // The place is GNOME Weather's, as in the calendar: the extension never looks for the user.
+        const app = GioUnix.DesktopAppInfo.new('org.gnome.Weather.desktop');
+        const place = new Adw.ActionRow({ title: 'Place', subtitle_lines: 0, activatable: !!app });
+        if (app) {
+            place.add_suffix(new Gtk.Image({ icon_name: 'adw-external-link-symbolic' }));
+            place.connect('activated', () => app.launch([], null));
+        }
         const showPlace = () => {
-            const [name] = settings.get_value('weather-place').deepUnpack();
-            place.subtitle = name || 'None chosen';
+            const name = weatherPlace(shellWeather)?.get_name();
+            place.subtitle = name ? `${name}, from GNOME Weather`
+                : app ? 'None: choose one in GNOME Weather' : 'None: install GNOME Weather and choose one there';
         };
         showPlace();
-        ui.watch('weather-place', showPlace);
+        ui.watch('weather-locations', showPlace);
         group.add(place);
-
-        const search = new Adw.EntryRow({ title: 'Search for a Place' });
-        group.add(search);
-        let results = [];
-        search.connect('changed', () => {
-            for (const row of results) group.remove(row);
-            results = searchPlaces(search.text).map(city => {
-                const where = [city.region, city.country].filter(Boolean).join(', ');
-                const row = new Adw.ActionRow({ title: city.name, subtitle: where, activatable: true });
-                row.add_suffix(new Gtk.Image({ icon_name: 'go-next-symbolic' }));
-                row.connect('activated', () => {
-                    settings.set_value('weather-place', new GLib.Variant('(sdd)',
-                        [[city.name, where].filter(Boolean).join(', '), city.latitude, city.longitude]));
-                    settings.set_boolean('weather-auto-location', false);
-                    search.text = '';
-                });
-                group.add(row);
-                return row;
-            });
-        });
 
         return group;
     }

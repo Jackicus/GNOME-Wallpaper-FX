@@ -41,7 +41,7 @@ extension.js
 prefs.js
 schemas/org.gnome.shell.extensions.wallpaper-fx.gschema.xml
 lib/app.js  lib/background.js  lib/catalog.js  lib/engine.js  lib/layer.js
-lib/looks.js  lib/overview.js  lib/palettes.js  lib/places.js  lib/scenes.js
+lib/looks.js  lib/overview.js  lib/palettes.js  lib/scenes.js
 lib/shader.js  lib/sun.js  lib/system.js  lib/weather.js
 lib/layers/{aurora,bokeh,clouds,constellation,contours,embers,fireflies,fog,
             lightning,nebula,rain,snow,sparkles,starfield,sunbeams,wave}.js
@@ -132,11 +132,9 @@ that could look like a bug. It says:
 - it stays still in power-saver, and optionally on battery;
 - gradients are cached as images in `~/.cache/wallpaper-fx`;
 - Follow the Weather, off until the user turns it on, is the only thing that
-  uses the network. Through GWeather it sends the coordinates of the nearest
-  town in GWeather's list to MET Norway, and that town's station code to
-  aviationweather.gov. With Find My Location it also asks Location Services
-  where the user is, to city accuracy, the way GNOME Shell's own weather does,
-  and never while Location Services are off in Settings.
+  uses the network. It follows the first place in the user's GNOME Weather
+  list and never asks for a location itself. Through GWeather it sends that
+  town's coordinates to MET Norway, and its station code to aviationweather.gov.
 
 ## The review guidelines, item by item
 
@@ -158,8 +156,8 @@ constructor, but it is constructed inside `enable()`.
 `disable()` tears down, in order: the layout-manager, settings and interface
 signal connections; the overview clones and the slide override
 (put back while it is still the outermost wrap); the `WeatherWatcher`, if the weather is on (its
-`Gio.Cancellable` is cancelled, its timer removed, its GWeather request aborted,
-and its GWeather, Geoclue and settings connections dropped); `SystemState` (its
+timer is removed, its GWeather request aborted, and its GWeather and settings
+connections dropped); `SystemState` (its
 `Gio.Cancellable` is cancelled and its D-Bus proxies and `St.Settings`
 connection are dropped); the wallpaper
 takeover, including the holder `BackgroundManager` and its container actor; and
@@ -183,7 +181,7 @@ Every connection in the shell uses `connectObject()`/`disconnectObject()` and is
 dropped in the owner's `destroy()`/`disable()`, except the clones' `destroy`
 handlers. The `destroy` handlers on overview clones
 are on the clones themselves. The preferences disconnect their settings handler
-and their Location Services handler on `close-request`.
+and their handler on the shell's weather settings on `close-request`.
 
 ### Remove main loop sources: meets
 
@@ -202,13 +200,13 @@ There is no `ByteArray`, `Lang` or `Mainloop`, and no `run_dispose()`.
 ### No GTK in the shell, no shell libraries in the preferences: meets
 
 The shell side imports Gio, GLib, GObject, GDesktopEnums, Clutter, Cogl, Meta,
-Shell, St, GWeather, Geoclue and cairo, and no Gtk, Gdk or Adw. `prefs.js`
+Shell, St, GWeather and cairo, and no Gtk, Gdk or Adw. `prefs.js`
 imports Adw, Gtk, Gio and GLib, plus `lib/catalog.js` (the layers and
 `lib/layer.js`, all pure JS), `lib/palettes.js` (cairo), `lib/scenes.js` (Gio, GLib)
-and `lib/places.js` (GWeather), none of which imports Clutter, Meta, St or
-Shell. Best Practices suggests keeping modules used only by the preferences in
-a `prefs/` directory. `scenes.js` and `places.js` are such modules, so moving
-them is optional tidying.
+and `lib/weather.js` (Gio, GLib, GWeather, and the pure `looks.js` and `sun.js`),
+none of which imports Clutter, Meta, St or Shell. Best Practices suggests keeping
+modules used only by the preferences in a `prefs/` directory. `scenes.js` is such
+a module, so moving it is optional tidying.
 
 ### Avoid interfering with the extension system: meets
 
@@ -225,7 +223,7 @@ This is plain ES modules, unminified.
 The shipped code logs nothing on a good enable, a lock or an unlock. Every
 `console.warn`/`console.error` is on a failure path: no background group, no
 background source, a gradient that could not be rendered, a D-Bus service that
-answered with an error, Location Services refusing a location. The only informational line, `Enabled from ...`, is in
+answered with an error. The only informational line, `Enabled from ...`, is in
 `scripts/dev-extension.js`, which does not ship.
 
 ### Scripts and binaries, clipboard, privileged subprocesses, telemetry: meets
@@ -254,14 +252,13 @@ lists the patterns reviewers look for. In this code:
   remain: `error.matches()`, `peek_stage_views()` and the parts `enable()`
   builds are used directly. What optional chaining is left is on private shell paths, where it
   is how they degrade and [private-api.md](private-api.md) explains each; on
-  `WallpaperFxApp._weather` and `WeatherWatcher._geoclue`, which are null while
-  unused; and `workspace.metaWorkspace?.index()` in `overview.js`, where `metaWorkspace`
+  `WallpaperFxApp._weather`, which is null while unused; on the place GNOME
+  Weather's settings deserialize to, which may be none; and `workspace.metaWorkspace?.index()` in `overview.js`, where `metaWorkspace`
   is null for a monitor's extra workspace view.
 - **try/catch that only swallows** ("Avoid Unnecessary try-catch Wrappers"):
   gone from the shipped `extension.js`, so a failed load shows as an error in
   the Extensions app. Those that remain handle real failures: rendering a
-  gradient (disk I/O), a saved weather report that will not parse, Location
-  Services failing, and a dismissed file chooser in the preferences.
+  gradient (disk I/O), a saved weather report that will not parse, and a dismissed file chooser in the preferences.
 - **A lifecycle flag** ("Lifecycle and Destruction State"): `this._enabling`
   exists only in `scripts/dev-extension.js`, whose `enable()` is async. The
   shipped entry point has none.

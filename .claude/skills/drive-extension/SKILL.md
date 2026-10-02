@@ -18,8 +18,8 @@ to click: everything visible is a GSettings key. Crop `shot`s to the part being 
 
 ## In the nested shell
 
-`./scripts/nested.sh` is the kit's, with nothing of Wallpaper FX's own (no
-`scripts/nested.d/`). What matters here:
+`./scripts/nested.sh` is the kit's, plus `scripts/nested.d/wallpaper-fx.sh`. What
+matters here:
 
 - **`start --clean`** resets the nested settings (kept between starts otherwise) to
   Wallpaper FX alone and every one of its keys at its default. Use it when the result
@@ -31,6 +31,11 @@ to click: everything visible is a GSettings key. Crop `shot`s to the part being 
 - **`start --stand-in`** runs a copy of `src/` with a scratch home and fresh settings:
   the `desktop` base is GNOME's default wallpaper and `~/.cache/wallpaper-fx` is the
   scratch one. For screenshots that are kept.
+- **The weather follows GNOME Weather's place**, which the shell keeps in
+  `org.gnome.shell.weather` `locations`. `./scripts/nested.sh weather-place` writes a
+  stand-in one (Bergen by default; `LATITUDE LONGITUDE` for the nearest GWeather city;
+  `none` to clear) into the nested settings only, never a real location. Under
+  `--stand-in` a GNOME Weather desktop entry that runs nothing lets the Place row open it.
 - **`/prefs`** opens the preferences in the nested shell (`window` shoots the dialog
   alone); `make prefs` opens the user's own, never used to test.
 - **No shell at all**: `node scripts/shaders.mjs render PATTERN --out $S/x.png

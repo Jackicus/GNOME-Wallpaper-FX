@@ -10,8 +10,7 @@ path that depends on the shell's version, and what a port to another version
 - **The main desktop: GNOME Shell 50.5** on CachyOS (Arch-based), Wayland, with
   an NVIDIA GeForce GTX 1080 on the proprietary driver 580.178.04. The rest of
   the stack on that machine: mutter 50.5, GJS 1.88.1, GLib 2.88.3, GTK 4.22.5,
-  libadwaita 1.9.4, power-profiles-daemon 0.30, libgweather 4.6.0, Geoclue
-  2.8.2. A bare `50.5` on this page is that machine's installed shell (the Intel
+  libadwaita 1.9.4, power-profiles-daemon 0.30, libgweather 4.6.0. A bare `50.5` on this page is that machine's installed shell (the Intel
   all-in-one runs 50.5 too, as of 2026-10-02).
 - **The same shell headless and nested** (`make nested`, which runs
   `gnome-shell --wayland --headless --virtual-monitor ...` on its own session
@@ -185,19 +184,17 @@ should decide whether reduced motion pauses the patterns too.
 *Check first:* set `org.gnome.desktop.interface enable-animations` to false and
 the patterns should stop. Set it back and they resume.
 
-### The weather (weather.js, places.js, sun.js)
+### The weather (weather.js, sun.js)
 
-GWeather 4 and Geoclue 2 are both dependencies of GNOME Shell itself for every
-claimed version, so they are always there; they are imported as
-`gi://GWeather?version=4.0` and `gi://Geoclue`, as the shell does.
+GWeather 4 is a dependency of GNOME Shell itself for every claimed version, so
+it is always there; it is imported as `gi://GWeather?version=4.0`, as the shell
+does.
 
-- **Geoclue.** `Geoclue.Simple.new()` is called with a callback. The shell
-  promisifies it (`Gio._promisify(Geoclue.Simple, 'new')`, 50.5), and a
-  promisified function still takes a callback, so this works whether or not
-  that has happened. Automatic location has only been seen failing: the main
-  desktop has Location Services off, and Geoclue answers `AccessDenied:
-  Geolocation disabled for UID 1000`, which is exactly the path that falls back
-  to the chosen place. **A located fix has not been tested.**
+- **GNOME Weather's place** is read from the shell's `org.gnome.shell.weather`
+  `locations` (docs/private-api.md). Checked in the nested shell on 50.5 with a
+  stand-in place written into its own settings: the report, the place in the
+  preferences and the change to a second place all follow the key. GNOME
+  Weather itself writing the key through the shell was not run there.
 - **GWeather** was run against live MET Norway and METAR data on 4.6.0 for
   Dublin, Bergen (light rain, from the station), Tromsø (no station, so MET
   Norway's next hour) and Singapore (daytime), outside the shell and in the
@@ -206,10 +203,10 @@ claimed version, so they are always there; they are imported as
 - **The sun** is plain arithmetic. It was checked against GWeather's sunrise
   and sunset for Dublin, and agrees to within a third of a degree.
 
-*Check first:* turn on Follow the Weather with a place chosen. The row should
-say the conditions and the temperature within a few seconds, and the desktop
-should change to match. Then turn on Location Services and Find My Location,
-and the place should become where you are.
+*Check first:* choose a place in GNOME Weather and turn on Follow the Weather.
+The row should say the conditions and the temperature within a few seconds, and
+the desktop should change to match. Choose another place in GNOME Weather, and
+the extension should follow it.
 
 ### The preferences (prefs.js)
 
@@ -287,8 +284,8 @@ should open the file chooser, and you should be able to save and delete a scene.
 11. Test each pause: a fullscreen window, maximized windows, power-saver,
     animations off, and battery on a laptop.
 12. Open the preferences, go through every page, choose a picture, and save
-    and delete a scene. Follow the weather for a chosen place and, with
-    Location Services on, for where you are. Lock and unlock while it is on:
+    and delete a scene. Follow the weather for the place in GNOME Weather,
+    then change it there. Lock and unlock while it is on:
     the weather should be there at once, not after a moment of your own
     patterns.
 13. With two monitors, turn `span-monitors` on and off, and plug and unplug a

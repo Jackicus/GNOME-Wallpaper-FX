@@ -1,6 +1,5 @@
 // The weather for the Weather scene; CLAUDE.md, "The weather is a scene".
 
-import Geoclue from 'gi://Geoclue';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GWeather from 'gi://GWeather?version=4.0';
@@ -70,6 +69,14 @@ function distance([lat1, lon1], [lat2, lon2]) {
 
 const now = () => Math.floor(Date.now() / 1000);
 
+// The first place in GNOME Weather's list, which the shell copies into its own settings
+// for the calendar's weather (docs/private-api.md, "GNOME Weather's place").
+export function weatherPlace(shellWeather) {
+    const [serialized] = shellWeather.get_value('locations').deepUnpack();
+    const place = serialized ? GWeather.Location.get_world().deserialize(serialized) : null;
+    return place?.has_coords() ? place : null;
+}
+
 const says = report => report.get_value_sky()[0] || report.get_value_conditions()[0];
 
 function currentReport(info) {
@@ -106,10 +113,6 @@ export class WeatherWatcher {
     constructor(settings, onChanged) {
         this._settings = settings;
         this._onChanged = null;
-        this._cancellable = new Gio.Cancellable();
-        this._world = GWeather.Location.get_world();
-        this._geoclue = null;
-        this._geoclueStarting = false;
         this._fetching = false;
         this._nextTry = 0;
         this._written = null;
@@ -122,8 +125,7 @@ export class WeatherWatcher {
         this._info.connectObject('updated', () => this._onReport(), this);
 
         const saved = settings.get_value('weather-status').recursiveUnpack();
-        this._status = { state: 'locating', ...saved };
-        this._coords = 'latitude' in saved ? [saved.latitude, saved.longitude] : null;
+        this._status = saved;
         this._reportedAt = saved.coords ?? null;
         this._conditions = null;
         if (saved.conditions && now() - (saved.updated ?? 0) < KEEP_S) {
@@ -133,14 +135,9 @@ export class WeatherWatcher {
                 // Written by something else: asked again.
             }
         }
-        this._phase = this._coords ? phaseOfDay(Date.now(), ...this._coords) : null;
 
-        this._location = new Gio.Settings({ schema_id: 'org.gnome.system.location' });
-        this._location.connectObject('changed::enabled', () => this._locate(), this);
-        settings.connectObject(
-            'changed::weather-auto-location', () => this._locate(),
-            'changed::weather-place', () => this._locate(),
-            this);
+        this._shellWeather = new Gio.Settings({ schema_id: 'org.gnome.shell.weather' });
+        this._shellWeather.connectObject('changed::locations', () => this._locate(), this);
 
         this._tickId = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, TICK_S, () => {
             this._tick();
@@ -157,80 +154,29 @@ export class WeatherWatcher {
     }
 
     destroy() {
-        this._cancellable.cancel();
         if (this._tickId) GLib.source_remove(this._tickId);
         this._tickId = 0;
         this._info.disconnectObject(this);
         this._info.abort();
-        this._location.disconnectObject(this);
-        this._settings.disconnectObject(this);
-        // Never stopped: Geoclue may hand the shell's own weather the same client.
-        this._geoclue?.disconnectObject(this);
-        this._geoclue = null;
+        this._shellWeather.disconnectObject(this);
     }
 
     _locate() {
-        if (this._wantsGeoclue()) {
-            this._startGeoclue();
-            if (this._geoclue?.location) this._onGeoclue();
-            else if (this._coords) this._tick();
-            else this._write({ state: 'locating' });
+        const place = weatherPlace(this._shellWeather);
+        if (!place) {
+            this._place = null;
+            this._coords = null;
+            this._conditions = null;
+            this._phase = null;
+            this._reportedAt = null;
+            this._write({ state: 'no-place', place: '' });
+            this._onChanged?.();
             return;
         }
-        this._geoclue?.disconnectObject(this);
-        this._geoclue = null;
-        this._useChosenPlace(this._settings.get_boolean('weather-auto-location') ? 'location-off' : 'no-place');
-    }
-
-    _useChosenPlace(state) {
-        const [name, latitude, longitude] = this._settings.get_value('weather-place').deepUnpack();
-        if (name) {
-            this._setPlace([latitude, longitude], name);
-            return;
-        }
-        this._coords = null;
-        this._conditions = null;
-        this._phase = null;
-        this._write({ state, place: '' });
-        this._onChanged?.();
-    }
-
-    _startGeoclue() {
-        if (this._geoclue || this._geoclueStarting) return;
-        this._geoclueStarting = true;
-        // As the shell, which it runs in and which Location Services let in
-        // (docs/private-api.md, "Geoclue, asked as org.gnome.Shell").
-        Geoclue.Simple.new('org.gnome.Shell', Geoclue.AccuracyLevel.CITY, this._cancellable, (_o, result) => {
-            this._geoclueStarting = false;
-            let simple;
-            try {
-                simple = Geoclue.Simple.new_finish(result);
-            } catch (e) {
-                if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) return;
-                console.warn(`[WallpaperFx] No location from Location Services: ${e.message}`);
-                this._useChosenPlace('location-failed');
-                return;
-            }
-            if (!this._wantsGeoclue()) return;
-            this._geoclue = simple;
-            simple.connectObject('notify::location', () => this._onGeoclue(), this);
-            if (simple.location) this._onGeoclue();
-        });
-    }
-
-    _wantsGeoclue() {
-        return this._settings.get_boolean('weather-auto-location') && this._location.get_boolean('enabled');
-    }
-
-    _onGeoclue() {
-        const { latitude, longitude } = this._geoclue.location;
-        this._setPlace([latitude, longitude], null);
-    }
-
-    _setPlace(coords, name) {
+        const coords = place.get_coords();
+        this._place = place;
         this._coords = coords;
-        this._city = this._world.find_nearest_city(...coords);
-        this._write({ place: name ?? this._city?.get_name() ?? '', latitude: coords[0], longitude: coords[1] });
+        this._write({ place: place.get_name() });
         // The old sky stays until the answer comes, but is not called this place's.
         if (!this._reportedAt || distance(this._reportedAt, coords) > MOVED_KM) {
             this._write({ state: 'fetching', summary: '', temperature: '', icon: '' });
@@ -257,13 +203,11 @@ export class WeatherWatcher {
 
     _fetch() {
         if (!this._coords || this._fetching && this._fetchingFor === this._coords) return;
-        // A listed city brings a METAR station, and the exact position is never sent.
-        if (!this._city) return;
         this._fetching = true;
         this._fetchingFor = this._coords;
         if (!this._conditions) this._write({ state: 'fetching' });
         this._info.abort();
-        this._info.set_location(this._city);
+        this._info.set_location(this._place);
         this._info.update();
     }
 

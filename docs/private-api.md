@@ -645,27 +645,28 @@ pace at one rate there.
   `Main.layoutManager.getWorkAreaForMonitor()`, `global.get_window_actors()`,
   `Meta.Window.located_on_workspace()` and `get_frame_rect()`. All of them are
   public.
-- **Geoclue, asked as `org.gnome.Shell`** (weather.js). This is the one place
-  the extension borrows the shell's identity. Location Services let a desktop
-  id marked `system=true` in `/etc/geoclue/geoclue.conf` through without a
-  prompt, and upstream's file marks `org.gnome.Shell` so. The shell's own
-  weather asks the same way (`Geoclue.Simple.new('org.gnome.Shell',
-  AccuracyLevel.CITY)` in `misc/weather.js`, 50.5). The extension runs in that
-  process and asks only at city accuracy, only while the user has turned on
-  both Follow the Weather and Find My Location, and only while
-  `org.gnome.system.location enabled` is on. If a distribution's file leaves
-  the shell out, the request fails with `AccessDenied`, the journal says so,
-  and the chosen place is used instead. The client is never stopped. Geoclue's
-  `GetClient` hands one client to each D-Bus connection, and this is the
-  shell's connection, so on a Geoclue whose `GClueSimple` uses it, stopping ours
-  would stop the shell's weather. It is left to be finalized with the object.
-- **GWeather** (weather.js, places.js). This is libgweather 4, which the shell
+- **GNOME Weather's place** (weather.js, prefs.js). The weather follows the
+  first entry of `org.gnome.shell.weather` `locations`, a serialized
+  `GWeather.Location` read back with `GWeather.Location.get_world().deserialize()`.
+  The schema is GNOME Shell's own and always installed with it. The shell keeps
+  the key in step with GNOME Weather's `Locations` property on its
+  `org.gnome.Shell.WeatherIntegration` D-Bus interface whenever GNOME Weather
+  is running, flatpak or not (`WeatherClient._onWeatherPropertiesChanged()` in
+  `misc/weather.js`, 50.0), and reads its first entry for the calendar's weather
+  the same way. The extension only reads it and never asks for a location: when
+  GNOME Weather is set to find the user automatically, the shell asks Geoclue
+  for the calendar, but the extension still uses the first listed place.
+  Not used instead: a `WeatherClient` of its own (the class connects to the
+  permission store, settings and the app system and has no `destroy()`, so each
+  enable would leak one, and it asks Geoclue), and the shell's own instance
+  (`Main.panel.statusArea.dateMenu._weatherItem._weatherClient`, private, and
+  updated only when the calendar opens). If the key moves or changes format, the
+  place reads as none and the preferences say to choose one in GNOME Weather.
+- **GWeather** (weather.js). This is libgweather 4, which the shell
   depends on for its own weather. The extension enables only the METAR and
   MET Norway providers, and names itself to them by `application_id` and
-  `contact_info`, as MET Norway's terms ask. It sets the nearest city of
-  GWeather's list as the location, not `Location.new_detached()` from the
-  coordinates, for two reasons: only a listed city brings a METAR station
-  (checked on 4.6.0), and it means the user's exact position is never sent.
+  `contact_info`, as MET Norway's terms ask. The location it sets is GNOME
+  Weather's, a city of GWeather's list with its METAR station.
   Through GWeather, MET Norway gives no current conditions, only hourly
   forecasts starting about an hour ahead, so its first slot stands in wherever
   no station has reported.
