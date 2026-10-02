@@ -417,14 +417,16 @@ only.
 ```js
 const animation = Main.wm._workspaceAnimation;
 if (animation?._prepareWorkspaceSwitch) {
-    const self = this;
-    this._injections.overrideMethod(
-        Object.getPrototypeOf(animation), '_prepareWorkspaceSwitch',
-        original => function (...args) {
-            const fresh = !this._switchData;
-            original.apply(this, args);
-            if (fresh && this._switchData) self._joinSlide(this._switchData);
-        });
+    const proto = Object.getPrototypeOf(animation);
+    const previous = proto._prepareWorkspaceSwitch;
+    const hook = function (...args) {
+        const fresh = !this._switchData;
+        const result = previous.apply(this, args);
+        if (self._slideHook?.hook === hook && fresh && this._switchData) self._joinSlide(this._switchData);
+        return result;
+    };
+    proto._prepareWorkspaceSwitch = hook;
+    this._slideHook = { proto, previous, hook };
 }
 ```
 
@@ -443,10 +445,12 @@ the patterns vanish while a slide runs and reappear when it lands. If the method
 stays and its meaning changes (it stops building the strip, say), `_switchData`
 checks below fail quietly with the same result.
 
-**Checked.** `if (animation?._prepareWorkspaceSwitch)`. `InjectionManager.clear()`
-in `destroy()` puts the original back. Like any `InjectionManager` user, if
-another extension overrides the same method after this one and is disabled
-later, this one's `clear()` restores the original under it.
+**Checked.** `if (animation?._prepareWorkspaceSwitch)`. `destroy()` puts back
+the method it found only while the prototype still holds this hook. If another
+extension has wrapped it since, the hook stays inside that wrap, calling through
+and joining nothing, so the other extension's wrap survives either order of
+enabling and disabling. `InjectionManager.clear()` is not used: it would put back
+the method seen at enable over the other wrap.
 
 ### `this._switchData.monitors`, `strip._monitor`, `strip._workspaceGroups`, `group._background`
 
