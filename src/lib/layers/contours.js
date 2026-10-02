@@ -1,29 +1,9 @@
-// Contour lines of a slowly changing landscape: a relief map drawn in light,
-// every fifth line an index contour a little brighter, and the high ground
-// catching more of the light than the hollows.
-//
-// The height is three octaves of simplex noise whose gradients turn as time
-// passes, each lattice point at its own rate ("flow noise"), so the hills swell,
-// merge and split where they stand instead of sliding past. The noise gives its
-// derivatives analytically, alongside its value -- finite differences would
-// have meant evaluating it three times over -- and that is what keeps every line
-// one width: the distance to the nearest level, divided by how fast the height
-// changes there, is the distance in pixels, on a cliff or a plain alike.
-//
-// That estimate only goes wrong where the ground levels out -- a peak, a pit, a
-// pass -- where a closing loop would shrink to a dot and two lines meeting at a
-// saddle would knot. So lines fade out on nearly level ground, judged by the
-// gradient alone so that the Amount does not change it; in practice that is
-// only ever the last few pixels of a loop, or the crossing of a pass. Lines
-// crowding closer than a few widths fade too, rather than alias. Nothing can be
-// culled early: whether a pixel is on a line depends on every octave.
+// A relief map in light: flow noise with analytic derivatives, so every line is one
+// width; lines fade where the ground levels out or they crowd.
 
-// Levels per unit of height at an Amount of 1: a line every 25 px or so on an
-// average slope of a 1080-line screen. The height spans roughly -1.5 to 1.5.
+// Levels per unit of height at Amount 1: a line every 25 px or so on a 1080-line screen.
 const LEVELS = 9.0;
 
-// Fewer or more levels over the same ground. A level is a height, so as the
-// Amount moves the lines slide continuously and new ones open out of the peaks.
 export const density = [0.5, 2];
 
 // contoursPermute and the simplex lattice in contoursNoise are from the 2D simplex
@@ -52,17 +32,13 @@ export const glsl = `
 const float CONTOURS_F = 0.366025404;   // (sqrt(3) - 1) / 2
 const float CONTOURS_G = 0.211324865;   // (3 - sqrt(3)) / 6
 
-// The permutation polynomial of Gustavson and McEwan's simplex noise: exact in
-// floats for integers under 289, and far cheaper than hashing each corner.
+// Exact in floats under 289, and cheaper than hashing each corner.
 vec3 contoursPermute(vec3 x) {
     return mod((x * 34.0 + 1.0) * x, 289.0);
 }
 
-// Simplex noise in about [-1, 1], with its gradient in .yz. Each corner's
-// gradient starts at its own angle and turns at its own rate: a whole multiple,
-// from -20 to 20, of one slow phase. Whole multiples keep the field seamless as
-// the epoch rolls over, and share a single wphase() between the three corners;
-// an octave only repeats after 20 turns of that phase, 38 to 75 minutes.
+// Simplex noise with its gradient in .yz. Each corner turns at a whole multiple of one
+// phase, which keeps the field seamless across the epoch.
 vec3 contoursNoise(vec2 x, float rate, float seed) {
     vec2 i = floor(x + (x.x + x.y) * CONTOURS_F);
     vec2 x0 = x - i + (i.x + i.y) * CONTOURS_G;
@@ -88,9 +64,7 @@ vec3 contoursNoise(vec2 x, float rate, float seed) {
 }
 
 vec4 contours(vec2 p) {
-    // Hills about a third of a 1080p screen across, then two finer octaves,
-    // each turned against the one before so their lattices never line up, and
-    // each turning a little faster than the one before.
+    // Each octave turned against the last, so their lattices never line up.
     float seed = floor(mod(u_seed * 61.0, 289.0));
     float k = 2.6 / DESIGN_W;
     vec2 x = p * k;
@@ -102,8 +76,7 @@ vec4 contours(vec2 p) {
     float h = n.x + 0.4 * m.x + 0.12 * q.x;
     vec2 grad = (n.yz + 0.4 * 2.1 * (m.yz * r) + 0.12 * 4.7 * (q.yz * r2)) * k;
 
-    // Heights in levels, the index contours offset off zero -- where the first
-    // octave's lattice points sit for ever -- and the distance to the nearest.
+    // Index contours are offset off zero, where the first octave's lattice points sit.
     float levels = ${LEVELS.toFixed(1)} * u_density;
     float v = h * levels + 0.5;
     float level = floor(v + 0.5);

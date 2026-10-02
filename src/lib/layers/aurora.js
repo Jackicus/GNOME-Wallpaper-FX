@@ -1,9 +1,4 @@
-// Green and violet curtains of polar light, hanging and rippling across the
-// sky, streaked with rays.
-//
-// Each curtain is one line of noise along the width: where it hangs, how long
-// it is, how bright each ray. A pixel only has to ask that of its own column,
-// and shade the curtain's vertical gradient at its height.
+// Each curtain is one line of noise along the width, so a pixel asks only its column.
 
 const CURTAINS = [
     { rgb: [150, 110, 255], hang: 0.34, wander: 0.14, minLen: 0.16, maxLen: 0.5, alpha: 0.55, drift: 0.018, seed: 31 },
@@ -19,7 +14,6 @@ const curtain = c => `c += auroraCurtain(p, vec3(${c.rgb.map(v => num(v / 255)).
 export const glsl = `
 vec4 auroraCurtain(vec2 p, vec3 rgb, float hang, float wander, float minLen, float maxLen,
                    float alpha, float pace, float seed) {
-    // Rows no curtain of this height and sway can reach cost nothing.
     float row = p.y / u_canvas.y;
     if (row > hang + wander + 0.01 || row < hang - wander - maxLen) return vec4(0.0);
 
@@ -34,12 +28,10 @@ vec4 auroraCurtain(vec2 p, vec3 rgb, float hang, float wander, float minLen, flo
     float height = (minLen + (maxLen - minLen) * len) * u_canvas.y;
     float g = (p.y - (bottom - height)) / height;
     if (g < 0.0) return vec4(0.0);
-    // Two scales of ray, so the curtain breaks into streaks of every width
-    // rather than bands of one.
+    // The second scale of ray is measured worth its cost (.claude/rules/shaders.md).
     float rays = vnoise(vec2(u * 38.0 + drift(0.12), 20.0 + drift(0.35)) + o) * 0.6 +
                  vnoise(vec2(u * 103.0 - drift(0.2), 50.0 + drift(0.6)) + o) * 0.4;
 
-    // Faint at the top, brightest just above the hem, and a soft hem under it.
     float a = g < 0.5 ? mix(0.0, 0.22, g / 0.5)
             : g < 0.9 ? mix(0.22, 0.9, (g - 0.5) / 0.4)
             : g < 1.0 ? mix(0.9, 0.15, (g - 0.9) / 0.1)

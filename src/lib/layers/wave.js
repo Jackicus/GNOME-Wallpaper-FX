@@ -1,12 +1,7 @@
 import { TAU } from '../layer.js';
 
-// Two folded sheets of light with bright crests and glints on their peaks.
-//
-// The shader evaluates each ribbon's edges exactly at every pixel. What depends
-// on time alone is worked out here, once a frame and in double precision: the
-// phase of every term, where the curve reaches highest and lowest (which spans
-// its gradient), and where its sharpest peaks are (which is where the glints
-// sit).
+// The ribbons' edges are exact per pixel; the CPU works out, in double precision, what
+// depends on time alone: phases, the curve's bounds and its peaks for the glints.
 
 const RIBBONS = [
     { base: 0.62, amp: 54, thick: 110, alpha: 0.15, phase: 0, terms: [[1.05, 1, 0.42], [2.2, 0.36, -0.29], [4.3, 0.1, 0.77]] },
@@ -14,7 +9,7 @@ const RIBBONS = [
 ];
 
 const GLINTS = 4;           // per ribbon
-const STEPS = 240;          // samples across the width when looking for peaks
+const STEPS = 240;          // samples across a screen's width when looking for peaks
 
 const num = x => x.toFixed(4);
 const vec3 = xs => `vec3(${xs.map(num).join(', ')})`;
@@ -35,8 +30,6 @@ const vec3 WAVE_RGB = vec3(0.804, 0.894, 1.0);
 
 vec4 waveRibbon(vec2 p, vec2 span, float base, float amp, float thick, float alpha,
                 vec3 f, vec3 a, vec3 argT, vec3 wobT, vec2 envT) {
-    // Across in screen widths, so a wider canvas gets more of the ribbon
-    // rather than a stretched copy.
     float H = u_canvas.y;
     float x = p.x / DESIGN_W;
 
@@ -50,7 +43,6 @@ vec4 waveRibbon(vec2 p, vec2 span, float base, float amp, float thick, float alp
     float width = thick * U * (0.12 + 0.88 * abs(sin(x * TAU * 0.45 + envT.y)));
     float bottom = top + width + wobble * amp * U * 0.22 * env;
 
-    // The sheet, lit by a gradient spanning the ribbon's whole height.
     float g = clamp((p.y - span.x) / max(span.y - span.x, 1.0), 0.0, 1.0);
     float ga = g < 0.3 ? mix(1.3, 1.0, g / 0.3)
              : g < 0.75 ? mix(1.0, 0.45, (g - 0.3) / 0.45)
@@ -60,8 +52,7 @@ vec4 waveRibbon(vec2 p, vec2 span, float base, float amp, float thick, float alp
     float inside = clamp(p.y - lo + 0.5, 0.0, 1.0) * clamp(hi - p.y + 0.5, 0.0, 1.0);
     vec4 c = vec4(WAVE_RGB, 1.0) * alpha * ga * inside;
 
-    // The crest: a wide soft stroke under a fine bright one, at the true
-    // distance from the curve rather than the vertical one.
+    // The true distance from the curve, not the vertical one.
     float slope = amp * U / DESIGN_W * (dot(a * f * TAU, cos(arg)) * env + y * 0.45 * TAU * 0.5 * cos(ea));
     float d = abs(p.y - top) / sqrt(1.0 + slope * slope);
     c += vec4(WAVE_RGB, 1.0) * alpha * 0.55 * line(d, 7.0 * U);
@@ -70,7 +61,6 @@ vec4 waveRibbon(vec2 p, vec2 span, float base, float amp, float thick, float alp
 }
 
 vec4 wave(vec2 p) {
-    // Ambient haze breathing beneath the ribbons.
     float hy = (p.y - u_canvas.y * 0.62) / (wave_haze.x * u_canvas.y * 0.5);
     vec4 c = vec4(WAVE_RGB, 1.0) * 0.32 * wave_haze.y * max(0.0, 1.0 - abs(hy));
 
@@ -91,12 +81,10 @@ export class State {
         this._height = height;
         this._unit = unit;
         this._rect = rect;
-        // The canvas in screen widths: the walk covers all of it, so the
-        // gradient's span agrees on every monitor of a spanned picture.
+        // The walk covers the whole canvas, so every spanned monitor agrees on the span.
         this._widths = width / (1920 * unit);
         this._steps = Math.ceil(STEPS * this._widths);
         this._top = new Float64Array(this._steps + 1);
-        // Side by side, two monitors would otherwise show the same ribbon twice.
         this._offset = seed * 2.137;
         this._arg = [0, 0, 0, 0, 0, 0];
         this._wobble = [0, 0, 0, 0, 0, 0];
@@ -128,7 +116,6 @@ export class State {
         ];
     }
 
-    // The same curve the shader draws, in canvas pixels.
     _walk(r, index, t) {
         const top = this._top;
         const amp = r.amp * this._unit;
@@ -154,8 +141,7 @@ export class State {
         this._bounds[index * 2] = minY;
         this._bounds[index * 2 + 1] = maxY;
 
-        // Glints ride the sharpest peaks of the crest -- the first few that can
-        // be seen on this monitor, a glint's width either side of it included.
+        // Glints ride the sharpest peaks that can be seen on this monitor.
         const step = 1920 * this._unit / STEPS;
         const from = this._rect.x - 84 * this._unit;
         const to = this._rect.x + this._rect.width + 84 * this._unit;

@@ -1,14 +1,9 @@
-// Large out-of-focus lights, fading in, rising softly and fading out again.
-//
-// Wide columns this time, two discs to a column, each living its life somewhere
-// in the frame and the next one born somewhere else, filling the frame from top
-// to bottom.
+// Out-of-focus lights in wide columns, two discs to a column.
 
 const COLUMN = 160;         // in U
 const SLOTS = 2;            // discs per column at any moment, as designed
 const MOST = 4;             // and at the most Amount allows
 
-// One disc a column up to four; the last fades in with the setting.
 export const density = [1 / SLOTS, MOST / SLOTS];
 
 export const glsl = `
@@ -37,7 +32,6 @@ vec4 bokehDisc(vec2 p, float column, float slot) {
 
     float e = length(p - vec2(x, y)) / r;
     if (e >= 1.0) return vec4(0.0);
-    // A soft body with a brighter rim, as a lens renders a point out of focus.
     float a = e < 0.72 ? mix(0.32, 0.36, e / 0.72)
             : e < 0.9 ? mix(0.36, 0.7, (e - 0.72) / 0.18)
             : mix(0.7, 0.0, (e - 0.9) / 0.1);
@@ -48,8 +42,7 @@ vec4 bokehDisc(vec2 p, float column, float slot) {
 vec4 bokeh(vec2 p) {
     vec4 c = vec4(0.0);
     float column = floor(p.x / (${COLUMN}.0 * U));
-    // Slot by slot, each behind a test on the Amount setting alone, so every
-    // pixel takes the same way and the code stays straight-line.
+    // Slots behind tests on a uniform stay straight-line (docs/patterns.md).
     for (int dc = -1; dc <= 1; dc++) {
         float col = column + float(dc);
         ${Array.from({ length: MOST }, (_, s) => s < SLOTS

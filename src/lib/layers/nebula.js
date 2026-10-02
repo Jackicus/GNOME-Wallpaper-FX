@@ -10,32 +10,23 @@ const HUES = [
     [60, 120, 255],
 ];
 
-// More or fewer clouds, from a sparse few to a crowded sky.
 export const density = [0.25, 1.5];
 
 const rgb = ([r, g, b]) => `vec3(${[r, g, b].map(v => (v / 255).toFixed(4)).join(', ')})`;
 const LANES = ['x', 'y', 'z', 'w'];
 
-// Slow clouds, each three overlapping glows: violet, teal, magenta and blue
-// light turning over each other. Where the clouds are is worked out here, once
-// a frame -- a few sines each -- and each monitor is handed only the glows that
-// reach it. A cloud's colour is fixed, so the glows come in one list per colour
-// and are summed as four strengths, the colours applied once at the end.
+// Clouds of three glows, placed on the CPU; a list per colour, coloured once at the end.
 export const glsl = `
 uniform vec4 nebula_count;                              // live glows of each colour
 ${HUES.map((_, h) => `uniform vec4 nebula_glow${h}[${PER_HUE}];`).join('\n')}   // centre, 1 / radius, strength
 
-// The falloff the clouds always had: a soft core and a long tail.
 float nebulaGlow(vec2 p, vec4 g) {
     vec2 d = (p - g.xy) * g.z;
     float x = sqrt(dot(d, d));
     return g.w * (x < 0.45 ? mix(0.9, 0.28, x / 0.45) : max(0.0, 0.28 * (1.0 - x) / 0.55));
 }
 
-// Written out four glows at a time, each four behind a test of the count: the
-// tests are on uniforms, so every pixel takes the same way through them and the
-// code stays straight-line. A loop that stopped at a count ran 40% slower, and
-// testing every glow 15%.
+// Four glows behind each test of a uniform count: 0.42 to 0.32 ms (docs/patterns.md).
 vec4 nebula(vec2 p) {
     vec4 a = vec4(0.0);
     ${HUES.flatMap((_hue, h) => Array.from({ length: PER_HUE / 4 }, (_, b) =>
@@ -54,8 +45,7 @@ export class State {
         this._widths = width / (1920 * unit);
         this._lanes = HUES.map(() => new Array(PER_HUE * 4).fill(0));
 
-        // Enough for the most the Amount setting can ask of a canvas this wide;
-        // the first fourteen of a screen are the layout the clouds always had.
+        // Enough for the most Amount can ask of a canvas this wide.
         const rand = seeded(41 + seed * 57.8);
         const most = Math.ceil(CLOUDS * this._widths * density[1]);
         this._clouds = Array.from({ length: most }, (_, i) => ({
@@ -80,11 +70,9 @@ export class State {
         const unit = Math.min(this._width, this._height);
         const count = Math.max(1, Math.round(CLOUDS * this._widths * amount));
         const counts = [0, 0, 0, 0];
-        // The shader reads glows four at a time, so the ones past a count must
-        // be nothing rather than whatever an earlier frame left there.
+        // The shader reads four at a time, so the ones past a count must be zero.
         for (const lane of this._lanes) lane.fill(0);
 
-        // Only the glows whose reach touches this monitor.
         const put = (hue, x, y, diameter, strength) => {
             const r = diameter / 2;
             if (x + r < left || x - r > left + width || y + r < top || y - r > top + height) return;
