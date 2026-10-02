@@ -87,18 +87,17 @@ mode, so locking disables it, and disabling it hands the wallpaper back.
 
 ### `new Background.BackgroundManager({...})._backgroundSource`
 
-`_obtainSource()`:
+`_attach()`:
 
 ```js
 this._holderContainer = new Clutter.Actor();
-...
 this._holder = new Background.BackgroundManager({
     container: this._holderContainer,
     monitorIndex: 0,
     controlPosition: false,
 });
 ...
-return this._holder._backgroundSource;
+const source = this._holder._backgroundSource;
 ```
 
 **What for.** `BackgroundManager` is exported; its `_backgroundSource` field is

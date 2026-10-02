@@ -10,6 +10,7 @@ import { searchPlaces } from './lib/places.js';
 import { SCENE_KEYS, applyScene, deleteScene, isCurrent, saveScene, savedScenes } from './lib/scenes.js';
 
 const tuningOf = settings => settings.get_value('pattern-tuning').deepUnpack();
+const setTuning = (settings, all) => settings.set_value('pattern-tuning', new GLib.Variant('a{sa{sd}}', all));
 
 function writeTuning(settings, id, key, value) {
     const all = tuningOf(settings);
@@ -18,7 +19,7 @@ function writeTuning(settings, id, key, value) {
     else mine[key] = value;
     if (Object.keys(mine).length) all[id] = mine;
     else delete all[id];
-    settings.set_value('pattern-tuning', new GLib.Variant('a{sa{sd}}', all));
+    setTuning(settings, all);
 }
 
 function weatherStatus(settings, location) {
@@ -100,7 +101,9 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
         };
     }
 
-    _comboRow(ui, { key, choices, read, write, ...props }) {
+    _comboRow(ui, {
+        key, choices, read = (s, k) => s.get_string(k), write = (s, k, v) => s.set_string(k, v), ...props
+    }) {
         const model = new Gtk.StringList();
         for (const choice of choices) model.append(choice.label);
         const row = new Adw.ComboRow({ ...props, model });
@@ -313,7 +316,7 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
             button.connect('clicked', () => {
                 const all = tuningOf(settings);
                 delete all[effect.id];
-                settings.set_value('pattern-tuning', new GLib.Variant('a{sa{sd}}', all));
+                setTuning(settings, all);
             });
             reset.add_suffix(button);
             row.add_row(reset);
@@ -391,16 +394,12 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
                 { value: 'color', label: 'Color Gradient' },
                 { value: 'image', label: 'Custom Picture' },
             ],
-            read: (s, k) => s.get_string(k),
-            write: (s, k, v) => s.set_string(k, v),
         }));
 
         const palette = this._comboRow(ui, {
             key: 'color-palette',
             title: 'Color Palette',
             choices: Object.keys(PALETTES).map(name => ({ value: name, label: name })),
-            read: (s, k) => s.get_string(k),
-            write: (s, k, v) => s.set_string(k, v),
         });
         group.add(palette);
 

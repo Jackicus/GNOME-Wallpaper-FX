@@ -192,7 +192,7 @@ export class WeatherWatcher {
         this._conditions = null;
         this._phase = null;
         this._write({ state, place: '' });
-        this._changed();
+        this._onChanged?.();
     }
 
     _startGeoclue() {
@@ -245,12 +245,12 @@ export class WeatherWatcher {
         if (phase !== this._phase) {
             this._phase = phase;
             this._write({ phase });
-            this._changed();
+            this._onChanged?.();
         }
         const age = now() - (this._status.updated ?? 0);
         if (age > KEEP_S && this._conditions) {
             this._conditions = null;
-            this._changed();
+            this._onChanged?.();
         }
         if (age > REFRESH_S && now() >= this._nextTry) this._fetch();
     }
@@ -292,7 +292,7 @@ export class WeatherWatcher {
             coords: this._fetchingFor,
             updated: now(),
         });
-        this._changed();
+        this._onChanged?.();
     }
 
     _read(info) {
@@ -313,10 +313,6 @@ export class WeatherWatcher {
             temperature: [info, source].map(f => f.get_temp_summary()).find(t => /\d/.test(t)) ?? '',
             icon: source.get_symbolic_icon_name(),
         };
-    }
-
-    _changed() {
-        this._onChanged?.();
     }
 
     _write(changes) {

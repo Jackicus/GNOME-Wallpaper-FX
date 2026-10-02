@@ -2,8 +2,8 @@
 
 const RAD = Math.PI / 180;
 
-// Elevation in degrees at `time` (ms since the epoch), and whether it is rising.
-export function sunPosition(time, latitude, longitude) {
+// `time` in ms since the epoch. Dawn and dusk are the sun within six degrees of the horizon.
+export function phaseOfDay(time, latitude, longitude) {
     const d = time / 86400000 - 10957.5;                 // days since J2000.0
     const g = (357.529 + 0.98560028 * d) * RAD;          // mean anomaly
     const q = 280.459 + 0.98564736 * d;                  // mean longitude
@@ -16,14 +16,8 @@ export function sunPosition(time, latitude, longitude) {
     const lat = latitude * RAD;
     const elevation = Math.asin(Math.sin(lat) * Math.sin(dec) +
         Math.cos(lat) * Math.cos(dec) * Math.cos(hourAngle)) / RAD;
-    // East of the meridian, before noon, the hour angle's sine is negative.
-    return { elevation, rising: Math.sin(hourAngle) < 0 };
-}
-
-// Dawn and dusk are the sun within six degrees of the horizon.
-export function phaseOfDay(time, latitude, longitude) {
-    const { elevation, rising } = sunPosition(time, latitude, longitude);
     if (elevation < -6) return 'night';
-    if (elevation < 6) return rising ? 'dawn' : 'dusk';
+    // East of the meridian, before noon, the hour angle's sine is negative.
+    if (elevation < 6) return Math.sin(hourAngle) < 0 ? 'dawn' : 'dusk';
     return 'day';
 }

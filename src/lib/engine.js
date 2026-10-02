@@ -101,7 +101,6 @@ export class MonitorRenderer {
         });
 
         this.actor.opacity = Math.round(Math.max(0.1, Math.min(1, state.opacity)) * 255);
-        this.kick();
     }
 
     _createLayer(effect) {
@@ -138,11 +137,6 @@ export class MonitorRenderer {
 
         layer.actor.ease({ opacity: 255, duration: FADE_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD });
         return layer;
-    }
-
-    kick() {
-        if (this._timerId || this._paused()) return;
-        for (const layer of this._layers.values()) layer.effect.queue_repaint();
     }
 
     // A paint through a clone (the overview, the slide) is never covered.
