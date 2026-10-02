@@ -7,7 +7,6 @@ import { OverviewCanvas } from './overview.js';
 import { ShellBackground } from './background.js';
 import { WeatherWatcher } from './weather.js';
 
-// Keys that decide the base under the patterns, which the shell draws for us.
 const BASE_KEYS = new Set([
     'background-mode', 'color-palette', 'custom-image', 'span-monitors', 'weather', 'weather-background',
 ]);
@@ -19,9 +18,8 @@ export class WallpaperFxApp {
         this._renderers = new Map(); // monitor index -> MonitorRenderer
     }
 
-    // The shell never disables an extension whose enable() threw, so a failure
-    // after the wallpaper was taken over would leave it taken until a restart:
-    // hand everything back first, then fail as the shell expects.
+    // The shell never disables an extension whose enable() threw, so the
+    // wallpaper is handed back here first.
     enable() {
         try {
             this._enable();
@@ -38,16 +36,11 @@ export class WallpaperFxApp {
         this._weather = null;
         this._followWeather();
 
-        // The base goes to the shell's own wallpaper, so it is already right
-        // everywhere a wallpaper is shown: the overview, the workspace slide,
-        // and whatever other extensions blur out of it.
         this._background = new ShellBackground();
         this._background.update(this._state());
 
         this._build();
 
-        // The overview and the workspace slide draw wallpapers of their own,
-        // so the patterns are lent to them as clones.
         this._overview = new OverviewCanvas(index => this._renderers.get(index)?.actor ?? null);
         this._overview.enable();
 
@@ -72,8 +65,7 @@ export class WallpaperFxApp {
         }
     }
 
-    // Gets through whatever enable() managed before it stopped, so the user's
-    // wallpaper always comes back.
+    // Gets through a partial enable(), so the wallpaper always comes back.
     disable() {
         Main.layoutManager.disconnectObject(this);
         this._settings.disconnectObject(this);
@@ -89,24 +81,18 @@ export class WallpaperFxApp {
         this._system?.destroy();
         this._system = null;
 
-        // The user's wallpaper comes back before the patterns go, so the
-        // desktop is never briefly bare.
+        // The wallpaper comes back before the patterns go, never a bare desktop.
         this._background?.destroy();
         this._background = null;
 
         this._teardown();
     }
 
-    /**
-     * A watcher on the weather while the Weather scene is on. Turning it off
-     * also forgets what it knew, the place included.
-     */
     _followWeather() {
         const on = this._settings.get_boolean('weather');
         if (on && !this._weather) {
-            // Built before the background at enable, so that the first base
-            // is already the weather's; a change while it is being built
-            // comes before there is a background to update.
+            // Built before the background at enable, so the first base is
+            // already the weather's; hence the ?. below.
             this._weather = new WeatherWatcher(this._settings, () => {
                 const state = this._state();
                 this._background?.update(state);
@@ -121,8 +107,7 @@ export class WallpaperFxApp {
 
     _state() {
         const s = this._settings;
-        // The weather's look stands in for the user's own while there is one;
-        // their keys are left as they are, for when it is turned off.
+        // The weather's look stands in for the user's keys, which stay as they are.
         const look = this._weather?.look ?? null;
         const sky = look && s.get_boolean('weather-background') ? look : null;
         return {
@@ -149,11 +134,7 @@ export class WallpaperFxApp {
         return this._settings.get_boolean('span-monitors') && Main.layoutManager.monitors.length > 1;
     }
 
-    /**
-     * What each monitor draws. On its own, a monitor is its own canvas; spanned,
-     * every monitor draws its part of the box around them all, sized by the
-     * primary monitor and with one seed, so that the parts make one picture.
-     */
+    // Spanned, every monitor draws its part of one canvas, sized by the primary.
     _views() {
         const monitors = Main.layoutManager.monitors;
         if (!this._spanning()) {
@@ -182,8 +163,7 @@ export class WallpaperFxApp {
         const state = this._state();
         this._tuneClock(state);
 
-        // Over the wallpaper, under the windows. Private, and so checked: without
-        // it there is nowhere to draw that would not cover the windows.
+        // Over the wallpaper, under the windows (private: docs/private-api.md).
         const group = Main.layoutManager._backgroundGroup;
         if (!group) {
             console.warn('[WallpaperFx] No background group to draw in');

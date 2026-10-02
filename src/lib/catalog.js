@@ -15,11 +15,7 @@ import * as fog from './layers/fog.js';
 import * as snow from './layers/snow.js';
 import * as rain from './layers/rain.js';
 
-// Every pattern, in the order they are drawn: the sky first, the weather last,
-// since each is laid over the ones before it. A layer module gives its shader
-// (`glsl`, defining a function named after the id), the range of its Amount
-// setting if it has one (`density`), and, when the shader needs something
-// worked out on the CPU each frame, a `State` class that does it.
+// In the order they are drawn, each over the ones before; docs/patterns.md has a layer's exports.
 export const EFFECTS = [
     {
         id: 'nebula',
