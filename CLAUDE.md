@@ -18,7 +18,8 @@ checks), `./scripts/dev.d/wallpaper-fx.sh` (`shaders`, `prefs`), and the Makefil
   `make lint`, then `./scripts/dev.sh check`: the schema under `--strict`, and
   `./scripts/dev.sh shaders` (`node scripts/shaders.mjs check`), every pattern's shader
   compiled by `glslangValidator` in each GLSL dialect Cogl may use. CI installs
-  `glslang` through `.github/ci-packages`.
+  `glslang` through `.github/ci-packages`. It ends with `size` against `EXT_BUDGET_LINES`
+  (4400: today's size, provisional).
 - **Needs the GPU, so stays out of `make check`:** `make bench` (each pattern timed) and
   `node scripts/shaders.mjs render PATTERN` (frames of one pattern to a PNG, with no
   shell at all: the quick loop for a pattern's look).
