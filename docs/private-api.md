@@ -215,10 +215,11 @@ In `_attach()`, after the swap, and `adoptStranded()`:
 
 ```js
 const destroy = source.destroy;
-source.destroy = (...args) => {
+this._destroyWrap = (...args) => {
     destroy.apply(source, args);
-    this._sourceLost();
+    if (this._source === source) this._sourceLost();
 };
+source.destroy = this._destroyWrap;
 
 for (const manager of Main.layoutManager._bgManagers ?? []) {
     const old = manager._backgroundSource;
@@ -242,7 +243,10 @@ desktop shows their wallpaper under an accent or palette base until they log
 out. Wrapping `destroy` on that one instance tells us when it happens. The
 holder is then dropped without releasing it, because its claim died with the
 source and releasing it would take one from the replacement. On an idle we take
-whichever source is live now. The desktop's own managers are still pointing at
+whichever source is live now. `release()` deletes the wrapper only while
+`source.destroy` is still it, since another extension may have wrapped it since;
+left inside theirs, it does nothing once the source is no longer the one held.
+The desktop's own managers are still pointing at
 the dead source, so they are moved over and each takes a claim, which puts the
 count right again for them. Managers owned by other code (the overview's,
 another extension's) stay on the dead source, showing the last base, until

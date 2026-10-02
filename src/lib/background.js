@@ -45,6 +45,7 @@ export class ShellBackground {
         this._holderContainer = null;
         this._source = null;
         this._shellSettings = null;
+        this._destroyWrap = null;
         this._applied = null;
         this._retakeId = 0;
 
@@ -105,7 +106,9 @@ export class ShellBackground {
         }
 
         if (source && shellSettings) {
-            delete source.destroy;
+            // Another extension may have wrapped it since; ours then stays inside
+            // theirs, and does nothing once the source is no longer held.
+            if (source.destroy === this._destroyWrap) delete source.destroy;
             source._settings = shellSettings;
             reloadBackgrounds(source);
         }
@@ -224,10 +227,11 @@ export class ShellBackground {
         // the next wallpaper built comes from a fresh one reading the
         // user's real settings. So watch for it, and take the new one.
         const destroy = source.destroy;
-        source.destroy = (...args) => {
+        this._destroyWrap = (...args) => {
             destroy.apply(source, args);
-            this._sourceLost();
+            if (this._source === source) this._sourceLost();
         };
+        source.destroy = this._destroyWrap;
     }
 
     _sourceLost() {
