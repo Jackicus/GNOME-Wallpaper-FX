@@ -298,7 +298,10 @@ ships.
 GNOME Shell is GPL-2.0-or-later and "derived works like extensions MUST be
 distributed under compatible terms". The extension is GPL-2.0-or-later: the
 GPL-2.0 text is `LICENSE` at the top of the repo, and `make zip` puts it in the
-zip. All of the code is the author's own.
+zip. The rest is the author's own except two pieces of shader code under the MIT
+License, which is GPL-compatible: Dave Hoskins' "Hash without Sine" (`hash12`,
+`hash42` in `shader.js`) and webgl-noise's 2D simplex lattice (`contours.js`). Each
+carries its upstream copyright and permission notice where it is used, as MIT asks.
 
 ### Copyrights and trademarks: meets
 
