@@ -18,18 +18,7 @@ export class WallpaperFxApp {
         this._renderers = new Map(); // monitor index -> MonitorRenderer
     }
 
-    // The shell never disables an extension whose enable() threw, so the
-    // wallpaper is handed back here first.
     enable() {
-        try {
-            this._enable();
-        } catch (e) {
-            this.disable();
-            throw e;
-        }
-    }
-
-    _enable() {
         this._interface = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' });
         this._system = new SystemState(() => this._push(this._state()));
         this._weather = null;
@@ -62,24 +51,23 @@ export class WallpaperFxApp {
             () => this._background.update(this._state()), this);
     }
 
-    // Gets through a partial enable(), so the wallpaper always comes back.
     disable() {
         Main.layoutManager.disconnectObject(this);
         this._settings.disconnectObject(this);
-        this._interface?.disconnectObject(this);
+        this._interface.disconnectObject(this);
         this._interface = null;
 
-        this._overview?.destroy();
+        this._overview.destroy();
         this._overview = null;
 
         this._weather?.destroy();
         this._weather = null;
 
-        this._system?.destroy();
+        this._system.destroy();
         this._system = null;
 
         // The wallpaper comes back before the patterns go, never a bare desktop.
-        this._background?.destroy();
+        this._background.destroy();
         this._background = null;
 
         this._teardown();

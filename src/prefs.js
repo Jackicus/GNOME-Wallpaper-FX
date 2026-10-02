@@ -90,11 +90,8 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
         let showing = false;
         const refresh = () => {
             showing = true;
-            try {
-                show();
-            } finally {
-                showing = false;
-            }
+            show();
+            showing = false;
         };
         refresh();
         watch(key, refresh);

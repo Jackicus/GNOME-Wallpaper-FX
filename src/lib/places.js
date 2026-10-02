@@ -20,7 +20,7 @@ function allCities() {
             const country = child.get_country_name() ?? '';
             // There are several Dublins in the United States alone.
             const parent = child.get_parent();
-            const region = parent?.get_level() === GWeather.LocationLevel.ADM1 ? parent.get_name() : '';
+            const region = parent.get_level() === GWeather.LocationLevel.ADM1 ? parent.get_name() : '';
             cities.push({ name, region, country, latitude, longitude, key: fold(name) });
         }
     };
