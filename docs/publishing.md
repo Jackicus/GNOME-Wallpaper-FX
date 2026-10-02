@@ -144,9 +144,9 @@ that could look like a bug. It says:
 
 `src/extension.js` has no constructor and imports `./lib/app.js` statically, so
 the module scope of everything under `lib/` runs when the extension is loaded,
-before `enable()`. All of it is definitions: the `PreviewHost` class, the
+before `enable()`. All of it is definitions: the `WallpaperFxPreviewHost` class, the
 D-Bus interfaces from `makeProxyWrapper()` in `system.js`, the catalog and its
-shader strings, the `LOAD` string and an empty `Map` in `shader.js`, a `Set` of
+shader strings, an empty `Map` in `shader.js`, a `Set` of
 key names in `app.js`, and in `weather.js` the tables from GWeather's enums to
 plain words. Nothing is instantiated, connected or scheduled.
 That is what the guideline allows ("static data structures and instances of
