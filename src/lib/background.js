@@ -1,20 +1,5 @@
-// The base -- the gradient or the picture under the patterns -- given to the
-// shell's own background machinery instead of painted over it.
-//
-// Every wallpaper the shell puts on screen comes from one `BackgroundSource`:
-// the desktop, the overview's workspace previews, their thumbnails, the strip
-// that slides between workspaces, and whatever other extensions blur out of it
-// (Blur My Shell's panel and overview backdrop are copies of that same
-// background, which is why a canvas laid over the desktop leaves the old
-// wallpaper showing in them). The source reads the wallpaper from a GSettings
-// of `org.gnome.desktop.background`.
-//
-// So: hand it a GSettings of our own. Same schema -- so every key the shell
-// reads is there, now and in whatever version comes next -- on a memory
-// backend, so nothing is written to dconf and the user's real wallpaper is
-// untouched and comes straight back when this is released. The base then
-// appears everywhere a wallpaper appears, crossfaded by the shell itself when
-// it changes, and all that is left for us to draw is the moving part.
+// The base is handed to the shell's own BackgroundSource instead of painted, so it
+// shows wherever a wallpaper does. Every private reach is in docs/private-api.md.
 
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
@@ -28,8 +13,6 @@ import { accentStops, paintGradient, paletteStops } from './palettes.js';
 
 const BACKGROUND_SCHEMA = 'org.gnome.desktop.background';
 
-// A palette is a gradient, so it has to be an image: Meta.Background paints a
-// gradient of two colours, ours are four stops on a diagonal.
 const FALLBACK_SIZE = [1920, 1080];
 
 export class ShellBackground {
@@ -37,10 +20,7 @@ export class ShellBackground {
         this._settings = Gio.Settings.new_with_backend(
             BACKGROUND_SCHEMA, Gio.memory_settings_backend_new());
 
-        // Holding a manager of our own keeps the shared source alive whatever
-        // else comes and goes, and hands it over without reaching into the
-        // layout manager for it. Its actor is parented into an actor nobody
-        // shows, so it is never painted.
+        // A manager of our own keeps the shared source alive; its actor is never shown.
         this._holder = null;
         this._holderContainer = null;
         this._source = null;
@@ -52,15 +32,10 @@ export class ShellBackground {
         this._cacheDir = GLib.build_filenamev([GLib.get_user_cache_dir(), 'wallpaper-fx']);
     }
 
-    /** Whether the shell is showing our base rather than the user's wallpaper. */
     get active() {
         return this._shellSettings !== null;
     }
 
-    /**
-     * Point the shell's wallpaper at whatever `background-mode` asks for, or
-     * give it back in `desktop` mode.
-     */
     update(state) {
         const base = this._describe(state);
         if (!base) {
@@ -68,15 +43,12 @@ export class ShellBackground {
             return;
         }
 
-        // Every write to these settings, changed or not, has the shell rebuild
-        // and crossfade every wallpaper it shows -- so a base that is already
-        // up is left alone.
+        // Every write makes the shell crossfade, so an unchanged base is left alone.
         const key = JSON.stringify(base);
         if (this.active && key === this._applied) return;
         this._applied = key;
 
-        // Delayed so a change of mode and a change of picture reach the shell
-        // as one, and cost one crossfade rather than two.
+        // One apply, so a change of mode and picture costs one crossfade.
         this._settings.delay();
         this._settings.set_string('picture-uri', base.uri);
         this._settings.set_string('picture-uri-dark', base.uri);
@@ -89,9 +61,6 @@ export class ShellBackground {
         this._attach();
     }
 
-    /**
-     * Hand the wallpaper back. Safe to call when it was never taken.
-     */
     release() {
         const source = this._source;
         const shellSettings = this._shellSettings;
@@ -126,35 +95,23 @@ export class ShellBackground {
         this._settings = null;
     }
 
-    /**
-     * What the shell should show under the patterns: a generated gradient (a
-     * palette, or the accent colour), the user's own picture, or nothing at
-     * all in `desktop` mode, where the point is that their wallpaper shows
-     * through.
-     */
     _describe(state) {
         const stops = state.mode === 'color' ? paletteStops(state.colorPalette)
             : state.mode === 'accent' ? accentStops(state.accent) : null;
         if (stops) {
-            // With the patterns spanning every monitor, so does the gradient
-            // under them: one image across the lot.
             const [width, height] = state.span ? spannedSize() : largestSize();
             const file = this._gradientFile(stops, width, height);
             if (!file) return null;
             const [, r, g, b] = stops[Math.floor(stops.length / 2)];
             return {
                 uri: file,
-                // The image is generated at the size it will be shown at, so
-                // stretching it is exact rather than a compromise.
+                // Rendered at the size it is shown, so stretching is exact.
                 style: state.span ? GDesktopEnums.BackgroundStyle.SPANNED : GDesktopEnums.BackgroundStyle.STRETCHED,
-                // A solid stand-in, for the moment before the image loads.
                 color: `#${[r, g, b].map(v => v.toString(16).padStart(2, '0')).join('')}`,
             };
         }
 
-        // A picture that is not there would be a black desktop; letting the base
-        // go shows the user's own wallpaper instead, as it did before one was
-        // chosen.
+        // A missing picture would be a black desktop; the user's wallpaper shows instead.
         if (state.mode === 'image' && state.customImage &&
             GLib.file_test(state.customImage, GLib.FileTest.EXISTS)) {
             return {
@@ -167,16 +124,8 @@ export class ShellBackground {
         return null;
     }
 
-    /**
-     * A gradient, rendered once to a PNG under the user's cache directory.
-     *
-     * The name carries a digest of the stops and the size, so an edited palette
-     * is a different file rather than the same path with new bytes -- which the
-     * shell's image cache would have to be told about. There is no pruning: the
-     * shell watches the file it shows and reloads the wallpaper on any change to
-     * it, even a touch, and a few gradients at a monitor size or two are a few
-     * hundred kilobytes.
-     */
+    // Four stops are more than Meta.Background's gradients, hence a PNG. Named by a
+    // digest, since the shell reloads the wallpaper on any change to its file.
     _gradientFile(stops, width, height) {
         const digest = GLib.compute_checksum_for_string(
             GLib.ChecksumType.SHA256, JSON.stringify([stops, width, height]), -1).slice(0, 12);
@@ -199,17 +148,10 @@ export class ShellBackground {
         return Gio.File.new_for_path(path).get_uri();
     }
 
-    /**
-     * Swap our settings in for the shell's on the one source every background
-     * comes from, and tell the backgrounds already built from it to reload.
-     */
     _attach() {
         if (this.active) return;
 
         const source = this._obtainSource();
-        // Nothing here is public API. If the shell stops keeping the wallpaper
-        // behind a settings object, the patterns still draw -- over the
-        // user's own wallpaper, which is a missing feature, not a break.
         if (!source?._settings) {
             console.warn('[WallpaperFx] No background source to take over; the base will not change');
             return;
@@ -221,11 +163,8 @@ export class ShellBackground {
         reloadBackgrounds(source);
         adoptStranded(source);
 
-        // The shell counts who holds a source and destroys it at zero, and
-        // any extension that destroys a BackgroundManager twice takes one
-        // too many off. The source we hold can then go from under us, and
-        // the next wallpaper built comes from a fresh one reading the
-        // user's real settings. So watch for it, and take the new one.
+        // An extension that destroys a BackgroundManager twice can destroy the
+        // source we hold; then take the new one (docs/private-api.md).
         const destroy = source.destroy;
         this._destroyWrap = (...args) => {
             destroy.apply(source, args);
@@ -238,13 +177,11 @@ export class ShellBackground {
         this._source = null;
         this._shellSettings = null;
 
-        // The holder's claim died with the source; releasing it now would take
-        // one from whichever source replaces it, and repeat the damage.
+        // The holder's claim died with the source; releasing it would take one off the next.
         this._holder = null;
         this._holderContainer?.destroy();
         this._holderContainer = null;
 
-        // Idle, so the cache is done with the old one before we ask again.
         this._retakeId ||= GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
             this._retakeId = 0;
             this._attach();
@@ -272,11 +209,7 @@ export class ShellBackground {
     }
 }
 
-/**
- * Drops the backgrounds a source has already built, through the same signal the
- * shell uses when the wallpaper setting changes -- so every manager holding one
- * rebuilds it and crossfades to the new one by itself.
- */
+// What the shell does when the wallpaper setting changes: every manager rebuilds.
 function reloadBackgrounds(source) {
     const backgrounds = source._backgrounds;
     if (!backgrounds) return;
@@ -285,12 +218,8 @@ function reloadBackgrounds(source) {
         backgrounds[key]?._emitChangedSignal?.();
 }
 
-/**
- * Moves the desktop's wallpapers off a source the shell has destroyed and onto
- * the live one. Left where they are, they show whatever they last had until
- * the next monitor change rebuilds them. Each takes a claim on the new source,
- * as it would have had it been built there, so its eventual release balances.
- */
+// Moves the desktop's managers off a destroyed source, each with the claim its
+// eventual release will take (docs/private-api.md, "Why source._useCount++").
 function adoptStranded(source) {
     for (const manager of Main.layoutManager._bgManagers ?? []) {
         const old = manager._backgroundSource;
@@ -303,7 +232,6 @@ function adoptStranded(source) {
     }
 }
 
-// One image serves every monitor, so it is rendered for the largest of them.
 function largestSize() {
     const monitors = global.display.get_n_monitors();
     let width = 0;
@@ -319,7 +247,6 @@ function largestSize() {
     return [width, height];
 }
 
-// Spanned, one image covers the box around every monitor.
 function spannedSize() {
     const monitors = global.display.get_n_monitors();
     let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];

@@ -1,15 +1,4 @@
-// The patterns are drawn by the GPU, one fragment shader each.
-//
-// Each pattern in lib/layers/ is a GLSL function from a pixel to a
-// premultiplied colour, named after its id; this wraps one in a
-// `Shell.GLSLEffect`, which paints an actor with it. Nothing is drawn on the
-// CPU and nothing is uploaded per frame but a handful of uniforms, so the
-// compositor thread pays nothing per pixel, and the patterns are drawn at the
-// monitor's full resolution.
-//
-// One shader per pattern rather than one for the lot: a shader is compiled for
-// the worst case of everything in it, and all eight in one ran at two thirds
-// the speed of the same eight apart.
+// Each pattern's GLSL as a Shell.GLSLEffect, and the prelude they share (docs/patterns.md).
 
 import Cogl from 'gi://Cogl';
 import GLib from 'gi://GLib';
@@ -19,28 +8,11 @@ import Shell from 'gi://Shell';
 // Shell.SnippetHook moved to Cogl in GNOME 48.
 const FRAGMENT = Shell.SnippetHook?.FRAGMENT ?? Cogl.SnippetHook.FRAGMENT;
 
-// How much scene time u_time carries before it rolls over into u_epoch.
 export const EPOCH_S = 1024;
 
-// Shared by every pattern (docs/patterns.md has the whole contract).
-//
-// A pattern draws a canvas: the monitor it is on, or -- with span-monitors --
-// the box around every monitor, so that one picture runs across all of them.
-// Its coordinates are canvas pixels, y down, and u_canvas is the canvas's
-// size. `U` is one pixel of a 1080-line screen, so a pattern sized in U looks
-// the same on any monitor, only sharper on a denser one; DESIGN_W is the width
-// of a 1920x1080 screen in the same units, what "across the screen" means for
-// anything with a horizontal frequency, so a wider canvas gets more of it
-// rather than a stretched copy. u_density is the pattern's amount setting, 1
-// being the design; u_seed differs per monitor unless they are spanned.
-//
-// Time arrives in two parts because a 32-bit float cannot hold an hour of it
-// to the fraction of a millisecond a frame needs: past that, motion steps
-// unevenly from one frame to the next. u_time is the seconds since the last
-// whole epoch and stays small; the helpers below fold the epoch in with the
-// large part reduced first, so its rounding is a constant that shifts once an
-// epoch, not a jitter every frame. Both are this pattern's own time, already
-// scaled by its speed.
+// U is a pixel of a 1080-line screen and DESIGN_W a 1920-wide one's width. Time is
+// split in u_epoch and u_time because a float cannot hold an hour of it to a frame;
+// the helpers fold the epoch in (docs/patterns.md, "Time").
 //
 // hash12 and hash42 are Dave Hoskins' "Hash without Sine",
 // https://www.shadertoy.com/view/4djSRW, under its MIT License:
@@ -106,9 +78,7 @@ vec4 hash42(vec2 p) {
     return fract((p4.xxyz + p4.yzzw) * p4.zywx);
 }
 
-// Smooth value noise in [0, 1], and a three-octave sum of it. Both repeat
-// every 256 units, which is what lets drift() below keep moving through them
-// without a seam.
+// Value noise in [0, 1] and three octaves of it; both repeat every 256 units, for drift().
 float vnoise(vec2 x) {
     vec2 i = floor(x);
     vec2 f = fract(x);
@@ -130,11 +100,8 @@ float drift(float a) {
     return mod(a * u_epoch, 256.0) + a * u_time;
 }
 
-// A point of light: a coloured halo around a white-hot core, premultiplied.
-// d is the distance from its centre and r its radius, in pixels; core is how
-// much of the radius is white. Neither part is allowed narrower than a pixel
-// -- it is widened and dimmed to match instead -- so a small light moving
-// across the pixel grid glides rather than flickering.
+// A halo around a white core, in pixels. Neither is narrower than a pixel (it is
+// widened and dimmed instead), so a small light glides rather than flickers.
 vec4 glow(float d, float r, vec3 rgb, float core) {
     float d2 = d * d;
     float hs = r * 0.33;
@@ -147,8 +114,7 @@ vec4 glow(float d, float r, vec3 rgb, float core) {
     return vec4(mix(rgb * halo, vec3(a), hot), a);
 }
 
-// Coverage of a line "width" wide at distance d from its centre, antialiased
-// over one pixel.
+// Coverage of a line "width" wide at distance d from it, antialiased over a pixel.
 float line(float d, float width) {
     return clamp(0.5 * width + 0.5 - d, 0.0, 1.0) * min(1.0, width);
 }
@@ -160,33 +126,19 @@ float segmentDistance(vec2 p, vec2 a, vec2 b) {
 }
 `;
 
-// Kept for the life of the module, across disable and enable: a class compiles
-// its pipeline once, and re-registering it would only leak another. GType names
-// last as long as the process, and under a development link this module is
-// loaded afresh after every edit, so each load names its classes apart.
+// Kept across disable and enable: a GType cannot be unregistered, and a class compiles
+// its pipeline once. Each load of the module names its classes apart.
 const LOAD = GLib.uuid_string_random().slice(0, 8);
 const classes = new Map();
 
-/**
- * The effect class for one pattern (a catalog entry with `glsl`).
- *
- * GLSLEffect compiles its pipeline once per class, so this is built the first
- * time a pattern is shown, and every monitor's instance of it shares it.
- */
 export function effectClass(effect) {
     if (!classes.has(effect.id)) classes.set(effect.id, buildEffectClass(effect));
     return classes.get(effect.id);
 }
 
-/**
- * A pattern's shader as Cogl takes it: declarations, and the body of main().
- * Also what scripts/shaders.mjs compiles and times outside the shell.
- */
+// Also what scripts/shaders.mjs compiles and times outside the shell.
 export function shaderSource(effect) {
     return {
-        // The effect's own inputs, which the pattern never needs to see: the
-        // size of the monitor this actor covers, where that sits in the
-        // canvas, and the pattern's brightness setting.
         declarations: `uniform vec2 u_res;\nuniform vec2 u_origin;\nuniform float u_gain;\n${COMMON}\n${effect.glsl}`,
         code: `
             vec2 p = u_origin + cogl_tex_coord_in[0].st * u_res;
@@ -205,9 +157,7 @@ function buildEffectClass(effect) {
             this.add_glsl_snippet(FRAGMENT, declarations, code, true);
         }
 
-        // The last moment before this frame is drawn: whoever set onPaint
-        // fills the uniforms in here, so the time the pattern shows is the
-        // time the frame is painted rather than when it was asked for.
+        // The last moment before the frame, so a pattern shows the time it is painted.
         vfunc_paint_target(node, paintContext) {
             this.onPaint?.();
             super.vfunc_paint_target(node, paintContext);

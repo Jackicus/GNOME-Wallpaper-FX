@@ -1,10 +1,6 @@
 export const TAU = Math.PI * 2;
 
-/**
- * Seeded PRNG (mulberry32), for what the layers work out on the CPU: a fixed
- * seed keeps a pattern's layout identical across reloads, which is the only
- * way to tell a deliberate visual change from noise in a screenshot.
- */
+// Seeded PRNG (mulberry32), so a layout is the same on every monitor and reload.
 export function seeded(seed) {
     let a = seed >>> 0;
     return () => {

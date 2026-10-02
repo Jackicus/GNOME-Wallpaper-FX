@@ -1,11 +1,6 @@
 import Gio from 'gi://Gio';
 import St from 'gi://St';
 
-// The system's say in whether the patterns move: the power source, the power
-// profile, and whether animations are on at all. The last two are choices the
-// user made for everything, so the patterns follow them without being asked;
-// the battery only counts with pause-on-battery.
-
 const UPower = Gio.DBusProxy.makeProxyWrapper(`
 <node>
   <interface name="org.freedesktop.UPower">
@@ -30,7 +25,6 @@ const PROFILES = [
 }));
 
 export class SystemState {
-    /** `onChanged` is called whenever any of the three changes. */
     constructor(onChanged) {
         this._onChanged = onChanged;
         this._proxies = [];
@@ -44,9 +38,6 @@ export class SystemState {
         settings.connectObject('notify::enable-animations',
             () => this._set('animations', settings.enable_animations), this);
 
-        // Both proxies are built asynchronously, so the first answer arrives a
-        // moment after enable -- a desktop with no battery and no profiles
-        // daemon simply never answers differently.
         this._watch(UPower, 'org.freedesktop.UPower', '/org/freedesktop/UPower',
             proxy => this._set('onBattery', !!proxy.OnBattery));
         this._watchProfiles(0);

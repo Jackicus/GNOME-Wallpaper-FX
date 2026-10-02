@@ -578,10 +578,8 @@ alone would do on every claimed version. Both are the same enum values.
 ### GType names registered per load
 
 ```js
-// Kept for the life of the module, across disable and enable: a class compiles
-// its pipeline once, and re-registering it would only leak another. GType names
-// last as long as the process, and under a development link this module is
-// loaded afresh after every edit, so each load names its classes apart.
+// Kept across disable and enable: a GType cannot be unregistered, and a class compiles
+// its pipeline once. Each load of the module names its classes apart.
 const LOAD = GLib.uuid_string_random().slice(0, 8);
 const classes = new Map();
 ```

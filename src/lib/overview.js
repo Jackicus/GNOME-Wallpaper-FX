@@ -1,28 +1,13 @@
-// The patterns in the shell's own pictures of a workspace: the Activities
-// overview, its thumbnail strip, and the slide between workspaces.
-//
-// None of those shows the desktop background group. Every workspace preview
-// builds a wallpaper actor of its own and clones that workspace's windows over
-// it, so a canvas parented into `_backgroundGroup` is simply not in the picture
-// -- open the overview and the desktop underneath goes still and bare. This
-// puts it back the way the shell puts the windows back: as a clone, laid into
-// the preview's own background group where the overview's scaling carries it
-// exactly as it carries the wallpaper.
-//
-// Nothing here is built twice or drawn twice: a clone is a second view of the
-// canvas that is already being painted. The clones belong to the previews, which
-// the shell destroys when the overview closes.
+// The patterns cloned into the overview's previews, its thumbnails and the workspace
+// slide, which draw wallpapers of their own (docs/private-api.md, "The overview").
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { InjectionManager } from 'resource:///org/gnome/shell/extensions/extension.js';
 import GObject from 'gi://GObject';
 import Clutter from 'gi://Clutter';
 
-// A preview's background group stands for a whole monitor, but it is allocated
-// at whatever size the overview has animated the workspace to -- and stretched
-// independently in x and y while that animation runs. Reading the allocation
-// back as a scale is the only way to follow that reliably: the group
-// re-allocates without always notifying its size.
+// A preview is stretched in x and y as the overview animates, and does not always
+// notify its size, so the clone follows the allocation as a scale.
 const PreviewHost = GObject.registerClass(
 class PreviewHost extends Clutter.Actor {
     constructor(props, monitor) {
@@ -30,8 +15,7 @@ class PreviewHost extends Clutter.Actor {
         this._monitor = monitor;
     }
 
-    // The preview sizes itself from its porthole, not from what is in it: a
-    // size request here would stretch the workspace out of shape.
+    // A size request here would stretch the workspace out of shape.
     vfunc_get_preferred_width() {
         return [0, 0];
     }
@@ -50,8 +34,6 @@ class PreviewHost extends Clutter.Actor {
         if (!isFinite(scaleX) || !isFinite(scaleY) || scaleX <= 0 || scaleY <= 0)
             return;
 
-        // The overview re-allocates its previews on most frames of its own
-        // animation; a scale that has not moved is not worth setting again.
         if (scaleX === this._scaleX && scaleY === this._scaleY) return;
         this._scaleX = scaleX;
         this._scaleY = scaleY;
@@ -60,10 +42,6 @@ class PreviewHost extends Clutter.Actor {
 });
 
 export class OverviewCanvas {
-    /**
-     * `sourceFor(monitorIndex)` hands over the live canvas for that monitor, or
-     * null where there is none.
-     */
     constructor(sourceFor) {
         this._sourceFor = sourceFor;
         this._clones = [];
@@ -72,9 +50,7 @@ export class OverviewCanvas {
     }
 
     enable() {
-        // 'showing' is early enough: the previews exist before the overview
-        // animates in, so the clones are there for the first frame rather than
-        // appearing once it has settled.
+        // The previews exist by 'showing', so the clones are there for the first frame.
         Main.overview.connectObject(
             'showing', () => this._attach(),
             'hidden', () => this._detach(),
@@ -88,8 +64,7 @@ export class OverviewCanvas {
             this._injections.overrideMethod(
                 Object.getPrototypeOf(animation), '_prepareWorkspaceSwitch',
                 original => function (...args) {
-                    // It returns early, touching nothing, when a slide is
-                    // already under way (a swipe picked up mid-flight).
+                    // It returns early when a slide is already under way.
                     const fresh = !this._switchData;
                     original.apply(this, args);
                     if (fresh && this._switchData) self._joinSlide(this._switchData);
@@ -103,17 +78,10 @@ export class OverviewCanvas {
         this._detach();
     }
 
-    // The layout changed under an open overview.
     invalidate() {
         if (this._attached) this._attach();
     }
 
-    /**
-     * For as long as a workspace slide runs the shell covers the desktop with a
-     * strip of workspaces, each over a wallpaper of its own, and throws the strip
-     * away when it lands. A clone in each means the patterns travel with the
-     * workspace instead of reappearing once it has arrived.
-     */
     _joinSlide(switchData) {
         for (const strip of switchData.monitors ?? []) {
             const index = strip._monitor?.index;
@@ -130,8 +98,7 @@ export class OverviewCanvas {
     }
 
     _attach() {
-        // 'showing' can follow an attach made at enable, when the overview
-        // already claimed to be up; clones stacked twice would double the light.
+        // 'showing' can follow an attach made at enable; twice would double the light.
         this._detach();
         this._attached = true;
 
@@ -159,9 +126,7 @@ export class OverviewCanvas {
             group.add_child(host);
             this._track(host);
 
-            // The strip at the top of the overview shows the same workspaces at
-            // thumbnail size; its contents are laid out in stage coordinates, as
-            // the window clones beside this one are.
+            // A thumbnail's contents are laid out in stage coordinates.
             const wsIndex = workspace.metaWorkspace?.index();
             const thumbnails = Main.overview._overview?.controls?._thumbnailsBox?._thumbnails ?? [];
             const contents = thumbnails[wsIndex]?._contents;
@@ -174,8 +139,6 @@ export class OverviewCanvas {
         }
     }
 
-    // A clone is never reactive, so the click that activates the workspace
-    // passes through it.
     _cloneOf(source) {
         return new Clutter.Clone({
             source,
@@ -185,8 +148,6 @@ export class OverviewCanvas {
         });
     }
 
-    // The previews are the overview's, and it destroys them when it closes --
-    // taking the clones with them -- so nothing here outlives one overview.
     _detach() {
         this._attached = false;
         for (const actor of [...this._clones]) actor.destroy();
@@ -201,10 +162,7 @@ export class OverviewCanvas {
         });
     }
 
-    // The workspace previews, across every monitor's view. The primary
-    // monitor's view holds its workspaces itself; another monitor's is a
-    // display wrapping a view of its own -- all the workspaces, or only the one
-    // it shows when workspaces are on the primary monitor alone.
+    // A secondary monitor's display wraps a view of all the workspaces, or of one.
     _workspacePreviews() {
         const views = Main.overview._overview?.controls?._workspacesDisplay?._workspacesViews ?? [];
         const out = [];

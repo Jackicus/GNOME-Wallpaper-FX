@@ -6,29 +6,18 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { EFFECTS } from './catalog.js';
 import { EPOCH_S, effectClass } from './shader.js';
 
-// Longer than this between two paints is a pause (a covered desktop, a
-// fullscreen window, a blanked screen), and the animation picks up where it
-// stopped instead of leaping ahead by however long that was.
+// A longer gap between paints is a pause: the animation picks up where it stopped.
 const MAX_STEP_S = 0.1;
 
-// Paints closer together than this are one frame: every pattern, every monitor
-// and every copy in the overview shows the same instant. Well under the gap
-// between frames of the fastest panel.
+// Paints closer than this are one frame, so every monitor and clone shows one instant.
 const SAME_FRAME_US = 1000;
 
-// Windows covering all but this share of a monitor's work area hide its desktop,
-// gaps between tiled windows included.
+// The share of a work area windows must cover to hide it, gaps between tiles allowed.
 const COVERED = 0.95;
 
-// How long a pattern takes to fade in when it is switched on, or out when off.
 const FADE_MS = 600;
 
-/**
- * The animation's own time, one clock per pattern: seconds of motion so far,
- * scaled by the speed setting and by that pattern's own speed. Shared by every
- * monitor, so a pattern stays in step across all of them -- which is what lets
- * one picture span them.
- */
+// One clock per pattern, shared by every monitor so spanned parts stay in step.
 export class SceneClock {
     constructor() {
         this.speed = 1;
@@ -37,7 +26,6 @@ export class SceneClock {
         this._lastUs = 0;
     }
 
-    /** Advances every pattern's time to now, once a frame. Called from paint. */
     tick() {
         const us = GLib.get_monotonic_time();
         const dt = (us - this._lastUs) / 1e6;
@@ -54,22 +42,8 @@ export class SceneClock {
     }
 }
 
-/**
- * One monitor's patterns: an actor the size of the monitor, holding one child
- * per enabled pattern, each painted entirely by that pattern's shader.
- *
- * `view` is what the patterns draw: `canvas`, the rectangle of the picture in
- * stage coordinates (this monitor, or the box around every monitor when they
- * are spanned), `unit`, the size of U in pixels, and `seed`.
- *
- * Pacing hangs off the paint itself. Every paint books the next one for
- * `divisor` refreshes later -- half a refresh early, so it lands on that frame
- * and not the one after -- which keeps the frames in step with the display.
- * A paint that comes while the patterns should rest books nothing, and neither
- * does one that never comes (Clutter skips an actor nothing can see), so they
- * cost nothing at all until the compositor next paints the desktop of its own
- * accord: a window moving off it, the overview opening, a setting changing.
- */
+// One monitor's patterns. `view.canvas` is the picture in stage coordinates (this
+// monitor, or all of them spanned). Pacing: CLAUDE.md, "Pacing hangs off the paint".
 export class MonitorRenderer {
     constructor(monitor, view, clock, state) {
         this.monitor = monitor;
@@ -85,8 +59,7 @@ export class MonitorRenderer {
             width: monitor.width,
             height: monitor.height,
             reactive: false,
-            // A shader effect paints a pixel's margin past its actor, which two
-            // monitors side by side would both paint -- a bright seam.
+            // A shader effect paints a pixel past its actor: a bright seam between monitors.
             clip_to_allocation: true,
         });
 
@@ -104,13 +77,11 @@ export class MonitorRenderer {
                 opacity: 0,
                 duration: FADE_MS,
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-                // Not when the transition was cut short by the actor going
-                // with the rest of the monitor: it is gone already.
+                // Cut short means the monitor's actor took it already.
                 onStopped: finished => finished && layer.actor.destroy(),
             });
         }
 
-        // Drawn in catalog order, whatever order they were switched on in.
         wanted.forEach((effect, index) => {
             let layer = this._layers.get(effect.id);
             if (!layer) {
@@ -124,8 +95,7 @@ export class MonitorRenderer {
             layer.density = Math.max(low, Math.min(high, tuning.density ?? 1));
             layer.effect.setUniform('u_gain', 1, [tuning.brightness ?? 1]);
             layer.effect.setUniform('u_density', 1, [layer.density]);
-            // Drawn afresh even while the patterns rest, so a setting changed
-            // then still shows.
+            // Drawn afresh even while resting, so the change shows.
             layer.t = -1;
             layer.effect.queue_repaint();
         });
@@ -170,20 +140,15 @@ export class MonitorRenderer {
         return layer;
     }
 
-    /** Starts the frames again, if there is anything to show. */
     kick() {
         if (this._timerId || this._paused()) return;
         for (const layer of this._layers.values()) layer.effect.queue_repaint();
     }
 
-    // Whether to stop asking for frames. The overview and the workspace slide
-    // show the patterns through clones, over whatever windows the desktop has,
-    // so a paint through a clone is never covered.
+    // A paint through a clone (the overview, the slide) is never covered.
     _paused(throughClone = false) {
         const state = this._state;
         if (this._layers.size === 0) return true;
-        // Animations switched off and power saver are the user's choices too,
-        // made for the whole system.
         if (!state.animations || state.powerSaver) return true;
         if (state.pauseOnBattery && state.onBattery) return true;
         return state.pauseWhenCovered && !throughClone && desktopCovered(this.monitor.index);
@@ -211,16 +176,13 @@ export class MonitorRenderer {
         });
     }
 
-    // `target-fps`: 0 is every frame the display shows, -N every Nth, and a
-    // positive number the whole divisor nearest that many frames a second.
+    // `target-fps`: 0 every frame, -N every Nth, a rate the nearest whole divisor.
     _divisor(hz) {
         const target = this._state.targetFps;
         if (target > 0) return Math.max(1, Math.round(hz / target));
         return Math.max(1, Math.min(8, -target));
     }
 
-    // The rate of the view this monitor is painted on, which is what tells a
-    // 240Hz head from the 60Hz one beside it.
     _refreshRate() {
         let hz = 0;
         for (const view of this.actor.peek_stage_views() ?? [])
@@ -236,14 +198,8 @@ export class MonitorRenderer {
     }
 }
 
-/**
- * Whether windows on the current workspace hide a monitor's desktop: a
- * fullscreen one, or maximized and tiled ones between them. Clutter already
- * stops painting a background nothing can see, but a panel is not a window,
- * so the strip of desktop behind one keeps a covered monitor repainting in
- * full -- this is what lets it rest. Uncovering it repaints the desktop, and
- * that paint is what wakes the patterns again.
- */
+// Clutter culls a covered background, but the strip under the panel keeps it
+// painting; this lets it rest.
 function desktopCovered(index) {
     if (global.display.get_monitor_in_fullscreen(index)) return true;
 
@@ -263,7 +219,6 @@ function desktopCovered(index) {
     return left <= area.width * area.height * (1 - COVERED);
 }
 
-// What is left of rectangle a with b taken out: up to four pieces.
 function subtract(a, b) {
     const x1 = Math.max(a.x, b.x);
     const y1 = Math.max(a.y, b.y);
