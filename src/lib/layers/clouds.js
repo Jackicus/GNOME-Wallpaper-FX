@@ -1,3 +1,5 @@
+import { num } from '../layer.js';
+
 // Noise on a plane seen in perspective, each octave carried a little faster.
 
 const HORIZON = 1.6;            // in heights below the top: further is gentler perspective
@@ -7,7 +9,6 @@ const SHEAR = 1.15;             // each octave outruns the one below by this muc
 
 export const density = [0.25, 2];
 
-const num = x => x.toFixed(4);
 const octave = (k, scale, offset) => `vnoise(q * ${num(scale)} + ` +
     `vec2(${num(offset[0])}, ${num(offset[1])}) - vec2(drift(${num(WIND[0] * scale * SHEAR ** k)}), ` +
     `drift(${num(WIND[1] * scale * SHEAR ** k)})))`;

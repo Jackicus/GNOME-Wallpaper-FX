@@ -1,4 +1,4 @@
-import { TAU, seeded } from '../layer.js';
+import { TAU, seeded, vec3 } from '../layer.js';
 
 const CLOUDS = 14;          // a screen's width of sky holds this many, as designed
 const PER_HUE = 16;         // glows of one colour a monitor can be handed
@@ -12,7 +12,6 @@ const HUES = [
 
 export const density = [0.25, 1.5];
 
-const rgb = ([r, g, b]) => `vec3(${[r, g, b].map(v => (v / 255).toFixed(4)).join(', ')})`;
 const LANES = ['x', 'y', 'z', 'w'];
 
 // Clouds of three glows, placed on the CPU; a list per colour, coloured once at the end.
@@ -32,7 +31,7 @@ vec4 nebula(vec2 p) {
     ${HUES.flatMap((_hue, h) => Array.from({ length: PER_HUE / 4 }, (_, b) =>
         `if (nebula_count.${LANES[h]} > ${b * 4}.5) a.${LANES[h]} += ` +
         [0, 1, 2, 3].map(k => `nebulaGlow(p, nebula_glow${h}[${b * 4 + k}])`).join(' + ') + ';')).join('\n    ')}
-    return vec4(${HUES.map((h, i) => `${rgb(h)} * a.${LANES[i]}`).join(' + ')}, a.x + a.y + a.z + a.w);
+    return vec4(${HUES.map((h, i) => `${vec3(h.map(v => v / 255))} * a.${LANES[i]}`).join(' + ')}, a.x + a.y + a.z + a.w);
 }
 `;
 

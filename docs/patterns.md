@@ -153,7 +153,8 @@ about 0.3 ms.
   compiler cannot know is not unrolled; write the candidates out (the module is
   JavaScript, so generate them) and guard each, or each group of four, with a
   test on a uniform — every pixel takes the same way, so the test is nearly
-  free. Nebula went from 0.42 ms to 0.32 that way.
+  free. `slots()` in `layer.js` writes out a pattern's Amount slots that way
+  (bokeh, embers). Nebula went from 0.42 ms to 0.32 that way.
 - **No indexed local arrays.** An array written and read in loops is what
   compilers push out of registers into memory; constellation cost 2.1 ms that
   way and 0.8 ms as straight-line code (it generates its GLSL from JS for that

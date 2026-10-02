@@ -84,7 +84,8 @@ offline tools) and `background.md` (the base and the overview's clones).
   GWeather's city list, for prefs.
 - `lib/palettes.js`: the named gradients for `color` mode (the last three are the
   weather's skies) and the accent colours for `accent`. `lib/layer.js`: the seeded PRNG
-  for what layers work out on the CPU.
+  for what layers work out on the CPU, and the helpers they generate GLSL with (`num`,
+  `vec3`, `slots`).
 - `prefs.js`, `schemas/`: the settings dialog (Scenes, with the weather and the user's
   own; Patterns; Background; Performance) and the keys behind it.
 

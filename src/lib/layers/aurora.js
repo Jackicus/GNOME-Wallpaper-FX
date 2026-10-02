@@ -1,3 +1,5 @@
+import { num, vec3 } from '../layer.js';
+
 // Each curtain is one line of noise along the width, so a pixel asks only its column.
 
 const CURTAINS = [
@@ -5,9 +7,7 @@ const CURTAINS = [
     { rgb: [70, 235, 160], hang: 0.42, wander: 0.1, minLen: 0.1, maxLen: 0.36, alpha: 0.85, drift: 0.03, seed: 17 },
 ];
 
-const num = x => x.toFixed(4);
-
-const curtain = c => `c += auroraCurtain(p, vec3(${c.rgb.map(v => num(v / 255)).join(', ')}), ` +
+const curtain = c => `c += auroraCurtain(p, ${vec3(c.rgb.map(v => v / 255))}, ` +
     `${num(c.hang)}, ${num(c.wander)}, ${num(c.minLen)}, ${num(c.maxLen)}, ${num(c.alpha)}, ` +
     `${num(c.drift)}, ${c.seed}.0);`;
 

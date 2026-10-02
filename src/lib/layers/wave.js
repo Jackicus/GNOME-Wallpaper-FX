@@ -1,4 +1,4 @@
-import { TAU } from '../layer.js';
+import { TAU, num, vec3 } from '../layer.js';
 
 // The ribbons' edges are exact per pixel; the CPU works out, in double precision, what
 // depends on time alone: phases, the curve's bounds and its peaks for the glints.
@@ -11,8 +11,6 @@ const RIBBONS = [
 const GLINTS = 4;           // per ribbon
 const STEPS = 240;          // samples across a screen's width when looking for peaks
 
-const num = x => x.toFixed(4);
-const vec3 = xs => `vec3(${xs.map(num).join(', ')})`;
 
 const ribbon = (r, i) => `c += waveRibbon(p, wave_bounds.${i ? 'zw' : 'xy'}, ${num(r.base)}, ` +
     `${num(r.amp)}, ${num(r.thick)}, ${num(r.alpha)}, ${vec3(r.terms.map(k => k[0]))}, ` +
