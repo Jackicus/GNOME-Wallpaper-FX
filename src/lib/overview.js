@@ -2,7 +2,6 @@
 // slide, which draw wallpapers of their own (docs/private-api.md, "The overview").
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import { InjectionManager } from 'resource:///org/gnome/shell/extensions/extension.js';
 import GObject from 'gi://GObject';
 import Clutter from 'gi://Clutter';
 
@@ -43,7 +42,7 @@ export class OverviewCanvas {
         this._sourceFor = sourceFor;
         this._clones = [];
         this._attached = false;
-        this._injections = new InjectionManager();
+        this._slideHook = null;
     }
 
     enable() {
@@ -57,20 +56,27 @@ export class OverviewCanvas {
 
         const animation = Main.wm._workspaceAnimation;
         if (animation?._prepareWorkspaceSwitch) {
+            const proto = Object.getPrototypeOf(animation);
+            const previous = proto._prepareWorkspaceSwitch;
             const self = this;
-            this._injections.overrideMethod(
-                Object.getPrototypeOf(animation), '_prepareWorkspaceSwitch',
-                original => function (...args) {
-                    // It returns early when a slide is already under way.
-                    const fresh = !this._switchData;
-                    original.apply(this, args);
-                    if (fresh && this._switchData) self._joinSlide(this._switchData);
-                });
+            const hook = function (...args) {
+                // It returns early when a slide is already under way.
+                const fresh = !this._switchData;
+                const result = previous.apply(this, args);
+                if (self._slideHook?.hook === hook && fresh && this._switchData) self._joinSlide(this._switchData);
+                return result;
+            };
+            proto._prepareWorkspaceSwitch = hook;
+            this._slideHook = { proto, previous, hook };
         }
     }
 
     destroy() {
-        this._injections.clear();
+        // Put back only while it is still the outermost: another extension may have
+        // wrapped it since. Left in that chain, the hook does nothing.
+        const { proto, previous, hook } = this._slideHook ?? {};
+        if (proto?._prepareWorkspaceSwitch === hook) proto._prepareWorkspaceSwitch = previous;
+        this._slideHook = null;
         Main.overview.disconnectObject(this);
         this._detach();
     }

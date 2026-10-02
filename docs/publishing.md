@@ -157,7 +157,7 @@ constructor, but it is constructed inside `enable()`.
 
 `disable()` tears down, in order: the layout-manager, settings and interface
 signal connections; the overview clones and the slide override
-(`InjectionManager.clear()`); the `WeatherWatcher`, if the weather is on (its
+(put back while it is still the outermost wrap); the `WeatherWatcher`, if the weather is on (its
 `Gio.Cancellable` is cancelled, its timer removed, its GWeather request aborted,
 and its GWeather, Geoclue and settings connections dropped); `SystemState` (its
 `Gio.Cancellable` is cancelled and its D-Bus proxies and `St.Settings`
