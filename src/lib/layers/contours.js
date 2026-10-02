@@ -26,6 +26,28 @@ const LEVELS = 9.0;
 // Amount moves the lines slide continuously and new ones open out of the peaks.
 export const density = [0.5, 2];
 
+// contoursPermute and the simplex lattice in contoursNoise are from the 2D simplex
+// noise of webgl-noise, https://github.com/ashima/webgl-noise, under its MIT License:
+/* Copyright (C) 2011 by Ashima Arts (Simplex noise)
+Copyright (C) 2011-2016 by Stefan Gustavson (Classic noise and others)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.*/
 export const glsl = `
 const float CONTOURS_F = 0.366025404;   // (sqrt(3) - 1) / 2
 const float CONTOURS_G = 0.211324865;   // (3 - sqrt(3)) / 6

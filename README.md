@@ -264,3 +264,8 @@ the shell internals the extension depends on, compatibility and publishing.
 ## Licence
 
 GPL-2.0-or-later. See [LICENSE](LICENSE).
+
+Two pieces of shader code are other people's, under the MIT License, with their notices
+where they are used: Dave Hoskins' [Hash without Sine](https://www.shadertoy.com/view/4djSRW)
+(`src/lib/shader.js`) and the 2D simplex noise of
+[webgl-noise](https://github.com/ashima/webgl-noise) (`src/lib/layers/contours.js`).
