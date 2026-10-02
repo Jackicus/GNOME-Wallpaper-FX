@@ -1,3 +1,5 @@
+import { num } from '../layer.js';
+
 // Shafts are noise along the angle from the sun; the dust is lit only in a shaft.
 
 // Fractions of the canvas: just above the top edge, so the angle never wraps.
@@ -8,7 +10,6 @@ const REPEAT = 64;
 
 export const density = [0.25, 2];
 
-const num = x => x.toFixed(4);
 const CELL = Math.sqrt(1920 * 1080 * OCCUPIED / MOTES);
 
 export const glsl = `

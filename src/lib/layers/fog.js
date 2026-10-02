@@ -1,3 +1,5 @@
+import { num, vec3 } from '../layer.js';
+
 // Three banks of noise warped by a slower one; the rows above a bank cost nothing.
 
 const STRETCH = 2.6;            // billows are this much wider than tall
@@ -11,11 +13,9 @@ const BANKS = [
 
 export const density = [0.25, 2];
 
-const num = x => x.toFixed(4);
-
 const bank = (b, i) => `c = fogOver(c, fogBank(p, ${i}.0, ${num(b.top)}, ${num(b.ramp)}, ` +
     `${num(b.size)}, ${num(b.wind / (b.size * STRETCH))}, ${num(b.alpha)}), ` +
-    `vec3(${b.rgb.map(v => num(v / 255)).join(', ')}));`;
+    `${vec3(b.rgb.map(v => v / 255))});`;
 
 export const glsl = `
 float fogBank(vec2 p, float bank, float top, float ramp, float size, float wind, float alpha) {

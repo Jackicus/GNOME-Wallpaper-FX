@@ -1,3 +1,5 @@
+import { slots } from '../layer.js';
+
 // Out-of-focus lights in wide columns, two discs to a column.
 
 const COLUMN = 160;         // in U
@@ -42,12 +44,9 @@ vec4 bokehDisc(vec2 p, float column, float slot) {
 vec4 bokeh(vec2 p) {
     vec4 c = vec4(0.0);
     float column = floor(p.x / (${COLUMN}.0 * U));
-    // Slots behind tests on a uniform stay straight-line (docs/patterns.md).
     for (int dc = -1; dc <= 1; dc++) {
         float col = column + float(dc);
-        ${Array.from({ length: MOST }, (_, s) => s < SLOTS
-            ? `c += bokehDisc(p, col, ${s}.0)${s === SLOTS - 1 ? ` * clamp(${SLOTS}.0 * u_density - ${s}.0, 0.0, 1.0)` : ''};`
-            : `if (${SLOTS}.0 * u_density > ${s}.0) c += bokehDisc(p, col, ${s}.0) * clamp(${SLOTS}.0 * u_density - ${s}.0, 0.0, 1.0);`).join('\n        ')}
+        ${slots(s => `bokehDisc(p, col, ${s}.0)`, SLOTS, MOST)}
     }
     return c;
 }

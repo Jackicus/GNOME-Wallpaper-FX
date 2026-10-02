@@ -1,3 +1,5 @@
+import { num } from '../layer.js';
+
 // Rain in depth bands of sliding columns, one streak to a cell. Speeds are whole U a
 // second and the period a power of two, so scroll() is exact (docs/patterns.md, "Time").
 
@@ -22,7 +24,6 @@ const GLINT = 0.03;         // the share of drops that catch the light
 
 export const density = [0.25, 2];
 
-const num = x => x.toFixed(4);
 const COS = 1 / Math.hypot(1, TILT);
 
 function band([z0, z1, count], i) {

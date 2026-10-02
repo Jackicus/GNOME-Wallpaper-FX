@@ -1,3 +1,5 @@
+import { slots } from '../layer.js';
+
 // Sparks rising from a glow below the frame, a few to each narrow column.
 
 const COLUMN = 52;          // in U: ~37 columns across a 1920-wide screen
@@ -39,12 +41,9 @@ vec4 embers(vec2 p) {
     vec4 c = vec4(1.0, 0.471, 0.157, 1.0) * 0.28 * clamp(band, 0.0, 1.0) * heat;
 
     float column = floor(p.x / (${COLUMN}.0 * U));
-    // Slots behind tests on a uniform stay straight-line (docs/patterns.md).
     for (int dc = -1; dc <= 1; dc++) {
         float col = column + float(dc);
-        ${Array.from({ length: MOST }, (_, s) => s < SLOTS
-            ? `c += emberSpark(p, col, ${s}.0)${s === SLOTS - 1 ? ` * clamp(${SLOTS}.0 * u_density - ${s}.0, 0.0, 1.0)` : ''};`
-            : `if (${SLOTS}.0 * u_density > ${s}.0) c += emberSpark(p, col, ${s}.0) * clamp(${SLOTS}.0 * u_density - ${s}.0, 0.0, 1.0);`).join('\n        ')}
+        ${slots(s => `emberSpark(p, col, ${s}.0)`, SLOTS, MOST)}
     }
     return c;
 }
