@@ -104,6 +104,9 @@ patterns are. `enabled-effects` is a list of catalog ids, drawn over
 that base in catalog order, each tuned by `pattern-tuning` (brightness, speed, Amount, as
 multipliers of its design). `speed` scales every clock and `opacity` is the monitor
 actor's opacity, which each shader multiplies in.
+A pattern switched on or off fades over the shell's own wallpaper crossfade
+(`FADE_ANIMATION_TIME` from `ui/background.js`, 1000 ms on 50), not the kit's 100–250 ms:
+a new base crossfades at the same moment, and the two land together.
 
 With `span-monitors`, every monitor draws its part of one canvas (the box around them
 all, sized by the primary monitor, one seed), and because every `State` is a pure

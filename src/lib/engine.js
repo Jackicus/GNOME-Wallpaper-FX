@@ -2,6 +2,7 @@ import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import { FADE_ANIMATION_TIME } from 'resource:///org/gnome/shell/ui/background.js';
 
 import { EFFECTS } from './catalog.js';
 import { EPOCH_S, effectClass } from './shader.js';
@@ -14,8 +15,6 @@ const SAME_FRAME_US = 1000;
 
 // The share of a work area windows must cover to hide it, gaps between tiles allowed.
 const COVERED = 0.95;
-
-const FADE_MS = 600;
 
 // One clock per pattern, shared by every monitor so spanned parts stay in step.
 export class SceneClock {
@@ -73,9 +72,10 @@ export class MonitorRenderer {
         for (const [id, layer] of this._layers) {
             if (wanted.some(e => e.id === id)) continue;
             this._layers.delete(id);
+            // As long as the shell's own wallpaper crossfade, which a new base runs beside.
             layer.actor.ease({
                 opacity: 0,
-                duration: FADE_MS,
+                duration: FADE_ANIMATION_TIME,
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD,
                 // Cut short means the monitor's actor took it already.
                 onStopped: finished => finished && layer.actor.destroy(),
@@ -135,7 +135,7 @@ export class MonitorRenderer {
         layer.actor.add_effect(fx);
         this.actor.add_child(layer.actor);
 
-        layer.actor.ease({ opacity: 255, duration: FADE_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD });
+        layer.actor.ease({ opacity: 255, duration: FADE_ANIMATION_TIME, mode: Clutter.AnimationMode.EASE_OUT_QUAD });
         return layer;
     }
 
