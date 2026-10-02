@@ -257,6 +257,60 @@ showing the user's wallpaper until the next log in. That was the state before
 this existed. If `_bgManagers` or `_updateBackgroundActor` goes, the desktop
 keeps the last base it had until the next monitor change rebuilds it.
 
+#### Why `source._useCount++`
+
+Checked against `js/ui/background.js` at the `50.5` and `51.0` tags, where this
+code is the same. `BackgroundCache.getBackgroundSource(layoutManager, schema)`
+creates the source for a schema with `_useCount = 1` or adds one to it;
+`releaseBackgroundSource(schema)` takes one off the source *currently cached for
+that schema* and destroys it at zero. `BackgroundManager` claims in its
+constructor and releases in `destroy()`, by schema, and never asks which source
+it holds.
+
+So after an over-release the desktop's managers hold no claim on anything, yet
+each will still release one when the layout manager destroys it on the next
+`monitors-changed` (`_updateBackgrounds()`), and that release lands on whichever
+source is cached by then: the one this extension has just taken over. Without a
+matching claim, the first monitor change after a recovery over-releases the new
+source too, and the cycle repeats. `adoptStranded()` therefore gives each manager
+it moves exactly what `getBackgroundSource()` gives a new manager: one more on
+`_useCount`. The count then balances when those managers are destroyed.
+
+**Considered instead.**
+
+- *A public claim.* The only public way to add one is constructing a
+  `BackgroundManager` (the cache itself, `getBackgroundCache()`, is not
+  exported). One per adopted manager, built on a throwaway container and never
+  destroyed, would add the same one to the count. It would be a deliberately
+  leaked object standing in for one line, it builds and destroys a background
+  actor each time, and it still needs the private `manager._backgroundSource`
+  and `manager._updateBackgroundActor()` to move the desktop's managers at all.
+  No less invasive, and harder to read.
+- *Not moving the managers.* Leave them on the dead source and let the layout
+  manager rebuild them at the next monitor change. Their releases then hit the
+  taken-over source unbalanced (above), and until that change the desktop shows
+  the last base it had and ignores every change of base. That is a behaviour
+  change, so it is the owner's call along with the rest of the recovery.
+- *Asking the layout manager to rebuild* (`_updateBackgrounds()`, private):
+  it destroys every stranded manager first, so it is the same unbalanced release
+  at once.
+
+**If the shell changes it.**
+
+- `_useCount` renamed or made a `#private` field: the `++` writes a new
+  property the cache never reads (`undefined++` is `NaN`), so the claim is lost.
+  The first monitor change after a recovery over-releases the taken-over source;
+  the `destroy` wrap catches that and takes the new one back on an idle, so that
+  change costs a crossfade to the user's wallpaper and back. The managers the
+  layout manager builds then are fresh, so it happens once. Nothing is logged.
+- The cache counting by source instead of by schema (a manager releasing the
+  source it holds): the stranded managers' releases would go to the dead source,
+  and each `++` here would be one claim too many, so the taken-over source would
+  never reach zero and would live, swapped back, for the rest of the session.
+  Harmless, since the cache keeps one source per schema for the session anyway.
+- The cache no longer destroying a source at zero: the wrap never fires, and none
+  of this code runs.
+
 ### A second `Gio.Settings` for `org.gnome.desktop.background`
 
 The constructor:
