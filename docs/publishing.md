@@ -164,20 +164,18 @@ and its GWeather, Geoclue and settings connections dropped); `SystemState` (its
 connection are dropped); the wallpaper
 takeover, including the holder `BackgroundManager` and its container actor; and
 every `MonitorRenderer` (its timer, then its actor and every layer and effect
-under it). It uses `?.` on the parts `enable()` builds, so it also gets through a
-partial enable and always hands the wallpaper back.
+under it).
 
 `shader.js` keeps registered classes in a module-scope `Map` across
 `disable()`, on purpose, because GTypes cannot be unregistered. A comment where
 the map is declared says so, which answers the reviewer who applies "all
 dynamically stored memory must be cleared or freed in disable()".
 
-If `enable()` throws, the shell does not call `disable()`: it marks the
-extension as errored and only disables an extension whose state is `ACTIVE`
-(`extensionSystem.js` in 50.5). So `enable()` wraps its body, calls `disable()`
-itself on a throw, and rethrows -- the wallpaper is handed back and the shell
-still sees the error. With `_backgroundGroup` checked, the known way to get
-there is a GNOME without `Shell.GLSLEffect`, which is not claimed.
+`enable()` is not wrapped. If it threw, the shell would mark the extension as
+errored without calling `disable()` (`extensionSystem.js` in 50.5); on 50 nothing
+in it throws (`_backgroundGroup` and the background source are checked), and the
+known way to get there is a GNOME without `Shell.GLSLEffect`, which is not
+claimed.
 
 ### Disconnect all signals: meets
 
@@ -256,15 +254,14 @@ lists the patterns reviewers look for. In this code:
   remain — `global.display.get_n_monitors()` and `error.matches()` are called
   directly. What optional chaining is left is on private shell paths, where it
   is how they degrade and [private-api.md](private-api.md) explains each; on
-  the parts of `WallpaperFxApp` that `disable()` may find missing; and
-  `workspace.metaWorkspace?.index()` in `overview.js`, where `metaWorkspace`
+  `WallpaperFxApp._weather` and `WeatherWatcher._geoclue`, which are null while
+  unused; and `workspace.metaWorkspace?.index()` in `overview.js`, where `metaWorkspace`
   is null for a monitor's extra workspace view.
 - **try/catch that only swallows** ("Avoid Unnecessary try-catch Wrappers"):
   gone from the shipped `extension.js`, so a failed load shows as an error in
   the Extensions app. Those that remain handle real failures: rendering a
-  gradient, reaching the shell's backgrounds, a saved weather report that will
-  not parse, Location Services failing, a dismissed file chooser in the
-  preferences, and `enable()` handing the wallpaper back before it rethrows.
+  gradient (disk I/O), a saved weather report that will not parse, Location
+  Services failing, and a dismissed file chooser in the preferences.
 - **A lifecycle flag** ("Lifecycle and Destruction State"): `this._enabling`
   exists only in `scripts/dev-extension.js`, whose `enable()` is async. The
   shipped entry point has none.
@@ -325,8 +322,8 @@ clean. `package.json` exists only to pin ESLint; nothing from it ships.
 Everything the extension reaches into, what it is for, and what happens when a
 future GNOME changes it is in [private-api.md](private-api.md). Reviewers accept
 private API with a reason. What they look for is that it fails safely. Every
-private path is now checked or optional-chained, and a throw inside `enable()`
-hands the wallpaper back (`disable()`) before it reaches the shell.
+private path is checked or optional-chained, and degrades to the user's own
+wallpaper or to patterns missing in one place.
 
 ## The development path in extension.js
 

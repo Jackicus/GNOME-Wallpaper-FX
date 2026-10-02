@@ -40,7 +40,6 @@ export class SystemState {
         St.Settings.get().disconnectObject(this);
         for (const proxy of this._proxies) proxy.disconnectObject(this);
         this._proxies = [];
-        this._onChanged = null;
     }
 
     _watch(Proxy, name, path, read) {
@@ -50,7 +49,6 @@ export class SystemState {
                     console.warn(`[WallpaperFx] ${name} unavailable: ${error.message}`);
                 return;
             }
-            if (this._cancellable.is_cancelled()) return;
             this._proxies.push(proxy);
             proxy.connectObject('g-properties-changed', () => read(proxy), this);
             read(proxy);
@@ -60,6 +58,6 @@ export class SystemState {
     _set(key, value) {
         if (this[key] === value) return;
         this[key] = value;
-        this._onChanged?.();
+        this._onChanged();
     }
 }

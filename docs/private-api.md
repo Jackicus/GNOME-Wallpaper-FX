@@ -27,7 +27,7 @@ because `src/` is changing; functions are named instead.
 | `Main.overview._overview.controls._thumbnailsBox._thumbnails`, `thumbnail._contents` | overview.js | Patterns vanish from the thumbnail strip only | Yes, silently |
 | `Main.wm._workspaceAnimation`, override of `_prepareWorkspaceSwitch` | overview.js | Patterns vanish during a workspace slide only | Yes, silently |
 | `this._switchData.monitors`, `strip._monitor`, `strip._workspaceGroups`, `group._background` | overview.js | Same | Yes, silently |
-| `class extends Shell.GLSLEffect` | shader.js | `enable()` throws, rolls itself back and the extension shows as errored (below); with no pattern on at enable, the first one switched on throws instead, without rollback. **Removed in GNOME 51** | No |
+| `class extends Shell.GLSLEffect` | shader.js | `enable()` throws and the extension shows as errored with the base taken over (below). **Removed in GNOME 51** | No |
 | `vfunc_paint_target(node, paintContext)` | shader.js | Patterns freeze on their first frame | No |
 | `Cogl.SnippetHook.FRAGMENT` | shader.js | Every pattern fails to build | No |
 
@@ -115,20 +115,11 @@ painted.
 or to tell the shell to show a wallpaper other than the one in the user's
 settings.
 
-**If it changes.** Caught (next entry): the base modes then show the user's own
+**If it changes.** A missing `_backgroundSource` is caught by the check on
+`source?._settings` (next entry): the base modes then show the user's own
 wallpaper with the patterns over it. The patterns still draw. Nothing paints a
-fallback base; the GPU renderer has no base canvas.
-
-**Checked.** Construction is wrapped:
-
-```js
-} catch (e) {
-    console.error(`[WallpaperFx] Could not reach the shell's backgrounds: ${e}`);
-    this._holderContainer.destroy();
-    this._holderContainer = null;
-    return null;
-}
-```
+fallback base; the GPU renderer has no base canvas. The constructor itself is
+exported and not wrapped: on 50 it cannot throw.
 
 `release()` destroys the holder and then its container, so nothing built here
 outlives `disable()`.
@@ -189,7 +180,7 @@ const backgrounds = source._backgrounds;
 if (!backgrounds) return;
 
 for (const key of Object.keys(backgrounds))
-    backgrounds[key]?._emitChangedSignal?.();
+    backgrounds[key]._emitChangedSignal?.();
 ```
 
 **What for.** The `Background` objects the source has already built hold the
@@ -531,12 +522,10 @@ built, inside `_build()`. That is inside `enable()`, after
 `ShellBackground.update()` has taken the wallpaper over. The throw reaches the
 shell, which marks the extension as errored and does not call `disable()`: it
 only disables an extension whose state is `ACTIVE` (`extensionSystem.js` in
-50.5). So `enable()` calls `disable()` itself before rethrowing, and the user's
-wallpaper comes back; the extension shows as errored with nothing left on
-screen. That holds only if a pattern is on at enable: with none on, `enable()`
-succeeds, and the first pattern switched on later throws from the settings
-handler instead, with no rollback: the extension stays active with the base
-taken over and no patterns.
+50.5). The base stays taken over, with no patterns, until the shell restarts.
+With no pattern on at enable, `enable()` succeeds, and the first pattern switched
+on later throws from the settings handler instead, with the same result. A port
+to 51 replaces the effect; nothing in 50 throws there.
 
 **Checked.** No. `metadata.json` does not claim 51.
 
@@ -544,7 +533,7 @@ taken over and no patterns.
 
 ```js
 vfunc_paint_target(node, paintContext) {
-    this.onPaint?.();
+    this.onPaint();
     super.vfunc_paint_target(node, paintContext);
 }
 ```
@@ -620,14 +609,14 @@ preview's wallpaper whatever windows cover the real desktop, so
 `_refreshRate()`:
 
 ```js
-for (const view of this.actor.peek_stage_views() ?? [])
+for (const view of this.actor.peek_stage_views())
     hz = Math.max(hz, view.get_refresh_rate());
 return hz >= 20 ? hz : 60;
 ```
 
 Public Clutter API, present in mutter 45 and 51. `peek_stage_views()` is the
 list of stage views (on Wayland, roughly one per monitor) the actor was last laid
-out on. It is empty until the first layout, hence the 60Hz fallback. This is
+out on. It is empty (GJS gives `[]`) until the first layout, hence the 60Hz fallback. This is
 what paces a 240Hz monitor and a 60Hz one separately. On an X11 session (45 to
 49) mutter draws the whole screen as one stage view, so expect every monitor to
 pace at one rate there.

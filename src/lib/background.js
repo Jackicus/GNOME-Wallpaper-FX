@@ -192,18 +192,11 @@ export class ShellBackground {
     _obtainSource() {
         if (!this._holder) {
             this._holderContainer = new Clutter.Actor();
-            try {
-                this._holder = new Background.BackgroundManager({
-                    container: this._holderContainer,
-                    monitorIndex: 0,
-                    controlPosition: false,
-                });
-            } catch (e) {
-                console.error(`[WallpaperFx] Could not reach the shell's backgrounds: ${e}`);
-                this._holderContainer.destroy();
-                this._holderContainer = null;
-                return null;
-            }
+            this._holder = new Background.BackgroundManager({
+                container: this._holderContainer,
+                monitorIndex: 0,
+                controlPosition: false,
+            });
         }
         return this._holder._backgroundSource;
     }
@@ -215,7 +208,7 @@ function reloadBackgrounds(source) {
     if (!backgrounds) return;
 
     for (const key of Object.keys(backgrounds))
-        backgrounds[key]?._emitChangedSignal?.();
+        backgrounds[key]._emitChangedSignal?.();
 }
 
 // Moves the desktop's managers off a destroyed source, each with the claim its

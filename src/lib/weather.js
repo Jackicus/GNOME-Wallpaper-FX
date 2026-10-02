@@ -167,7 +167,6 @@ export class WeatherWatcher {
         // Never stopped: Geoclue may hand the shell's own weather the same client.
         this._geoclue?.disconnectObject(this);
         this._geoclue = null;
-        this._onChanged = null;
     }
 
     _locate() {
@@ -212,7 +211,7 @@ export class WeatherWatcher {
                 this._useChosenPlace('location-failed');
                 return;
             }
-            if (this._cancellable.is_cancelled() || !this._wantsGeoclue()) return;
+            if (!this._wantsGeoclue()) return;
             this._geoclue = simple;
             simple.connectObject('notify::location', () => this._onGeoclue(), this);
             if (simple.location) this._onGeoclue();

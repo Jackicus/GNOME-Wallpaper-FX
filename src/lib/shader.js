@@ -156,7 +156,7 @@ function buildEffectClass(effect) {
 
         // The last moment before the frame, so a pattern shows the time it is painted.
         vfunc_paint_target(node, paintContext) {
-            this.onPaint?.();
+            this.onPaint();
             super.vfunc_paint_target(node, paintContext);
         }
 

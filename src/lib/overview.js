@@ -31,9 +31,6 @@ class PreviewHost extends Clutter.Actor {
 
         const scaleX = box.get_width() / this._monitor.width;
         const scaleY = box.get_height() / this._monitor.height;
-        if (!isFinite(scaleX) || !isFinite(scaleY) || scaleX <= 0 || scaleY <= 0)
-            return;
-
         if (scaleX === this._scaleX && scaleY === this._scaleY) return;
         this._scaleX = scaleX;
         this._scaleY = scaleY;

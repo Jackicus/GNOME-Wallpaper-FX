@@ -185,7 +185,7 @@ export class MonitorRenderer {
 
     _refreshRate() {
         let hz = 0;
-        for (const view of this.actor.peek_stage_views() ?? [])
+        for (const view of this.actor.peek_stage_views())
             hz = Math.max(hz, view.get_refresh_rate());
         return hz >= 20 ? hz : 60;
     }
