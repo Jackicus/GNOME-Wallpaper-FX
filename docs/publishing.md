@@ -251,8 +251,8 @@ or other indications of AI-generated output will be rejected". Best Practices
 lists the patterns reviewers look for. In this code:
 
 - **Optional chaining on guaranteed APIs** ("Avoid Unnecessary Checks"): none
-  remain — `global.display.get_n_monitors()` and `error.matches()` are called
-  directly. What optional chaining is left is on private shell paths, where it
+  remain: `error.matches()`, `peek_stage_views()` and the parts `enable()`
+  builds are used directly. What optional chaining is left is on private shell paths, where it
   is how they degrade and [private-api.md](private-api.md) explains each; on
   `WallpaperFxApp._weather` and `WeatherWatcher._geoclue`, which are null while
   unused; and `workspace.metaWorkspace?.index()` in `overview.js`, where `metaWorkspace`

@@ -13,7 +13,6 @@ import { accentStops, paintGradient, paletteStops } from './palettes.js';
 
 const BACKGROUND_SCHEMA = 'org.gnome.desktop.background';
 
-const FALLBACK_SIZE = [1920, 1080];
 
 export class ShellBackground {
     constructor() {
@@ -32,10 +31,6 @@ export class ShellBackground {
         this._cacheDir = GLib.build_filenamev([GLib.get_user_cache_dir(), 'wallpaper-fx']);
     }
 
-    get active() {
-        return this._shellSettings !== null;
-    }
-
     update(state) {
         const base = this._describe(state);
         if (!base) {
@@ -45,7 +40,7 @@ export class ShellBackground {
 
         // Every write makes the shell crossfade, so an unchanged base is left alone.
         const key = JSON.stringify(base);
-        if (this.active && key === this._applied) return;
+        if (this._shellSettings && key === this._applied) return;
         this._applied = key;
 
         // One apply, so a change of mode and picture costs one crossfade.
@@ -99,7 +94,7 @@ export class ShellBackground {
         const stops = state.mode === 'color' ? paletteStops(state.colorPalette)
             : state.mode === 'accent' ? accentStops(state.accent) : null;
         if (stops) {
-            const [width, height] = state.span ? spannedSize() : largestSize();
+            const [width, height] = state.baseSize;
             const file = this._gradientFile(stops, width, height);
             if (!file) return null;
             const [, r, g, b] = stops[Math.floor(stops.length / 2)];
@@ -149,9 +144,17 @@ export class ShellBackground {
     }
 
     _attach() {
-        if (this.active) return;
+        if (this._shellSettings) return;
 
-        const source = this._obtainSource();
+        if (!this._holder) {
+            this._holderContainer = new Clutter.Actor();
+            this._holder = new Background.BackgroundManager({
+                container: this._holderContainer,
+                monitorIndex: 0,
+                controlPosition: false,
+            });
+        }
+        const source = this._holder._backgroundSource;
         if (!source?._settings) {
             console.warn('[WallpaperFx] No background source to take over; the base will not change');
             return;
@@ -179,7 +182,7 @@ export class ShellBackground {
 
         // The holder's claim died with the source; releasing it would take one off the next.
         this._holder = null;
-        this._holderContainer?.destroy();
+        this._holderContainer.destroy();
         this._holderContainer = null;
 
         this._retakeId ||= GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
@@ -187,18 +190,6 @@ export class ShellBackground {
             this._attach();
             return GLib.SOURCE_REMOVE;
         });
-    }
-
-    _obtainSource() {
-        if (!this._holder) {
-            this._holderContainer = new Clutter.Actor();
-            this._holder = new Background.BackgroundManager({
-                container: this._holderContainer,
-                monitorIndex: 0,
-                controlPosition: false,
-            });
-        }
-        return this._holder._backgroundSource;
     }
 }
 
@@ -223,32 +214,4 @@ function adoptStranded(source) {
         source._useCount++;
         manager._updateBackgroundActor();
     }
-}
-
-function largestSize() {
-    const monitors = global.display.get_n_monitors();
-    let width = 0;
-    let height = 0;
-
-    for (let i = 0; i < monitors; i++) {
-        const rect = global.display.get_monitor_geometry(i);
-        width = Math.max(width, rect.width);
-        height = Math.max(height, rect.height);
-    }
-
-    if (width < 1 || height < 1) return FALLBACK_SIZE;
-    return [width, height];
-}
-
-function spannedSize() {
-    const monitors = global.display.get_n_monitors();
-    let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
-    for (let i = 0; i < monitors; i++) {
-        const rect = global.display.get_monitor_geometry(i);
-        x0 = Math.min(x0, rect.x);
-        y0 = Math.min(y0, rect.y);
-        x1 = Math.max(x1, rect.x + rect.width);
-        y1 = Math.max(y1, rect.y + rect.height);
-    }
-    return x1 > x0 && y1 > y0 ? [x1 - x0, y1 - y0] : FALLBACK_SIZE;
 }

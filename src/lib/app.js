@@ -103,6 +103,7 @@ export class WallpaperFxApp {
             customImage: s.get_string('custom-image'),
             accent: this._interface.get_string('accent-color'),
             span: this._spanning(),
+            baseSize: this._baseSize(),
             targetFps: s.get_int('target-fps'),
             speed: s.get_double('speed'),
             opacity: s.get_double('opacity'),
@@ -118,6 +119,15 @@ export class WallpaperFxApp {
         return this._settings.get_boolean('span-monitors') && Main.layoutManager.monitors.length > 1;
     }
 
+    // One image serves every monitor: the whole canvas spanned, else the largest monitor.
+    _baseSize() {
+        const monitors = Main.layoutManager.monitors;
+        if (!this._spanning())
+            return [Math.max(...monitors.map(m => m.width)), Math.max(...monitors.map(m => m.height))];
+        const { width, height } = canvasAround(monitors);
+        return [width, height];
+    }
+
     // Spanned, every monitor draws its part of one canvas, sized by the primary.
     _views() {
         const monitors = Main.layoutManager.monitors;
@@ -129,14 +139,7 @@ export class WallpaperFxApp {
             }));
         }
 
-        const x = Math.min(...monitors.map(m => m.x));
-        const y = Math.min(...monitors.map(m => m.y));
-        const canvas = {
-            x,
-            y,
-            width: Math.max(...monitors.map(m => m.x + m.width)) - x,
-            height: Math.max(...monitors.map(m => m.y + m.height)) - y,
-        };
+        const canvas = canvasAround(monitors);
         const unit = Main.layoutManager.primaryMonitor.height / 1080;
         return monitors.map(() => ({ canvas, unit, seed: 0 }));
     }
@@ -186,4 +189,15 @@ export class WallpaperFxApp {
             renderer.destroy();
         this._renderers.clear();
     }
+}
+
+function canvasAround(monitors) {
+    const x = Math.min(...monitors.map(m => m.x));
+    const y = Math.min(...monitors.map(m => m.y));
+    return {
+        x,
+        y,
+        width: Math.max(...monitors.map(m => m.x + m.width)) - x,
+        height: Math.max(...monitors.map(m => m.y + m.height)) - y,
+    };
 }
