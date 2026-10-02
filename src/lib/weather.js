@@ -1,17 +1,4 @@
-// The weather where the user is, for the Weather scene: where that is, what
-// the sky is doing there, and what time of day it is.
-//
-// The place is found by Location Services, through Geoclue, or is one the user
-// chose in the preferences. The report comes from GWeather -- the library the
-// shell's own weather uses -- which asks the nearest airport's METAR station
-// for what it sees now and MET Norway for its forecast; the station wins when
-// it has spoken in the last two hours, and the forecast's next hour stands in
-// where there is none. The time of day is worked out from the sun's position
-// (sun.js), so it moves on between reports.
-//
-// Everything worth keeping goes into `weather-status`: the preferences show it,
-// and the extension, which is disabled and enabled again with every lock and
-// unlock, picks up where it left off instead of asking again each time.
+// The weather for the Weather scene; CLAUDE.md, "The weather is a scene".
 
 import Geoclue from 'gi://Geoclue';
 import Gio from 'gi://Gio';
@@ -21,7 +8,7 @@ import GWeather from 'gi://GWeather?version=4.0';
 import { weatherLook } from './looks.js';
 import { phaseOfDay } from './sun.js';
 
-// Who is asking, as MET Norway's terms want every client to say.
+// MET Norway's terms ask every client to name itself.
 const APPLICATION_ID = 'io.github.Jackicus.WallpaperFx';
 const CONTACT = 'https://github.com/Jackicus/GNOME-Wallpaper-FX';
 
@@ -55,7 +42,6 @@ const FALLING = {
     [P.SMALL_HAIL]: 'sleet',
 };
 
-// Anything that thickens the air, as how much fog it makes.
 const MURK = {
     [P.FOG]: 1,
     [P.MIST]: 0.6,
@@ -69,17 +55,14 @@ const MURK = {
 
 const STORMY = new Set([P.SQUALL, P.FUNNEL_CLOUD, P.TORNADO]);
 
-// How hard it falls, as looks.js's intensity; anything else is moderate.
 const INTENSITY = {
     [Q.LIGHT]: 0.5,
     [Q.VICINITY]: 0.5,
     [Q.HEAVY]: 1.6,
 };
 
-// Fog that is only here and there.
 const THIN = new Set([Q.SHALLOW, Q.PATCHES, Q.PARTIAL]);
 
-// Kilometres between two places, near enough at these distances.
 function distance([lat1, lon1], [lat2, lon2]) {
     const x = (lon2 - lon1) * Math.cos((lat1 + lat2) / 2 * Math.PI / 180);
     return 111.2 * Math.hypot(lat2 - lat1, x);
@@ -89,8 +72,6 @@ const now = () => Math.floor(Date.now() / 1000);
 
 const says = report => report.get_value_sky()[0] || report.get_value_conditions()[0];
 
-// The station's observation if it is recent, else the forecast for the coming
-// hour, else nothing.
 function currentReport(info) {
     const t = now();
     if (says(info) && t - info.get_value_update()[1] < OBSERVED_S) return info;
@@ -100,8 +81,7 @@ function currentReport(info) {
     }) ?? null;
 }
 
-// The sky, what falls from it and how hard, thunder, and fog -- which a poor
-// visibility says even where the report has no word for it.
+// Poor visibility is fog even where the report has no word for it.
 function conditionsOf(report) {
     const [skyOk, sky] = report.get_value_sky();
     const [ok, phenomenon, qualifier] = report.get_value_conditions();
@@ -122,10 +102,7 @@ function conditionsOf(report) {
 }
 
 export class WeatherWatcher {
-    /**
-     * `onChanged` is called whenever the look it gives changes -- from the next
-     * turn of the main loop on: whoever builds one reads `look` straight after.
-     */
+    // `onChanged` is set last: whoever builds one reads `look` straight after.
     constructor(settings, onChanged) {
         this._settings = settings;
         this._onChanged = null;
@@ -144,7 +121,6 @@ export class WeatherWatcher {
         });
         this._info.connectObject('updated', () => this._onReport(), this);
 
-        // What was known when this last ran, if it is recent enough to show.
         const saved = settings.get_value('weather-status').recursiveUnpack();
         this._status = { state: 'locating', ...saved };
         this._coords = 'latitude' in saved ? [saved.latitude, saved.longitude] : null;
@@ -154,7 +130,7 @@ export class WeatherWatcher {
             try {
                 this._conditions = JSON.parse(saved.conditions);
             } catch {
-                // Written by something else; asked again below.
+                // Written by something else: asked again.
             }
         }
         this._phase = this._coords ? phaseOfDay(Date.now(), ...this._coords) : null;
@@ -175,7 +151,6 @@ export class WeatherWatcher {
         this._onChanged = onChanged;
     }
 
-    /** The scene values for the weather now, or null while there is no report. */
     get look() {
         if (!this._conditions || !this._phase) return null;
         return weatherLook(this._conditions, this._phase);
@@ -189,20 +164,16 @@ export class WeatherWatcher {
         this._info.abort();
         this._location.disconnectObject(this);
         this._settings.disconnectObject(this);
-        // Left running rather than stopped: Geoclue may hand the shell's own
-        // weather the same client, and stopping it would stop that too.
+        // Never stopped: Geoclue may hand the shell's own weather the same client.
         this._geoclue?.disconnectObject(this);
         this._geoclue = null;
         this._onChanged = null;
     }
 
-    // Where to ask about: Location Services when they are on and wanted, or
-    // else the place the user chose.
     _locate() {
         if (this._wantsGeoclue()) {
             this._startGeoclue();
             if (this._geoclue?.location) this._onGeoclue();
-            // Where it was last time will do until Location Services answer.
             else if (this._coords) this._tick();
             else this._write({ state: 'locating' });
             return;
@@ -212,7 +183,6 @@ export class WeatherWatcher {
         this._useChosenPlace(this._settings.get_boolean('weather-auto-location') ? 'location-off' : 'no-place');
     }
 
-    // The place chosen in the preferences, or nowhere, with `state` saying why.
     _useChosenPlace(state) {
         const [name, latitude, longitude] = this._settings.get_value('weather-place').deepUnpack();
         if (name) {
@@ -229,9 +199,8 @@ export class WeatherWatcher {
     _startGeoclue() {
         if (this._geoclue || this._geoclueStarting) return;
         this._geoclueStarting = true;
-        // As the shell: it is the shell asking, and the shell is the one
-        // Location Services let in without a prompt. The user asked for it by
-        // turning this on, and it is only ever done with Location Services on.
+        // As the shell, which it runs in and which Location Services let in
+        // (docs/private-api.md, "Geoclue, asked as org.gnome.Shell").
         Geoclue.Simple.new('org.gnome.Shell', Geoclue.AccuracyLevel.CITY, this._cancellable, (_o, result) => {
             this._geoclueStarting = false;
             let simple;
@@ -243,7 +212,6 @@ export class WeatherWatcher {
                 this._useChosenPlace('location-failed');
                 return;
             }
-            // Turned off, or destroyed, while it was starting.
             if (this._cancellable.is_cancelled() || !this._wantsGeoclue()) return;
             this._geoclue = simple;
             simple.connectObject('notify::location', () => this._onGeoclue(), this);
@@ -264,9 +232,7 @@ export class WeatherWatcher {
         this._coords = coords;
         this._city = this._world.find_nearest_city(...coords);
         this._write({ place: name ?? this._city?.get_name() ?? '', latitude: coords[0], longitude: coords[1] });
-        // A new place, or one far from where the last report was for, is
-        // asked about now rather than when the report grows old. The sky
-        // there is kept until the answer comes, but not called this place's.
+        // The old sky stays until the answer comes, but is not called this place's.
         if (!this._reportedAt || distance(this._reportedAt, coords) > MOVED_KM) {
             this._write({ state: 'fetching', summary: '', temperature: '', icon: '' });
             this._fetch();
@@ -274,8 +240,6 @@ export class WeatherWatcher {
         this._tick();
     }
 
-    // Once every few minutes: the time of day, and a fresh report when the
-    // last one is old or failed.
     _tick() {
         if (!this._coords) return;
         const phase = phaseOfDay(Date.now(), ...this._coords);
@@ -293,11 +257,8 @@ export class WeatherWatcher {
     }
 
     _fetch() {
-        // One for this place is on its way already; one for somewhere else is
-        // dropped for it.
         if (!this._coords || this._fetching && this._fetchingFor === this._coords) return;
-        // The nearest city of GWeather's own list brings its METAR station;
-        // MET Norway's forecast is for the city's coordinates.
+        // A listed city brings a METAR station, and the exact position is never sent.
         if (!this._city) return;
         this._fetching = true;
         this._fetchingFor = this._coords;
@@ -309,7 +270,6 @@ export class WeatherWatcher {
 
     _onReport() {
         this._fetching = false;
-        // A report for a place since left behind.
         if (this._fetchingFor !== this._coords) {
             this._fetch();
             return;
@@ -336,8 +296,6 @@ export class WeatherWatcher {
         this._changed();
     }
 
-    // What the report says now, as the plain conditions looks.js takes, and
-    // the words and icon the preferences show for it.
     _read(info) {
         const source = currentReport(info);
         if (!source) return null;
@@ -362,7 +320,6 @@ export class WeatherWatcher {
         this._onChanged?.();
     }
 
-    // Merged into what is already known, and written only when it differs.
     _write(changes) {
         Object.assign(this._status, changes);
         const variant = {};

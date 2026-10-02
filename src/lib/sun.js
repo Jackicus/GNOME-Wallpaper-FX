@@ -1,17 +1,8 @@
-// Where the sun is, and what part of the day that makes it: worked out here
-// rather than asked of the weather service, so the sky turns with the day
-// between reports, and without a network at all.
-//
-// The Astronomical Almanac's low-precision solar position: good to about a
-// hundredth of a degree for decades either side of 2000, far finer than a
-// wallpaper needs.
+// The Astronomical Almanac's low-precision solar position, so the sky turns between reports.
 
 const RAD = Math.PI / 180;
 
-/**
- * The sun's elevation above the horizon, in degrees, at `time` (milliseconds
- * since the epoch) seen from a place, and whether it is on its way up.
- */
+// Elevation in degrees at `time` (ms since the epoch), and whether it is rising.
 export function sunPosition(time, latitude, longitude) {
     const d = time / 86400000 - 10957.5;                 // days since J2000.0
     const g = (357.529 + 0.98560028 * d) * RAD;          // mean anomaly
@@ -29,10 +20,7 @@ export function sunPosition(time, latitude, longitude) {
     return { elevation, rising: Math.sin(hourAngle) < 0 };
 }
 
-/**
- * 'night' once civil twilight is over, 'dawn' or 'dusk' while the sun is
- * within six degrees of the horizon, and 'day' above that.
- */
+// Dawn and dusk are the sun within six degrees of the horizon.
 export function phaseOfDay(time, latitude, longitude) {
     const { elevation, rising } = sunPosition(time, latitude, longitude);
     if (elevation < -6) return 'night';

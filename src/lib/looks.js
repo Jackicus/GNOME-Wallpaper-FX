@@ -1,8 +1,4 @@
-// The look for the weather: which patterns, tuned how, over which sky, for
-// what the sky is doing and the time of day. It is the same shape as a scene's
-// values, so the weather is simply a scene that changes by itself.
-//
-// The conditions are plain values, worked out from the report in weather.js:
+// The weather's look, in a scene's values. The conditions weather.js reads:
 //
 //   sky            'clear', 'few', 'scattered', 'broken' or 'overcast', or null
 //   precipitation  'drizzle', 'rain', 'snow' or 'sleet', or null
@@ -13,12 +9,11 @@
 //
 // and the time of day is one of sun.js's phases.
 
-// How much of the sky is cloud, as the Clouds pattern's Amount.
+// Cloud cover as the Clouds pattern's Amount.
 const COVER = { clear: 0, few: 0.35, scattered: 0.7, broken: 1.2, overcast: 2 };
 
 const clamp = (v, low, high) => Math.max(low, Math.min(high, v));
 
-/** The scene values for `conditions` at `phase`. */
 export function weatherLook(conditions, phase) {
     const c = { sky: null, precipitation: null, intensity: 1, thunder: false, fog: 0, wind: null, ...conditions };
     const sky = skyOf(c, phase);
@@ -38,9 +33,7 @@ export function weatherLook(conditions, phase) {
     };
 }
 
-// The time of day, and how much of the sky is hidden. Anything falling comes
-// out of a sky full of cloud, whatever the report says of the sky; and under a
-// full one, or in fog, there is no sun and there are no stars.
+// Anything falling comes from a full sky, and under one, or in fog, there is no sun or stars.
 function skyOf(c, phase) {
     const falling = c.precipitation !== null || c.thunder;
     const cover = Math.max(COVER[c.sky] ?? 0, falling ? 1.6 : 0);
@@ -54,7 +47,6 @@ function skyOf(c, phase) {
     };
 }
 
-// The sun by day, the stars by night, dimmed by what cloud there is.
 function showLight(show, sky) {
     if (sky.hidden) return;
     if (sky.night)
@@ -63,7 +55,6 @@ function showLight(show, sky) {
         show('sunbeams', { brightness: (sky.twilight ? 0.75 : 1) * (1 - 0.4 * sky.cover) });
 }
 
-// Cloud, lit by the day or the moon, and fog or mist.
 function showAir(show, c, sky) {
     const light = sky.night ? 0.4 : c.thunder ? 0.6 : sky.twilight ? 0.7 : 0.9;
     if (sky.cover > 0) show('clouds', { density: sky.cover, brightness: light });
@@ -94,7 +85,6 @@ function showFalling(show, tuning, c, sky) {
     }
 }
 
-// The wind carries the clouds and the fog along, and hurries what falls.
 function showWind(show, tuning, wind) {
     const pace = clamp(0.4 + wind / 6, 0.4, 2.5);
     for (const id of ['clouds', 'fog']) if (tuning[id]) show(id, { speed: pace });
@@ -102,8 +92,6 @@ function showWind(show, tuning, wind) {
     for (const id of ['rain', 'snow']) if (tuning[id]) show(id, { speed: hurry });
 }
 
-// A storm is dark at any hour, and so is a grey sky out of daylight; a grey
-// one by day is overcast; a clear one follows the sun.
 function paletteOf(c, sky) {
     const grey = sky.hidden || sky.falling;
     if (c.thunder || grey && (sky.night || sky.twilight)) return 'Dark';
@@ -111,7 +99,7 @@ function paletteOf(c, sky) {
     return { night: 'Classic Blue', dawn: 'Dawn', dusk: 'Dusk' }[sky.phase] ?? 'Day Sky';
 }
 
-// Every value rounded to a percent, and left out at 1, as prefs writes them.
+// Rounded to a percent and left out at 1, as prefs writes them.
 function tidy(tuning) {
     const out = {};
     for (const [id, values] of Object.entries(tuning)) {

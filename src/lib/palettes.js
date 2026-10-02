@@ -1,7 +1,6 @@
 import cairo from 'cairo';
 
-// The gradients for `color` mode: stops along a diagonal, as [offset, r, g, b]
-// in 0-255.
+// Stops along a diagonal, as [offset, r, g, b] in 0-255.
 export const PALETTES = {
     'Classic Blue': [[0.0, 6, 19, 31], [0.4, 11, 42, 74], [0.7, 18, 60, 102], [1.0, 10, 31, 56]],
     'Dark': [[0.0, 6, 6, 6], [0.4, 19, 20, 23], [0.7, 30, 32, 36], [1.0, 10, 11, 13]],
@@ -11,7 +10,7 @@ export const PALETTES = {
     'Aurora': [[0.0, 6, 13, 28], [0.35, 10, 23, 48], [0.65, 16, 38, 52], [1.0, 3, 6, 13]],
     'Dusk': [[0.0, 16, 10, 32], [0.4, 38, 16, 48], [0.75, 75, 26, 38], [1.0, 20, 8, 14]],
     'Nebula': [[0.0, 12, 6, 28], [0.4, 28, 12, 54], [0.7, 42, 18, 78], [1.0, 8, 4, 20]],
-    // Skies for the weather, which picks one by the time of day.
+    // The weather's skies.
     'Day Sky': [[0.0, 22, 62, 112], [0.4, 36, 94, 152], [0.7, 58, 122, 178], [1.0, 30, 76, 128]],
     'Overcast': [[0.0, 34, 40, 50], [0.4, 56, 64, 76], [0.7, 72, 80, 92], [1.0, 38, 44, 54]],
     'Dawn': [[0.0, 18, 22, 52], [0.4, 50, 46, 88], [0.7, 118, 76, 86], [1.0, 40, 26, 42]],
@@ -31,23 +30,17 @@ const ACCENTS = {
     slate: [111, 131, 150],
 };
 
-/** The stops of a palette, falling back to the default for an unknown name. */
 export function paletteStops(name) {
     return PALETTES[name] ?? PALETTES['Classic Blue'];
 }
 
-/**
- * A gradient in the user's accent colour: the same shape and depth as the
- * palettes -- Classic Blue is very nearly what the blue accent gives -- so a
- * pattern designed over one sits as well over the other.
- */
+// The palettes' shape and depth, so a pattern sits as well over either.
 export function accentStops(accent) {
     const rgb = ACCENTS[accent] ?? ACCENTS.blue;
     return [[0.0, 0.11], [0.4, 0.27], [0.7, 0.4], [1.0, 0.2]]
         .map(([offset, depth]) => [offset, ...rgb.map(v => Math.round(v * depth))]);
 }
 
-/** Paints a gradient of [offset, r, g, b] stops over w x h. */
 export function paintGradient(cr, stops, w, h) {
     const grad = new cairo.LinearGradient(w * 0.1, 0, w * 0.9, h);
     for (const [offset, r, g, b] of stops)

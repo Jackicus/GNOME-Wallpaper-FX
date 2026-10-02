@@ -11,7 +11,6 @@ import { SCENE_KEYS, applyScene, deleteScene, isCurrent, saveScene, savedScenes 
 
 const tuningOf = settings => settings.get_value('pattern-tuning').deepUnpack();
 
-// One pattern's setting, left out of the dictionary when it is back at 1.
 function writeTuning(settings, id, key, value) {
     const all = tuningOf(settings);
     const mine = { ...(all[id] ?? {}) };
@@ -22,10 +21,6 @@ function writeTuning(settings, id, key, value) {
     settings.set_value('pattern-tuning', new GLib.Variant('a{sa{sd}}', all));
 }
 
-/**
- * What the weather row says, and the icon beside it: the report, or what is
- * holding one up.
- */
 function weatherStatus(settings, location) {
     if (!settings.get_boolean('weather'))
         return { text: 'Off: your own patterns are showing', icon: 'weather-few-clouds-symbolic' };
@@ -53,8 +48,7 @@ function weatherStatus(settings, location) {
     case 'no-place':
         return { text: 'Choose a place below', icon: 'find-location-symbolic' };
     default:
-        // Nothing written yet: the extension is not running, or has only just
-        // been asked.
+        // Nothing written yet: the extension is off, or has only just been asked.
         return {
             text: location.get_boolean('enabled') || !settings.get_boolean('weather-auto-location') ? 'Starting…'
                 : 'Location Services are off: choose a place below',
@@ -69,14 +63,11 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
         window.set_default_size(640, 700);
         window.set_search_enabled(true);
 
-        // Rows that follow a key by hand register here, and the whole lot is
-        // dropped when the window closes -- one handler, rather than one per
-        // row left holding callbacks into destroyed widgets.
+        // One handler for every row, dropped when the window closes.
         const watchers = [];
         const handlerId = settings.connect('changed', (_s, key) => {
             for (const [k, fn] of watchers) if (k === key) fn();
         });
-        // The system's Location Services switch, which the weather follows.
         const location = new Gio.Settings({ schema_id: 'org.gnome.system.location' });
         const locationId = location.connect('changed::enabled', () => {
             for (const [k, fn] of watchers) if (k === 'location-enabled') fn();
@@ -93,14 +84,8 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
         window.add(this._performancePage(ui));
     }
 
-    /**
-     * A row that writes a key and follows it when it changes elsewhere; for
-     * everything GSettings cannot bind by itself.
-     *
-     * The guard matters: showing a value fires the row's own change signal,
-     * and without it the write-back can land mid-update -- a combo row reports
-     * no selection then, and would rewrite the key to its first choice.
-     */
+    // For what GSettings cannot bind. Showing a value fires the row's own signal, and a
+    // combo row mid-update reports no selection: without the guard it writes its first.
     _follow({ watch }, key, show, onUserChange) {
         let showing = false;
         const refresh = () => {
@@ -118,7 +103,6 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
         };
     }
 
-    /** A combo row over a key, from a list of { value, label } choices. */
     _comboRow(ui, { key, choices, read, write, ...props }) {
         const model = new Gtk.StringList();
         for (const choice of choices) model.append(choice.label);
@@ -191,7 +175,6 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
         ui.watch('weather-place', showPlace);
         group.add(place);
 
-        // Matches appear under the search, and choosing one uses it.
         const search = new Adw.EntryRow({ title: 'Search for a Place' });
         group.add(search);
         let results = [];
@@ -223,15 +206,13 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
                 'back to in one click. Choosing one stops following the weather.',
         });
 
-        // Every scene shows a tick while its look is the one showing.
         const ticks = [];
         const refreshTicks = () => {
             for (const [scene, tick] of ticks) tick.visible = isCurrent(settings, scene);
         };
         for (const key of [...SCENE_KEYS, 'weather']) ui.watch(key, refreshTicks);
 
-        // What is saved is the look chosen by hand, which is not what shows
-        // while the weather is choosing.
+        // While the weather chooses, what shows is not the user's look.
         const save = new Adw.EntryRow({ title: 'Save Your Look As…', show_apply_button: true });
         save.connect('apply', () => {
             const name = save.text.trim();
@@ -248,7 +229,6 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
         ui.watch('weather', showSave);
         group.add(save);
 
-        // Rebuilt whenever the saved list changes, from here or anywhere.
         let rows = [];
         const showSaved = () => {
             for (const row of rows) group.remove(row);
@@ -278,10 +258,6 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
         return group;
     }
 
-    /**
-     * A note at the top of a page whose choices the weather is making, with a
-     * way back to the user's own; shown while `active()` says so.
-     */
     _weatherNotice(ui, what, active, keys) {
         const group = new Adw.PreferencesGroup();
         const row = new Adw.ActionRow({
@@ -326,7 +302,6 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
                     const ids = enabled();
                     if (toggle.active) ids.add(effect.id);
                     else ids.delete(effect.id);
-                    // In catalog order, which is the order they are drawn in.
                     settings.set_strv('enabled-effects', EFFECTS.filter(e => ids.has(e.id)).map(e => e.id));
                 }));
             row.add_suffix(toggle);
@@ -361,7 +336,6 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
         settings.bind('speed', speed, 'value', Gio.SettingsBindFlags.DEFAULT);
         all.add(speed);
 
-        // Stored as a fraction, shown as a percentage.
         const opacity = new Adw.SpinRow({
             title: 'Pattern Opacity (%)',
             subtitle: 'How strongly the patterns show over the background',
@@ -380,7 +354,6 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
         return page;
     }
 
-    /** One pattern's brightness, speed or amount, as a percentage of its design. */
     _tuningRow(ui, effect, key, title, [low, high]) {
         const { settings } = ui;
         const row = new Adw.SpinRow({
@@ -459,7 +432,7 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
                     const path = self.open_finish(result)?.get_path();
                     if (path) settings.set_string('custom-image', path);
                 } catch {
-                    // Dismissed, or the portal refused -- nothing to report.
+                    // Dismissed, or the portal refused.
                 }
             });
         });
@@ -475,7 +448,6 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
         image.add_suffix(clear);
         group.add(image);
 
-        // Only the rows the mode uses are live, whichever way the mode changed.
         const applyMode = () => {
             const mode = settings.get_string('background-mode');
             palette.sensitive = mode === 'color';
