@@ -253,12 +253,18 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
         const weather = () => settings.get_boolean('weather');
         page.add(this._weatherNotice(ui, 'the patterns', weather, ['weather']));
 
-        const group = new Adw.PreferencesGroup({
-            title: 'Patterns',
-            description: 'Any combination can be on at once, drawn over each other. Open one to tune it.',
-        });
-        page.add(group);
-        const lock = () => (group.sensitive = !weather());
+        const groups = [
+            new Adw.PreferencesGroup({
+                title: 'Ambient',
+                description: 'Any combination can be on at once, drawn over each other. Open one to tune it.',
+            }),
+            new Adw.PreferencesGroup({
+                title: 'Weather',
+                description: 'The patterns the weather scene draws, which you can also switch on yourself.',
+            }),
+        ];
+        const lock = () => groups.forEach(g => (g.sensitive = !weather()));
+        for (const group of groups) page.add(group);
         lock();
         ui.watch('weather', lock);
 
@@ -291,7 +297,7 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
             reset.add_suffix(button);
             row.add_row(reset);
 
-            group.add(row);
+            groups[effect.weather ? 1 : 0].add(row);
         }
 
         const all = new Adw.PreferencesGroup({ title: 'All Patterns' });
