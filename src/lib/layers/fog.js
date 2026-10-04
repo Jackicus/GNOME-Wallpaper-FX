@@ -1,48 +1,63 @@
 import { num, vec3 } from '../layer.js';
 
-// Three banks of noise warped by a slower one; the rows above a bank cost nothing.
+// Three banks, far to near, each a soft top broken by billows over fog that thickens
+// towards the ground. The rows above a bank's highest billow cost nothing.
 
 const STRETCH = 2.6;            // billows are this much wider than tall
+const GROW = 2.03;              // each octave this much finer than the last
+const TURN = 0.2838;            // and turned this far, in radians
+
+// Octave k carried at "speed" bank winds, plus "churn" a second upwards. drift() jumps by
+// whole periods of the noise, so it is added after the octave is scaled and turned.
+const flow = (k, speed, churn) => {
+    const v = speed * GROW ** k;
+    return `vec2(drift(${num(-v * Math.cos(k * TURN))} * wind), ` +
+        `drift(${num(v * Math.sin(k * TURN))} * wind + ${num(churn)}))`;
+};
 
 // top and ramp in heights, size in screen widths, wind in widths a second.
 const BANKS = [
-    { top: 0.42, ramp: 0.28, size: 0.05, wind: 0.0035, alpha: 0.20, rgb: [150, 162, 184] },
-    { top: 0.54, ramp: 0.30, size: 0.09, wind: 0.0070, alpha: 0.28, rgb: [178, 188, 204] },
-    { top: 0.68, ramp: 0.32, size: 0.16, wind: 0.0120, alpha: 0.38, rgb: [204, 211, 222] },
+    { top: 0.46, ramp: 0.30, size: 0.06, wind: 0.0035, alpha: 0.20, rgb: [158, 170, 192] },
+    { top: 0.58, ramp: 0.32, size: 0.10, wind: 0.0070, alpha: 0.27, rgb: [192, 201, 216] },
+    { top: 0.72, ramp: 0.34, size: 0.17, wind: 0.0120, alpha: 0.36, rgb: [222, 227, 235] },
 ];
 
 export const density = [0.25, 2];
 
 const bank = (b, i) => `c = fogOver(c, fogBank(p, ${i}.0, ${num(b.top)}, ${num(b.ramp)}, ` +
-    `${num(b.size)}, ${num(b.wind / (b.size * STRETCH))}, ${num(b.alpha)}), ` +
-    `${vec3(b.rgb.map(v => v / 255))});`;
+    `${num(b.size)}, ${num(b.wind / (b.size * STRETCH))}, ${num(b.alpha)}, ` +
+    `${vec3(b.rgb.map(v => v / 255))}));`;
 
 export const glsl = `
-float fogBank(vec2 p, float bank, float top, float ramp, float size, float wind, float alpha) {
-    float reach = top - 0.12 * (u_density - 1.0);
-    float row = p.y / u_canvas.y;
-    if (row < reach) return 0.0;
-    float rise = smoothstep(reach, reach + ramp, row);
+// Each octave turned against the last, so value noise's grid never lines up.
+const mat2 fogTurn = mat2(${num(Math.cos(TURN))}, ${num(-Math.sin(TURN))}, ${num(Math.sin(TURN))}, ${num(Math.cos(TURN))});
+
+vec4 fogBank(vec2 p, float bank, float top, float ramp, float size, float wind, float alpha, vec3 rgb) {
+    float h = (p.y / u_canvas.y - top + 0.12 * (u_density - 1.0)) / ramp;
+    if (h < -0.4) return vec4(0.0);
 
     vec2 w = p / DESIGN_W / size * vec2(${num(1 / STRETCH)}, 1.0);
-    vec2 o = vec2(bank * 37.1 + u_seed * 11.3, bank * 13.7);
-    float roll = vnoise(w * vec2(0.35, 0.5) + o + vec2(drift(0.4 * wind), drift(0.015)));
-    vec2 q = w + o + vec2(1.6 * roll - drift(wind), 0.8 * roll);
-    float n = 0.55 * vnoise(q) +
-              0.30 * vnoise(q * 2.1 + vec2(drift(0.6 * wind), -drift(0.025)) + 19.1) +
-              0.15 * vnoise(q * 4.3 + vec2(-drift(0.9 * wind), drift(0.04)) + 41.7);
+    w += vec2(bank * 37.1 + u_seed * 11.3, bank * 13.7);
+    float broad = vnoise(w + ${flow(0, 0.7, 0.012)});
+    // The finer octaves ride on the broad one, which rolls them over each other.
+    vec2 q = fogTurn * w * ${num(GROW)} + 0.9 * broad;
+    float n = 0.55 * broad +
+              0.30 * vnoise(q + 19.1 + ${flow(1, 1.0, 0.02)}) +
+              0.15 * vnoise(fogTurn * q * ${num(GROW)} + 41.7 + ${flow(2, 1.3, -0.035)});
 
-    float thick = n + 0.3 * rise + 0.12 * (u_density - 1.0);
-    return alpha * rise * smoothstep(0.4, 0.95, thick);
+    float body = smoothstep(-0.15, 1.0, h + 0.9 * (n - 0.5));
+    float a = alpha * (0.6 + 0.4 * u_density) * body * body * (0.3 + n);
+    return vec4(rgb * (0.7 + 0.6 * n), 1.0) * min(a, 1.0);
 }
 
-vec4 fogOver(vec4 c, float a, vec3 rgb) {
-    return vec4(rgb, 1.0) * a + c * (1.0 - a);
+vec4 fogOver(vec4 c, vec4 f) {
+    return f + c * (1.0 - f.a);
 }
 
 vec4 fog(vec2 p) {
     vec4 c = vec4(0.0);
     ${BANKS.map(bank).join('\n    ')}
-    return c;
+    // A thin gradient over the wallpaper bands in 8 bits; a pixel's worth of dither hides it.
+    return c * (1.0 + (hash12(p + u_seed) - 0.5) / (96.0 * max(c.a, 0.04)));
 }
 `;
