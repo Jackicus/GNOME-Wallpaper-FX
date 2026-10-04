@@ -85,11 +85,11 @@ at this size. How a pattern is written, and what keeps it cheap, is in
   <tr>
     <td align="center"><img src="docs/screenshots/patterns/bokeh.jpg" alt="Soft, pale, out-of-focus circles on a dark red background"><br><b>Bokeh</b><br><sub>Out-of-focus lights rising and fading</sub></td>
     <td align="center"><img src="docs/screenshots/patterns/clouds.jpg" alt="Grey and white clouds on a near-black sky"><br><b>Clouds</b><br><sub>Soft clouds drifting overhead, lit from above</sub></td>
-    <td align="center"><img src="docs/screenshots/patterns/sunbeams.jpg" alt="Rays of warm light fanning down from the top left over a gold background"><br><b>Sunbeams</b><br><sub>Shafts of warm light, with dust turning in them</sub></td>
+    <td align="center"><img src="docs/screenshots/patterns/sunbeams.jpg" alt="Broad shafts of warm light fanning down from the top over a gold background, with specks of dust glinting in them"><br><b>Sunbeams</b><br><sub>Shafts of warm light, with dust turning in them</sub></td>
   </tr>
   <tr>
     <td align="center"><img src="docs/screenshots/patterns/lightning.jpg" alt="A forked violet-white bolt of lightning under a glow in dark grey cloud"><br><b>Lightning</b><br><sub>Flashes in the clouds and forked bolts</sub></td>
-    <td align="center"><img src="docs/screenshots/patterns/fog.jpg" alt="A pale bank of fog across the lower half of a dark gold background"><br><b>Fog</b><br><sub>Low banks of mist rolling slowly past</sub></td>
+    <td align="center"><img src="docs/screenshots/patterns/fog.jpg" alt="Soft banks of pale mist rolling along the lower half of a dark blue background"><br><b>Fog</b><br><sub>Low banks of mist rolling slowly past</sub></td>
     <td align="center"><img src="docs/screenshots/patterns/snow.jpg" alt="White snowflakes of several sizes on a dark blue background"><br><b>Snow</b><br><sub>Flakes at several depths, swaying in the wind</sub></td>
   </tr>
   <tr>
@@ -194,7 +194,7 @@ Open them in the Extensions app, or with `gnome-extensions prefs wallpaper-fx@ja
 <table>
   <tr>
     <td align="center" width="50%"><img src="docs/screenshots/scenes.png" alt="The Scenes page: the Weather group with Follow the Weather off, Weather Sets the Sky on and the Place row reading Bergen, from GNOME Weather, then Your Scenes with Save Your Look As…"><br><b>Scenes</b></td>
-    <td align="center" width="50%"><img src="docs/screenshots/prefs.png" alt="The Patterns page: a list of patterns, each with a description and a switch, with Nebula, Starfield and Constellation switched on"><br><b>Patterns</b></td>
+    <td align="center" width="50%"><img src="docs/screenshots/prefs.png" alt="The Patterns page, scrolled to where the Ambient group ends and the Weather group begins: Constellation switched on above, then Clouds, Sunbeams, Lightning, Fog and Snow, each with a description, a switch and an expander"><br><b>Patterns</b></td>
   </tr>
 </table>
 
