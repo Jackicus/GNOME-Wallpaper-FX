@@ -16,6 +16,7 @@ import * as snow from './layers/snow.js';
 import * as rain from './layers/rain.js';
 
 // In the order they are drawn, each over the ones before; docs/patterns.md has a layer's exports.
+// `weather` marks the ones the weather scene draws, which prefs lists apart.
 export const EFFECTS = [
     { id: 'nebula', title: 'Nebula', desc: 'Slow clouds of violet, teal and magenta light turning over each other', ...nebula },
     { id: 'aurora', title: 'Aurora', desc: 'Green and violet curtains of polar light drifting across the sky', ...aurora },
@@ -27,10 +28,10 @@ export const EFFECTS = [
     { id: 'embers', title: 'Embers', desc: 'Rising sparks cooling from white through orange to red', ...embers },
     { id: 'fireflies', title: 'Fireflies', desc: 'Warm yellow-green lights wandering low and blinking on slow rhythms', ...fireflies },
     { id: 'bokeh', title: 'Bokeh', desc: 'Large out-of-focus lights rising softly through the frame', ...bokeh },
-    { id: 'clouds', title: 'Clouds', desc: 'Soft clouds drifting overhead, lit from above and flattening towards the horizon', ...clouds },
-    { id: 'sunbeams', title: 'Sunbeams', desc: 'Shafts of warm sunlight fanning down from above, with dust turning in the light', ...sunbeams },
-    { id: 'lightning', title: 'Lightning', desc: 'A distant storm: flashes deep in the clouds and now and then a forked bolt', ...lightning },
-    { id: 'fog', title: 'Fog', desc: 'Low banks of mist rolling slowly past, thickest near the ground', ...fog },
-    { id: 'snow', title: 'Snow', desc: 'Snowflakes drifting down at several depths, swaying in a light wind', ...snow },
-    { id: 'rain', title: 'Rain', desc: 'Fine streaks of rain falling at a slant, near drops longer and faster', ...rain },
+    { id: 'clouds', title: 'Clouds', desc: 'Soft clouds drifting overhead, lit from above and flattening towards the horizon', weather: true, ...clouds },
+    { id: 'sunbeams', title: 'Sunbeams', desc: 'Shafts of warm sunlight fanning down from above, with dust turning in the light', weather: true, ...sunbeams },
+    { id: 'lightning', title: 'Lightning', desc: 'A distant storm: flashes deep in the clouds and now and then a forked bolt', weather: true, ...lightning },
+    { id: 'fog', title: 'Fog', desc: 'Low banks of mist rolling slowly past, thickest near the ground', weather: true, ...fog },
+    { id: 'snow', title: 'Snow', desc: 'Snowflakes drifting down at several depths, swaying in a light wind', weather: true, ...snow },
+    { id: 'rain', title: 'Rain', desc: 'Fine streaks of rain falling at a slant, near drops longer and faster', weather: true, ...rain },
 ];
