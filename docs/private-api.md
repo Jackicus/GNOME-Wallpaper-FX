@@ -507,7 +507,8 @@ monitor. Parallax grows it evenly by the travel and translates it.
 since the content's own size otherwise wins over a set one; `destroy()` puts
 back `CONTENT_SIZE`, no fixed size and no translation. A new wallpaper is a new
 actor, announced by `changed`, so each change places the new one. The shell
-builds new managers on `monitors-changed`, and app.js calls `update()` again then.
+builds new managers on `monitors-changed`, and app.js calls `update()` again then;
+a new picture alone goes through `setPicture()`, which keeps the adjustments.
 
 A picture wider than the monitor's shape (taller, with the workspaces in a
 column) gets a panorama of its own: the shell renders a wallpaper as a
@@ -515,9 +516,13 @@ monitor-shaped texture, cropping the rest away. `St.TextureCache` loads the
 file at no more than its drawn size into an actor put just above the shell's
 wallpaper, in the same `Meta.BackgroundGroup` (`backgroundActor.get_parent()`),
 and parallax.js moves it instead; the shell's stays under it, grown as usual,
-until it loads. The slide clones it in place of the shell's. A new wallpaper
-from the shell goes to the bottom of the group, so the panorama stays above
-it. Spanned monitors and the overview's previews keep the shell's.
+until it loads. The loader's actor sits in a box of its own, faded in once its
+content arrives, at the resource scale of the wallpaper under it. A panorama is
+kept while its file, place and drawn size hold (a change of travel a wide
+picture has the room for), and crossfaded with its replacement otherwise, as
+the shell crossfades beneath. The slide clones it in place of the shell's. A new
+wallpaper from the shell goes to the bottom of the group, so the panorama stays
+above it. Spanned monitors and the overview's previews keep the shell's.
 
 **If it changes.** With no `_bgManagers` the wallpaper stays still and the
 patterns still pan.
@@ -526,17 +531,20 @@ patterns still pan.
 
 **What for.** Each overview preview has the shell's own wallpaper actor
 (`WorkspaceBackground` in `ui/workspace.js`), allocated to the preview's size,
-which animates as the overview opens. `placePreviews()` zooms it by a scale about
-a normalized pivot at the workspace's place along the panorama, so it shows that
+which animates as the overview opens. `placePreviews()` zooms it by the desktop's
+zoom (the travel and the tilt's reach) about a normalized pivot at the
+workspace's place along the panorama, with the tilt at rest, so it shows that
 workspace's part at any size. The shell rounds the preview's corners inside the
 content, at the work area in the content's own pixels
 (`set_rounded_clip_bounds()`, public on `Meta.BackgroundContent`); under the zoom
 those bounds are mapped back through the pivot, or the corners land outside the
 preview and it shows square. `restorePreviews()`, on `hidden` and whenever the
-previews are placed again, puts back scale 1 and the work area. The shell's own
-`_updateRoundedClipBounds()` runs again only on `workareas-changed` and a new
-wallpaper, which in the overview are rare; the preview then shows square corners
-until the overview next opens.
+previews are placed again, puts back scale 1 and the work area. A new wallpaper
+while the overview is open is a new actor, announced by the preview manager's
+`changed`, which places the previews again; the shell's own
+`_updateRoundedClipBounds()` runs again on `workareas-changed` too, which in the
+overview is rare, and the preview then shows square corners until the overview
+next opens.
 
 **If it changes.** Without `_bgManager` the previews are left alone.
 

@@ -49,7 +49,7 @@ export class MonitorRenderer {
         this._view = view;
         this._clock = clock;
         this._timerId = 0;
-        this._layers = new Map(); // pattern id -> { id, actor, effect, state, rect, travel, react, density, t }
+        this._layers = new Map(); // pattern id -> { effect (catalog), id, actor, fx, state, rect, travel, react, density, t }
         this._at = [0, 0];
 
         this.actor = new Clutter.Actor({
@@ -94,49 +94,64 @@ export class MonitorRenderer {
             const tuning = state.tuning[effect.id] ?? {};
             const [low, high] = effect.density ?? [1, 1];
             layer.density = Math.max(low, Math.min(high, tuning.density ?? 1));
-            layer.effect.setUniform('u_gain', 1, [tuning.brightness ?? 1]);
-            layer.effect.setUniform('u_density', 1, [layer.density]);
+            layer.fx.setUniform('u_gain', 1, [tuning.brightness ?? 1]);
+            layer.fx.setUniform('u_density', 1, [layer.density]);
             // Drawn afresh even while resting, so the change shows.
             layer.t = -1;
-            layer.effect.queue_repaint();
+            layer.fx.queue_repaint();
         });
 
         this.actor.opacity = Math.round(Math.max(0.1, Math.min(1, state.opacity)) * 255);
     }
 
     _createLayer(effect) {
-        const { canvas, travel, unit, seed } = this._view;
         const { width, height } = this.monitor;
-        const rect = { x: 0, y: 0, width, height };
-        const own = travel.map(t => Math.round(t * effect.depth));
-        const [canvasWidth, canvasHeight] = [canvas.width + own[0], canvas.height + own[1]];
         const Effect = effectClass(effect);
         const layer = {
+            effect,
             id: effect.id,
             actor: new Clutter.Actor({ width, height, reactive: false, opacity: 0 }),
-            effect: new Effect(),
-            state: effect.State
-                ? new effect.State({ width: canvasWidth, height: canvasHeight, unit, seed, rect })
-                : null,
-            rect,
-            travel: own,
+            fx: new Effect(),
+            state: null,
+            rect: { x: 0, y: 0, width, height },
+            travel: [0, 0],
             react: effect.react ?? false,
             density: 1,
             t: -1,
         };
-
-        const fx = layer.effect;
-        fx.setUniform('u_res', 2, [width, height]);
-        this._place(layer);
-        fx.setUniform('u_canvas', 2, [canvasWidth, canvasHeight]);
-        fx.setUniform('u_unit', 1, [unit]);
-        fx.setUniform('u_seed', 1, [seed]);
-        fx.onPaint = () => this._onPaint(layer);
-        layer.actor.add_effect(fx);
+        layer.fx.setUniform('u_res', 2, [width, height]);
+        this._fit(layer);
+        layer.fx.onPaint = () => this._onPaint(layer);
+        layer.actor.add_effect(layer.fx);
         this.actor.add_child(layer.actor);
 
         layer.actor.ease({ opacity: 255, duration: FADE_ANIMATION_TIME, mode: Clutter.AnimationMode.EASE_OUT_QUAD });
         return layer;
+    }
+
+    // A new canvas (spanning, or the travel) without a new actor, so nothing fades.
+    setView(view) {
+        this._view = view;
+        for (const layer of this._layers.values()) {
+            this._fit(layer);
+            layer.t = -1;
+            layer.fx.queue_repaint();
+        }
+    }
+
+    // The layer's own canvas: the view's, longer by the pattern's travel at its depth.
+    _fit(layer) {
+        const { canvas, travel, unit, seed } = this._view;
+        const { effect, fx } = layer;
+        layer.travel = travel.map(t => Math.round(t * effect.depth));
+        const [canvasWidth, canvasHeight] = [canvas.width + layer.travel[0], canvas.height + layer.travel[1]];
+        layer.state = effect.State
+            ? new effect.State({ width: canvasWidth, height: canvasHeight, unit, seed, rect: layer.rect })
+            : null;
+        this._place(layer);
+        fx.setUniform('u_canvas', 2, [canvasWidth, canvasHeight]);
+        fx.setUniform('u_unit', 1, [unit]);
+        fx.setUniform('u_seed', 1, [seed]);
     }
 
     // Parallax: the monitor's view slides across each layer's longer canvas, 0 to 1 each way.
@@ -144,7 +159,7 @@ export class MonitorRenderer {
         this._at = [x, y];
         for (const layer of this._layers.values()) {
             this._place(layer);
-            layer.effect.queue_repaint();
+            layer.fx.queue_repaint();
         }
     }
 
@@ -153,7 +168,7 @@ export class MonitorRenderer {
         const { canvas } = this._view;
         layer.rect.x = this.monitor.x - canvas.x + layer.travel[0] * this._at[0];
         layer.rect.y = this.monitor.y - canvas.y + layer.travel[1] * this._at[1];
-        layer.effect.setUniform('u_origin', 2, [layer.rect.x, layer.rect.y]);
+        layer.fx.setUniform('u_origin', 2, [layer.rect.x, layer.rect.y]);
     }
 
     // A paint through a clone (the overview, the slide) is never covered.
@@ -171,14 +186,14 @@ export class MonitorRenderer {
         if (t !== layer.t) {
             layer.t = t;
             const epoch = Math.floor(t / EPOCH_S) * EPOCH_S;
-            layer.effect.setUniform('u_epoch', 1, [epoch]);
-            layer.effect.setUniform('u_time', 1, [t - epoch]);
+            layer.fx.setUniform('u_epoch', 1, [epoch]);
+            layer.fx.setUniform('u_time', 1, [t - epoch]);
             // A React pattern sees the pointer where its canvas has it, parallax and all.
             const pointer = layer.react && this._state.pointer
                 ? this._state.pointer.view([layer.rect.x - this.monitor.x, layer.rect.y - this.monitor.y])
                 : null;
             for (const [name, components, values] of layer.state?.uniforms(t, layer.density, pointer) ?? [])
-                layer.effect.setUniform(name, components, values);
+                layer.fx.setUniform(name, components, values);
         }
 
         if (this._timerId || this._paused(layer.actor.is_in_clone_paint())) return;
@@ -186,7 +201,7 @@ export class MonitorRenderer {
         const delay = Math.max(1, Math.round((this._divisor(1000 / periodMs) - 0.5) * periodMs));
         this._timerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, () => {
             this._timerId = 0;
-            for (const l of this._layers.values()) l.effect.queue_repaint();
+            for (const l of this._layers.values()) l.fx.queue_repaint();
             return GLib.SOURCE_REMOVE;
         });
     }

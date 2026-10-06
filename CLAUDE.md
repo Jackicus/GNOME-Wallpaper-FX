@@ -53,8 +53,9 @@ offline tools) and `background.md` (the base and the overview's clones).
 - `lib/app.js`: reads settings, works out what each monitor draws (its own canvas, or
   its part of one spanning all of them), builds one `MonitorRenderer` per monitor into
   `Main.layoutManager._backgroundGroup` (over the wallpaper, under the windows),
-  rebuilds on `monitors-changed`, `span-monitors` and the `parallax` keys, and pushes
-  new state on any other settings change.
+  rebuilds on `monitors-changed`, refits the layers' canvases in place on
+  `span-monitors` and the `parallax` and `pointer-tilt` keys (`MonitorRenderer.setView()`,
+  so nothing fades), and pushes new state on any other settings change.
 - `lib/engine.js`: `MonitorRenderer`, a monitor-sized actor with one child per enabled
   pattern, each painted by that pattern's shader effect and faded in and out as it is
   switched; the frame pacing; and `SceneClock`, one clock per pattern (for its own
@@ -78,7 +79,8 @@ offline tools) and `background.md` (the base and the overview's clones).
   `MonitorRenderer.pan()`, each its catalog `depth` times the wallpaper, scaled by
   `parallax-depth`, across a canvas of its own made that much longer. A picture base wider
   than the monitor's shape is shown on a panorama actor of its own, unzoomed where it has
-  the room, since the shell's wallpaper crops it to the monitor. The tilt rests while
+  the room, since the shell's wallpaper crops it to the monitor; a new picture
+  (`setPicture()`) crossfades its panorama and keeps the adjustments. The tilt rests while
   the desktop is covered, in a slide, in the overview and with animations off. `overview.js`
   puts the moved wallpaper under the slide's strip, and has each overview preview zoomed to
   its own workspace's part (`placePreviews()`).
