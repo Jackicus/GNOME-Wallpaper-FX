@@ -49,7 +49,7 @@ export class MonitorRenderer {
         this._view = view;
         this._clock = clock;
         this._timerId = 0;
-        this._layers = new Map(); // pattern id -> { id, actor, effect, state, rect, density, t }
+        this._layers = new Map(); // pattern id -> { id, actor, effect, state, rect, travel, density, t }
         this._at = 0;
 
         this.actor = new Clutter.Actor({
@@ -105,18 +105,21 @@ export class MonitorRenderer {
     }
 
     _createLayer(effect) {
-        const { canvas, unit, seed } = this._view;
+        const { canvas, travel, unit, seed } = this._view;
         const { width, height } = this.monitor;
         const rect = { x: 0, y: 0, width, height };
+        const own = travel.map(t => Math.round(t * effect.depth));
+        const [canvasWidth, canvasHeight] = [canvas.width + own[0], canvas.height + own[1]];
         const Effect = effectClass(effect);
         const layer = {
             id: effect.id,
             actor: new Clutter.Actor({ width, height, reactive: false, opacity: 0 }),
             effect: new Effect(),
             state: effect.State
-                ? new effect.State({ width: canvas.width, height: canvas.height, unit, seed, rect })
+                ? new effect.State({ width: canvasWidth, height: canvasHeight, unit, seed, rect })
                 : null,
             rect,
+            travel: own,
             density: 1,
             t: -1,
         };
@@ -124,7 +127,7 @@ export class MonitorRenderer {
         const fx = layer.effect;
         fx.setUniform('u_res', 2, [width, height]);
         this._place(layer);
-        fx.setUniform('u_canvas', 2, [canvas.width, canvas.height]);
+        fx.setUniform('u_canvas', 2, [canvasWidth, canvasHeight]);
         fx.setUniform('u_unit', 1, [unit]);
         fx.setUniform('u_seed', 1, [seed]);
         fx.onPaint = () => this._onPaint(layer);
@@ -135,7 +138,7 @@ export class MonitorRenderer {
         return layer;
     }
 
-    // Parallax: the monitor's view slides across a canvas made longer for it (app.js).
+    // Parallax: the monitor's view slides across each layer's longer canvas.
     pan(at) {
         this._at = at;
         for (const layer of this._layers.values()) {
@@ -146,9 +149,9 @@ export class MonitorRenderer {
 
     // The State reads the same rect, so what it culls to follows the view.
     _place(layer) {
-        const { canvas, pan } = this._view;
-        layer.rect.x = this.monitor.x - canvas.x + pan[0] * this._at;
-        layer.rect.y = this.monitor.y - canvas.y + pan[1] * this._at;
+        const { canvas } = this._view;
+        layer.rect.x = this.monitor.x - canvas.x + layer.travel[0] * this._at;
+        layer.rect.y = this.monitor.y - canvas.y + layer.travel[1] * this._at;
         layer.effect.setUniform('u_origin', 2, [layer.rect.x, layer.rect.y]);
     }
 

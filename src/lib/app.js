@@ -7,7 +7,7 @@ import { SystemState } from './system.js';
 import { OverviewCanvas } from './overview.js';
 import { ShellBackground } from './background.js';
 import { WeatherWatcher } from './weather.js';
-import { PATTERN_DEPTH, WorkspaceParallax } from './parallax.js';
+import { WorkspaceParallax } from './parallax.js';
 
 const BASE_KEYS = new Set([
     'background-mode', 'color-palette', 'custom-image', 'span-monitors', 'weather', 'weather-background',
@@ -142,7 +142,7 @@ export class WallpaperFxApp {
     }
 
     // Spanned, every monitor draws its part of one canvas, sized by the primary.
-    // With parallax the canvas is longer by the patterns' travel, and `pan` is that travel.
+    // `travel` is what a pattern of depth 1 pans with parallax; each layer's canvas is longer by its own.
     _views() {
         const monitors = Main.layoutManager.monitors;
         const views = this._spanning()
@@ -157,15 +157,13 @@ export class WallpaperFxApp {
                 seed: m.index * 17.31,
             }));
 
-        const share = PATTERN_DEPTH * this._parallaxAmount();
+        const share = this._parallaxAmount() * this._settings.get_double('parallax-depth');
         const vertical = global.workspace_manager.layout_rows === -1;
         const onlyPrimary = Meta.prefs_get_workspaces_only_on_primary();
         for (const [index, view] of views.entries()) {
             const moves = share > 0 && (!onlyPrimary || index === Main.layoutManager.primaryIndex);
             const travel = moves ? Math.round(share * (vertical ? view.canvas.height : view.canvas.width)) : 0;
-            view.pan = vertical ? [0, travel] : [travel, 0];
-            view.canvas.width += view.pan[0];
-            view.canvas.height += view.pan[1];
+            view.travel = vertical ? [0, travel] : [travel, 0];
         }
         return views;
     }

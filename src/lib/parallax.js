@@ -5,9 +5,6 @@ import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { WINDOW_ANIMATION_TIME } from 'resource:///org/gnome/shell/ui/workspaceAnimation.js';
 
-// The patterns travel this much further than the wallpaper: a nearer layer.
-export const PATTERN_DEPTH = 2.5;
-
 // Pans each monitor's wallpaper, zoomed by the travel it needs, with the shell's
 // own workspace position: a switch, a swipe and the overview's scrolling all move it.
 export class WorkspaceParallax {

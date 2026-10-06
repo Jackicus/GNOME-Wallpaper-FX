@@ -87,5 +87,11 @@
       <summary>Workspace parallax amount</summary>
       <description>Total travel across workspaces as a share of the monitor's width.</description>
     </key>
+    <key name="parallax-depth" type="d">
+      <range min="0" max="2"/>
+      <default>1</default>
+      <summary>Workspace parallax pattern depth</summary>
+      <description>How far the patterns pan, as a multiple of each one's own depth; 0 holds them still.</description>
+    </key>
   </schema>
 </schemalist>

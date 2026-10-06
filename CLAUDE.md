@@ -73,8 +73,9 @@ offline tools) and `background.md` (the base and the overview's clones).
   moment any of those appear.
 - `lib/parallax.js`: `WorkspaceParallax`, with `parallax` on: the desktop's wallpaper
   grown evenly by `parallax-amount` and panned across it with the workspace position
-  (`Main.createWorkspacesAdjustment()`), and the patterns panned `PATTERN_DEPTH` times
-  further through `MonitorRenderer.pan()`, across a canvas app.js makes that much longer.
+  (`Main.createWorkspacesAdjustment()`), and the patterns panned further through
+  `MonitorRenderer.pan()`: each its catalog `depth` times the wallpaper's travel, scaled by
+  `parallax-depth`, across a canvas of its own made that much longer.
   `overview.js` puts the panned wallpaper under the slide's strip.
 - `lib/system.js`: the system's say: UPower's `OnBattery` (for `pause-on-battery`),
   power-profiles-daemon's active profile, and St's `enable-animations`.

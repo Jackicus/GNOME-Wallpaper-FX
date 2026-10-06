@@ -38,15 +38,18 @@ export class State { ... }
   compiled alongside the shared prelude and names must not collide.
 - The catalog entry adds `id`, `title` and `desc` (the prefs dialog shows the
   last two), `weather: true` for a pattern the weather scene draws (prefs lists
-  those under their own heading) and spreads the module in.
+  those under their own heading), `depth` (how many times as far as the wallpaper
+  it pans with parallax: about 1.2 for a far sky, 3.5 for what is nearest) and
+  spreads the module in.
 
 ## Coordinates and sizes
 
 - `p` is in **canvas pixels**, y down. The canvas is the monitor the actor is
   on, or — with *Span All Monitors* — the box around every monitor, so one
   picture runs across all of them. Its size is `u_canvas`. With *Workspace
-  Parallax* the canvas is longer than the monitor along the workspace axis and
-  the monitor's view (`u_origin`) slides across it as workspaces change.
+  Parallax* the canvas is longer than the monitor along the workspace axis, by
+  the pattern's own travel, and the monitor's view (`u_origin`) slides across it
+  as workspaces change.
 - **Size things in `U`**: one pixel of a 1080-line screen. A glow of radius
   `6.0 * U` is 6 px on a 1080p monitor and 12 on a 4K one, so the pattern looks
   the same everywhere, only sharper where there are more pixels.
