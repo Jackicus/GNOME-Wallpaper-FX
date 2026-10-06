@@ -27,7 +27,7 @@ because `src/` is changing; functions are named instead.
 | `Main.overview._overview.controls._thumbnailsBox._thumbnails`, `thumbnail._contents` | overview.js | Patterns vanish from the thumbnail strip only | Yes, silently |
 | `Main.wm._workspaceAnimation`, override of `_prepareWorkspaceSwitch` | overview.js | Patterns vanish during a workspace slide only | Yes, silently |
 | `this._switchData.monitors`, `strip._monitor`, `strip._workspaceGroups`, `group._background` | overview.js | Same | Yes, silently |
-| `Main.layoutManager._bgManagers`, `manager.backgroundActor`, its `changed` signal | parallax.js | Parallax moves the patterns only, never the wallpaper | Yes, silently |
+| `Main.layoutManager._bgManagers`, `manager.backgroundActor`, its `changed` signal, its parent | parallax.js | Parallax moves the patterns only, never the wallpaper, and a wide picture is zoomed as any other | Yes, silently |
 | `workspace._background._bgManager.backgroundActor`, `._monitorIndex` | parallax.js | The overview's previews show the whole wallpaper, as without parallax | Yes, silently |
 | `class extends Shell.GLSLEffect` | shader.js | `enable()` throws and the extension shows as errored with the base taken over (below). **Removed in GNOME 51** | No |
 | `vfunc_paint_target(node, paintContext)` | shader.js | Patterns freeze on their first frame | No |
@@ -508,6 +508,16 @@ since the content's own size otherwise wins over a set one; `destroy()` puts
 back `CONTENT_SIZE`, no fixed size and no translation. A new wallpaper is a new
 actor, announced by `changed`, so each change places the new one. The shell
 builds new managers on `monitors-changed`, and app.js calls `update()` again then.
+
+A picture wider than the monitor's shape (taller, with the workspaces in a
+column) gets a panorama of its own: the shell renders a wallpaper as a
+monitor-shaped texture, cropping the rest away. `St.TextureCache` loads the
+file at no more than its drawn size into an actor put just above the shell's
+wallpaper, in the same `Meta.BackgroundGroup` (`backgroundActor.get_parent()`),
+and parallax.js moves it instead; the shell's stays under it, grown as usual,
+until it loads. The slide clones it in place of the shell's. A new wallpaper
+from the shell goes to the bottom of the group, so the panorama stays above
+it. Spanned monitors and the overview's previews keep the shell's.
 
 **If it changes.** With no `_bgManagers` the wallpaper stays still and the
 patterns still pan.

@@ -5,7 +5,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { MonitorRenderer, SceneClock, canvasAround } from './engine.js';
 import { SystemState } from './system.js';
 import { OverviewCanvas } from './overview.js';
-import { ShellBackground } from './background.js';
+import { ShellBackground, pictureOf } from './background.js';
 import { WeatherWatcher } from './weather.js';
 import { Parallax } from './parallax.js';
 import { PointerTrail } from './pointer.js';
@@ -55,10 +55,8 @@ export class WallpaperFxApp {
                 this._rebuild();
                 return;
             }
-            if (BASE_KEYS.has(key)) this._followDaytime();
-            const state = this._state();
-            if (BASE_KEYS.has(key)) this._background.update(state);
-            this._push(state);
+            if (BASE_KEYS.has(key)) this._baseChanged();
+            this._push(this._state());
         }, this);
 
         this._interface.connectObject('changed::accent-color',
@@ -100,12 +98,10 @@ export class WallpaperFxApp {
         const on = this._settings.get_boolean('weather');
         if (on && !this._weather) {
             // Built before the background at enable, so the first base is
-            // already the weather's; hence the ?. below.
+            // already the weather's; hence the test below.
             this._weather = new WeatherWatcher(this._settings, () => {
-                this._followDaytime();
-                const state = this._state();
-                this._background?.update(state);
-                this._push(state);
+                if (this._background) this._baseChanged();
+                this._push(this._state());
             });
         } else if (!on && this._weather) {
             this._weather.destroy();
@@ -114,11 +110,17 @@ export class WallpaperFxApp {
         }
     }
 
+    _baseChanged() {
+        this._followDaytime();
+        this._background.update(this._state());
+        this._parallax.update(this._parallaxOptions());
+    }
+
     // Followed only while the base is the time of day's.
     _followDaytime() {
         const on = this._state().mode === 'daytime';
         if (on && !this._daytime) {
-            this._daytime = new Daytime(() => this._background.update(this._state()));
+            this._daytime = new Daytime(() => this._baseChanged());
         } else if (!on && this._daytime) {
             this._daytime.destroy();
             this._daytime = null;
@@ -171,6 +173,7 @@ export class WallpaperFxApp {
             amount: s.get_boolean('parallax') ? s.get_double('parallax-amount') : 0,
             tilt: s.get_boolean('pointer-tilt') ? s.get_double('pointer-tilt-amount') : 0,
             span: this._spanning(),
+            picture: pictureOf(this._state()),
         };
     }
 

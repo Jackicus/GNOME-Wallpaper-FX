@@ -470,7 +470,7 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
             subtitle: 'The background slides a little as you change workspace, as if far away',
         }));
 
-        const travel = this._percentRow(ui, 'parallax-amount', [2, 25, 1], {
+        const travel = this._percentRow(ui, 'parallax-amount', [2, 100, 1], {
             title: 'Travel (%)',
             subtitle: 'How far the wallpaper moves from the first workspace to the last',
         });

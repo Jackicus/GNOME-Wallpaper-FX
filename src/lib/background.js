@@ -107,13 +107,8 @@ export class ShellBackground {
             };
         }
 
-        // A missing picture would be a black desktop; the user's wallpaper shows instead.
-        const exists = path => path && GLib.file_test(path, GLib.FileTest.EXISTS);
-        const picture = state.mode === 'image' ? state.customImage
-            : state.mode === 'daytime' && state.period
-                ? NEAREST[state.period].map(p => state.daytimeImages[p]).find(exists)
-                : null;
-        if (exists(picture)) {
+        const picture = pictureOf(state);
+        if (picture) {
             return {
                 uri: Gio.File.new_for_path(picture).get_uri(),
                 style: GDesktopEnums.BackgroundStyle.ZOOM,
@@ -196,6 +191,17 @@ export class ShellBackground {
             return GLib.SOURCE_REMOVE;
         });
     }
+}
+
+// The base's picture file, when it is one. A missing picture would be a black desktop;
+// the user's wallpaper shows instead.
+export function pictureOf(state) {
+    const exists = path => path && GLib.file_test(path, GLib.FileTest.EXISTS);
+    const picture = state.mode === 'image' ? state.customImage
+        : state.mode === 'daytime' && state.period
+            ? NEAREST[state.period].map(p => state.daytimeImages[p]).find(exists)
+            : null;
+    return exists(picture) ? picture : null;
 }
 
 // What the shell does when the wallpaper setting changes: every manager rebuilds.

@@ -76,7 +76,9 @@ offline tools) and `background.md` (the base and the overview's clones).
   (`Main.createWorkspacesAdjustment()`) along the workspaces and by the pointer's place on
   its monitor (or on all of them, spanned) either way; the patterns move further through
   `MonitorRenderer.pan()`, each its catalog `depth` times the wallpaper, scaled by
-  `parallax-depth`, across a canvas of its own made that much longer. The tilt rests while
+  `parallax-depth`, across a canvas of its own made that much longer. A picture base wider
+  than the monitor's shape is shown on a panorama actor of its own, unzoomed where it has
+  the room, since the shell's wallpaper crops it to the monitor. The tilt rests while
   the desktop is covered, in a slide, in the overview and with animations off. `overview.js`
   puts the moved wallpaper under the slide's strip, and has each overview preview zoomed to
   its own workspace's part (`placePreviews()`).
