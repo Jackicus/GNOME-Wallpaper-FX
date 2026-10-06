@@ -9,6 +9,7 @@ export const SCENE_KEYS = [
     'background-mode',
     'color-palette',
     'custom-image',
+    'daytime-images',
     'speed',
     'opacity',
 ];
@@ -22,6 +23,9 @@ function canonical(key, variant) {
     return JSON.stringify(key === 'enabled-effects' ? [...value].sort() : sort(value));
 }
 
+// The user's own pictures stay when a scene names none.
+const PICTURES = new Set(['custom-image', 'daytime-images']);
+
 // A settings object of its own: delay() has no way back, so on the shared one
 // every later edit in the window would sit unapplied.
 export function applyScene(settings, scene) {
@@ -29,7 +33,7 @@ export function applyScene(settings, scene) {
     batch.delay();
     for (const key of SCENE_KEYS) {
         if (scene.values[key]) batch.set_value(key, scene.values[key]);
-        else if (key !== 'custom-image') batch.reset(key);
+        else if (!PICTURES.has(key)) batch.reset(key);
     }
     batch.set_boolean('weather', false);
     batch.apply();
@@ -39,7 +43,7 @@ export function isCurrent(settings, scene) {
     if (settings.get_boolean('weather')) return false;
     return SCENE_KEYS.every(key => {
         const want = scene.values[key];
-        if (key === 'custom-image' && !want) return true;
+        if (PICTURES.has(key) && !want) return true;
         return canonical(key, settings.get_value(key)) === canonical(key, want ?? settings.get_default_value(key));
     });
 }

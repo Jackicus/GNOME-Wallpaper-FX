@@ -109,9 +109,10 @@ the pointer is, never a click or a key, and only while one of them is on.
 ## Features
 
 - **Any base.** Draw the patterns over your own wallpaper, a gradient in GNOME's accent
-  colour that follows it when it changes, one of eleven palettes, or a picture of your
-  choice. The last three replace the wallpaper the shell draws without changing your
-  wallpaper setting.
+  colour that follows it when it changes, one of eleven palettes, a picture of your
+  choice, or a picture for each time of day (dawn, day, dusk and night, from the sun at
+  GNOME Weather's place, or the clock without one). All but the first replace the
+  wallpaper the shell draws without changing your wallpaper setting.
 - **Workspace parallax.** The wallpaper pans a little across your workspaces while the
   windows slide a whole screen, so it reads as far away, and the patterns pan further,
   each by its own depth. It follows a touchpad swipe as it goes, and the overview's
@@ -146,7 +147,8 @@ are installed.
 ## Privacy and network
 
 Follow the Weather is off until you turn it on, and it is the only thing that goes online.
-While it is off, nothing is sent anywhere.
+While it is off, nothing is sent anywhere. The Time of Day base reads the same GNOME
+Weather place to work out where the sun is, on your machine, and sends nothing.
 
 While it is on:
 
@@ -217,7 +219,8 @@ Open them in the Extensions app, or with `gnome-extensions prefs wallpaper-fx@ja
 - **Patterns**: a switch for each pattern, in Ambient, Weather and React groups; open one
   for its Brightness, Speed and, where it has one, Amount, and a Reset. Under All Patterns: Animation Speed, Pattern Opacity and Span All Monitors.
 - **Background**: what the patterns are drawn over: Desktop Wallpaper, Accent Color, Color
-  Gradient (with its palette) or Custom Picture (PNG, JPEG or WebP). Under Parallax:
+  Gradient (with its palette), Custom Picture (PNG, JPEG or WebP) or Time of Day (a
+  picture for dawn, day, dusk and night; a time without one uses the nearest). Under Parallax:
   Workspace Parallax and its Travel, Pointer Tilt and its reach, and Pattern Depth.
 - **Performance**: the frame rate (every frame, every other frame, or about 60 or 30 a
   second, in step with each display), Pause While Covered (on by default) and Pause on

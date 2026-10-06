@@ -9,10 +9,11 @@ import { ShellBackground } from './background.js';
 import { WeatherWatcher } from './weather.js';
 import { Parallax } from './parallax.js';
 import { PointerTrail } from './pointer.js';
+import { Daytime } from './daytime.js';
 import { EFFECTS } from './catalog.js';
 
 const BASE_KEYS = new Set([
-    'background-mode', 'color-palette', 'custom-image', 'span-monitors', 'weather', 'weather-background',
+    'background-mode', 'color-palette', 'custom-image', 'daytime-images', 'span-monitors', 'weather', 'weather-background',
 ]);
 
 export class WallpaperFxApp {
@@ -27,8 +28,10 @@ export class WallpaperFxApp {
         this._system = new SystemState(() => this._push(this._state()));
         this._weather = null;
         this._pointer = null;
+        this._daytime = null;
         this._followWeather();
         this._followPointer();
+        this._followDaytime();
 
         this._background = new ShellBackground();
         this._background.update(this._state());
@@ -52,6 +55,7 @@ export class WallpaperFxApp {
                 this._rebuild();
                 return;
             }
+            if (BASE_KEYS.has(key)) this._followDaytime();
             const state = this._state();
             if (BASE_KEYS.has(key)) this._background.update(state);
             this._push(state);
@@ -79,6 +83,9 @@ export class WallpaperFxApp {
         this._pointer?.destroy();
         this._pointer = null;
 
+        this._daytime?.destroy();
+        this._daytime = null;
+
         this._system.destroy();
         this._system = null;
 
@@ -95,6 +102,7 @@ export class WallpaperFxApp {
             // Built before the background at enable, so the first base is
             // already the weather's; hence the ?. below.
             this._weather = new WeatherWatcher(this._settings, () => {
+                this._followDaytime();
                 const state = this._state();
                 this._background?.update(state);
                 this._push(state);
@@ -103,6 +111,17 @@ export class WallpaperFxApp {
             this._weather.destroy();
             this._weather = null;
             this._settings.reset('weather-status');
+        }
+    }
+
+    // Followed only while the base is the time of day's.
+    _followDaytime() {
+        const on = this._state().mode === 'daytime';
+        if (on && !this._daytime) {
+            this._daytime = new Daytime(() => this._background.update(this._state()));
+        } else if (!on && this._daytime) {
+            this._daytime.destroy();
+            this._daytime = null;
         }
     }
 
@@ -129,6 +148,8 @@ export class WallpaperFxApp {
             mode: sky?.['background-mode'] ?? s.get_string('background-mode'),
             colorPalette: sky?.['color-palette'] ?? s.get_string('color-palette'),
             customImage: s.get_string('custom-image'),
+            daytimeImages: s.get_value('daytime-images').deepUnpack(),
+            period: this._daytime?.period ?? null,
             accent: this._interface.get_string('accent-color'),
             pointer: this._pointer,
             span: this._spanning(),

@@ -39,7 +39,7 @@
     <key name="background-mode" type="s">
       <default>'desktop'</default>
       <summary>Background base mode</summary>
-      <description>Base layer underneath patterns: 'desktop' (the system wallpaper), 'accent' (a gradient in GNOME's accent colour), 'color' (a palette gradient), or 'image' (a custom picture).</description>
+      <description>Base layer underneath patterns: 'desktop' (the system wallpaper), 'accent' (a gradient in GNOME's accent colour), 'color' (a palette gradient), 'image' (a custom picture), or 'daytime' (a picture for each time of day).</description>
     </key>
     <key name="color-palette" type="s">
       <default>'Classic Blue'</default>
@@ -50,6 +50,11 @@
       <default>''</default>
       <summary>Custom wallpaper image path</summary>
       <description>Path to custom wallpaper image used when background-mode is 'image'.</description>
+    </key>
+    <key name="daytime-images" type="a{ss}">
+      <default>{}</default>
+      <summary>Pictures for each time of day</summary>
+      <description>Paths of the pictures used when background-mode is 'daytime', by period: 'dawn', 'day', 'dusk' and 'night'. A period without one uses the nearest that has one.</description>
     </key>
     <key name="target-fps" type="i">
       <default>0</default>
