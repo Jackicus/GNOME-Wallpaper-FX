@@ -53,8 +53,8 @@ offline tools) and `background.md` (the base and the overview's clones).
 - `lib/app.js`: reads settings, works out what each monitor draws (its own canvas, or
   its part of one spanning all of them), builds one `MonitorRenderer` per monitor into
   `Main.layoutManager._backgroundGroup` (over the wallpaper, under the windows),
-  rebuilds on `monitors-changed` and `span-monitors`, and pushes new state on any other
-  settings change.
+  rebuilds on `monitors-changed`, `span-monitors` and the `parallax` keys, and pushes
+  new state on any other settings change.
 - `lib/engine.js`: `MonitorRenderer`, a monitor-sized actor with one child per enabled
   pattern, each painted by that pattern's shader effect and faded in and out as it is
   switched; the frame pacing; and `SceneClock`, one clock per pattern (for its own
@@ -71,6 +71,11 @@ offline tools) and `background.md` (the base and the overview's clones).
 - `lib/overview.js`: the patterns cloned into the overview's workspace previews, its
   thumbnail strip, and the workspace-slide strip. Without it the desktop goes bare the
   moment any of those appear.
+- `lib/parallax.js`: `WorkspaceParallax`, with `parallax` on: the desktop's wallpaper
+  grown evenly by `parallax-amount` and panned across it with the workspace position
+  (`Main.createWorkspacesAdjustment()`), and the patterns panned `PATTERN_DEPTH` times
+  further through `MonitorRenderer.pan()`, across a canvas app.js makes that much longer.
+  `overview.js` puts the panned wallpaper under the slide's strip.
 - `lib/system.js`: the system's say: UPower's `OnBattery` (for `pause-on-battery`),
   power-profiles-daemon's active profile, and St's `enable-animations`.
 - `lib/weather.js`: `WeatherWatcher`, for the weather scene: the place (the first in

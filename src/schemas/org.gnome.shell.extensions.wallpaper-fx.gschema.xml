@@ -76,5 +76,16 @@
       <summary>Pause on battery power</summary>
       <description>Stops the animation while the device is running on battery.</description>
     </key>
+    <key name="parallax" type="b">
+      <default>false</default>
+      <summary>Workspace parallax</summary>
+      <description>Slide the wallpaper and pattern layers with workspace switches.</description>
+    </key>
+    <key name="parallax-amount" type="d">
+      <range min="0.02" max="0.25"/>
+      <default>0.08</default>
+      <summary>Workspace parallax amount</summary>
+      <description>Total travel across workspaces as a share of the monitor's width.</description>
+    </key>
   </schema>
 </schemalist>
