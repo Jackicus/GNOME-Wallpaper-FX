@@ -9,6 +9,7 @@ import cairo from 'cairo';
 import * as Background from 'resource:///org/gnome/shell/ui/background.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
+import { NEAREST } from './daytime.js';
 import { accentStops, paintGradient, paletteStops } from './palettes.js';
 
 const BACKGROUND_SCHEMA = 'org.gnome.desktop.background';
@@ -107,10 +108,14 @@ export class ShellBackground {
         }
 
         // A missing picture would be a black desktop; the user's wallpaper shows instead.
-        if (state.mode === 'image' && state.customImage &&
-            GLib.file_test(state.customImage, GLib.FileTest.EXISTS)) {
+        const exists = path => path && GLib.file_test(path, GLib.FileTest.EXISTS);
+        const picture = state.mode === 'image' ? state.customImage
+            : state.mode === 'daytime' && state.period
+                ? NEAREST[state.period].map(p => state.daytimeImages[p]).find(exists)
+                : null;
+        if (exists(picture)) {
             return {
-                uri: Gio.File.new_for_path(state.customImage).get_uri(),
+                uri: Gio.File.new_for_path(picture).get_uri(),
                 style: GDesktopEnums.BackgroundStyle.ZOOM,
                 color: '#000000',
             };

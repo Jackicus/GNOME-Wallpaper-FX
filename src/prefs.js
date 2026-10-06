@@ -329,6 +329,45 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
         return page;
     }
 
+    // A picture file chosen through the portal, shown by its path, with a way to clear it.
+    _pictureRow(ui, title, key, read, write) {
+        const row = new Adw.ActionRow({ title });
+        const show = () => (row.subtitle = read() || 'No picture selected');
+        show();
+        ui.watch(key, show);
+
+        const browse = new Gtk.Button({ label: 'Browse…', valign: Gtk.Align.CENTER });
+        browse.connect('clicked', () => {
+            const filter = new Gtk.FileFilter({ name: 'Images' });
+            for (const type of ['image/png', 'image/jpeg', 'image/webp']) filter.add_mime_type(type);
+            const filters = new Gio.ListStore({ item_type: Gtk.FileFilter });
+            filters.append(filter);
+
+            const dialog = new Gtk.FileDialog({ title: 'Select Wallpaper Image', filters, default_filter: filter });
+            if (read()) dialog.set_initial_file(Gio.File.new_for_path(read()));
+
+            dialog.open(ui.window, null, (self, result) => {
+                try {
+                    const path = self.open_finish(result)?.get_path();
+                    if (path) write(path);
+                } catch {
+                    // Dismissed, or the portal refused.
+                }
+            });
+        });
+        row.add_suffix(browse);
+
+        const clear = new Gtk.Button({
+            icon_name: 'edit-clear-symbolic',
+            tooltip_text: 'Clear the chosen picture',
+            valign: Gtk.Align.CENTER,
+            css_classes: ['flat'],
+        });
+        clear.connect('clicked', () => write(''));
+        row.add_suffix(clear);
+        return row;
+    }
+
     // A double key shown in percent.
     _percentRow(ui, key, [lower, upper, step], props) {
         const { settings } = ui;
@@ -355,7 +394,7 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
     }
 
     _backgroundPage(ui) {
-        const { window, settings } = ui;
+        const { settings } = ui;
         const page = new Adw.PreferencesPage({
             title: 'Background',
             icon_name: 'preferences-desktop-wallpaper-symbolic',
@@ -381,6 +420,7 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
                 { value: 'accent', label: 'Accent Color' },
                 { value: 'color', label: 'Color Gradient' },
                 { value: 'image', label: 'Custom Picture' },
+                { value: 'daytime', label: 'Time of Day' },
             ],
         }));
 
@@ -391,47 +431,33 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
         });
         group.add(palette);
 
-        const image = new Adw.ActionRow({ title: 'Custom Picture' });
-        const showImage = () => (image.subtitle = settings.get_string('custom-image') || 'No picture selected');
-        showImage();
-        ui.watch('custom-image', showImage);
-
-        const browse = new Gtk.Button({ label: 'Browse…', valign: Gtk.Align.CENTER });
-        browse.connect('clicked', () => {
-            const filter = new Gtk.FileFilter({ name: 'Images' });
-            for (const type of ['image/png', 'image/jpeg', 'image/webp']) filter.add_mime_type(type);
-            const filters = new Gio.ListStore({ item_type: Gtk.FileFilter });
-            filters.append(filter);
-
-            const dialog = new Gtk.FileDialog({ title: 'Select Wallpaper Image', filters, default_filter: filter });
-            const current = settings.get_string('custom-image');
-            if (current) dialog.set_initial_file(Gio.File.new_for_path(current));
-
-            dialog.open(window, null, (self, result) => {
-                try {
-                    const path = self.open_finish(result)?.get_path();
-                    if (path) settings.set_string('custom-image', path);
-                } catch {
-                    // Dismissed, or the portal refused.
-                }
-            });
-        });
-        image.add_suffix(browse);
-
-        const clear = new Gtk.Button({
-            icon_name: 'edit-clear-symbolic',
-            tooltip_text: 'Clear the chosen picture',
-            valign: Gtk.Align.CENTER,
-            css_classes: ['flat'],
-        });
-        clear.connect('clicked', () => settings.set_string('custom-image', ''));
-        image.add_suffix(clear);
+        const image = this._pictureRow(ui, 'Custom Picture', 'custom-image',
+            () => settings.get_string('custom-image'),
+            path => settings.set_string('custom-image', path));
         group.add(image);
+
+        // One picture for each time of day, in the dictionary key's own place.
+        const daytime = new Adw.ExpanderRow({
+            title: 'Time of Day Pictures',
+            subtitle: 'The time of day follows the sun at GNOME Weather’s place, or the clock without one',
+        });
+        const pictures = () => settings.get_value('daytime-images').deepUnpack();
+        for (const [period, title] of [['dawn', 'Dawn'], ['day', 'Day'], ['dusk', 'Dusk'], ['night', 'Night']]) {
+            daytime.add_row(this._pictureRow(ui, title, 'daytime-images',
+                () => pictures()[period] ?? '',
+                path => {
+                    const all = { ...pictures(), [period]: path };
+                    if (!path) delete all[period];
+                    settings.set_value('daytime-images', new GLib.Variant('a{ss}', all));
+                }));
+        }
+        group.add(daytime);
 
         const applyMode = () => {
             const mode = settings.get_string('background-mode');
             palette.sensitive = mode === 'color';
             image.sensitive = mode === 'image';
+            daytime.sensitive = mode === 'daytime';
         };
         applyMode();
         ui.watch('background-mode', applyMode);

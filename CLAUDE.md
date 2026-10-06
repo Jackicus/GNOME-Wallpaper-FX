@@ -82,6 +82,10 @@ offline tools) and `background.md` (the base and the overview's clones).
   its own workspace's part (`placePreviews()`).
 - `lib/system.js`: the system's say: UPower's `OnBattery` (for `pause-on-battery`),
   power-profiles-daemon's active profile, and St's `enable-animations`.
+- `lib/daytime.js`: `Daytime`, kept by app.js only while the base is `daytime`: the period
+  of the day from `sun.js` at GNOME Weather's place (fixed hours without one), with one
+  timer to the next change, looked at again on resume and on a new place; `NEAREST` says
+  which picture stands in for a period that has none.
 - `lib/pointer.js`: `PointerTrail`, kept by app.js only while a React pattern (catalog
   `react`) is on: the pointer's samples from the cursor tracker over the last three
   seconds, handed to each React layer's `State` in its own canvas pixels.
@@ -111,7 +115,8 @@ compositor thread does the same work whichever patterns are on.
 
 `background-mode` picks the base: `desktop` (the system wallpaper, left alone), `accent`
 (a gradient in GNOME's accent colour, which it follows as it changes), `color` (a palette
-from `palettes.js`) or `image` (a file the user chose). In all but the first,
+from `palettes.js`), `image` (a file the user chose) or `daytime` (one of `daytime-images`
+for the period of the day). In all but the first,
 `background.js` makes it the shell's own wallpaper, spanned across the monitors when the
 patterns are. `enabled-effects` is a list of catalog ids, drawn over
 that base in catalog order, each tuned by `pattern-tuning` (brightness, speed, Amount, as
