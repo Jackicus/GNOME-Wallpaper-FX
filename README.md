@@ -1,7 +1,7 @@
 # Wallpaper FX
 
 Animated wallpapers drawn by your GPU: aurora, nebulae, starfields, snow, rain and more.
-Sixteen patterns you can stack and tune, or let the weather outside choose, painted on the
+Nineteen patterns you can stack and tune, or let the weather outside choose, painted on the
 GNOME desktop behind your windows and in the overview.
 
 ![A dark violet and blue nebula filled with small stars, a few of them joined by faint lines, and a meteor streaking across the upper right](docs/screenshots/deep-space.jpg)
@@ -9,8 +9,11 @@ GNOME desktop behind your windows and in the overview.
 
 ## What it does
 
-- **Sixteen patterns to stack.** Turn on any combination, and tune each one's brightness,
-  speed and amount.
+- **Nineteen patterns to stack.** Turn on any combination, and tune each one's brightness,
+  speed and amount. Three of them answer the pointer as it moves over the desktop.
+- **Depth.** With Workspace Parallax the background slides a little as you change
+  workspace, each pattern by its own distance, and Pointer Tilt leans it away from the
+  pointer.
 - **Follows the weather.** Rain where you are when it rains there, fog, snow, a storm or a
   clear night, and a sky that follows the time of day.
 - **Scenes.** Save a look and come back to it in one click.
@@ -97,12 +100,23 @@ at this size. How a pattern is written, and what keeps it cheap, is in
   </tr>
 </table>
 
+The **React** patterns answer the pointer while it moves over the desktop, so they are
+best seen moving: **Firefly Swarm** (fireflies that follow the pointer, string out behind
+it and gather where it rests), **Ripples** (rings spreading from where it passes, as on
+still water) and **Stardust** (fine sparkles left along its path). They read only where
+the pointer is, never a click or a key, and only while one of them is on.
+
 ## Features
 
 - **Any base.** Draw the patterns over your own wallpaper, a gradient in GNOME's accent
   colour that follows it when it changes, one of eleven palettes, or a picture of your
   choice. The last three replace the wallpaper the shell draws without changing your
   wallpaper setting.
+- **Workspace parallax.** The wallpaper pans a little across your workspaces while the
+  windows slide a whole screen, so it reads as far away, and the patterns pan further,
+  each by its own depth. It follows a touchpad swipe as it goes, and the overview's
+  previews each show their own workspace's part. Pointer Tilt adds a small lean away from
+  the pointer on the desktop.
 - **Wherever your wallpaper shows.** The desktop, the overview, the workspace switcher and
   extensions that blur the background all show the patterns. The lock screen keeps your
   own wallpaper.
@@ -200,10 +214,11 @@ Open them in the Extensions app, or with `gnome-extensions prefs wallpaper-fx@ja
 
 - **Scenes**: Follow the Weather and the GNOME Weather place it follows, and your saved
   scenes.
-- **Patterns**: a switch for each pattern; open one for its Brightness, Speed and, where it
-  has one, Amount, and a Reset. Under All Patterns: Animation Speed, Pattern Opacity and Span All Monitors.
+- **Patterns**: a switch for each pattern, in Ambient, Weather and React groups; open one
+  for its Brightness, Speed and, where it has one, Amount, and a Reset. Under All Patterns: Animation Speed, Pattern Opacity and Span All Monitors.
 - **Background**: what the patterns are drawn over: Desktop Wallpaper, Accent Color, Color
-  Gradient (with its palette) or Custom Picture (PNG, JPEG or WebP).
+  Gradient (with its palette) or Custom Picture (PNG, JPEG or WebP). Under Parallax:
+  Workspace Parallax and its Travel, Pointer Tilt and its reach, and Pattern Depth.
 - **Performance**: the frame rate (every frame, every other frame, or about 60 or 30 a
   second, in step with each display), Pause While Covered (on by default) and Pause on
   Battery Power (off by default).

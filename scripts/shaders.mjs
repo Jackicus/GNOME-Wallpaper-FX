@@ -20,6 +20,8 @@
 //   --step SECONDS   time between them (default 0.5)
 //   --density D      the amount setting (default 1)
 //   --bg NAME        a palette name, or "black" (default Classic Blue)
+//
+// A React pattern is drawn with the pointer sweeping a loop across the canvas.
 
 import fs from 'fs';
 import os from 'os';
@@ -93,12 +95,30 @@ function uniforms(effect, { width, height, canvasWidth = width, originX = 0, t =
             width: canvasWidth, height, unit, seed: 0,
             rect: { x: originX, y: 0, width, height },
         });
-        for (const [name, n, values] of state.uniforms(t, d))
+        const pointer = effect.react ? sweep(t, width, height) : null;
+        for (const [name, n, values] of state.uniforms(t, d, pointer))
             lines.push(`${name} ${n} ${Array.from(values).join(' ')}`);
     }
     const file = path.join(work, 'uniforms.txt');
     fs.writeFileSync(file, `${lines.join('\n')}\n`);
     return file;
+}
+
+// A pointer sweeping a loop across the canvas, for the React patterns, as PointerTrail
+// would see it at time t: samples every 20 ms for three seconds, newest first.
+function sweep(t, width, height) {
+    const at = s => [width * (0.5 + 0.32 * Math.sin(0.8 * s)), height * (0.55 + 0.25 * Math.sin(1.7 * s))];
+    const samples = [];
+    let odometer = 0;
+    let last = at(0);
+    for (let s = 0.02; s <= t; s += 0.02) {
+        const [x, y] = at(s);
+        odometer += Math.hypot(x - last[0], y - last[1]);
+        last = [x, y];
+        if (t - s <= 3) samples.push({ x, y, age: t - s, odometer });
+    }
+    const trail = samples.reverse();
+    return { x: last[0], y: last[1], speed: 0, idle: 0, trail };
 }
 
 let binary = null;

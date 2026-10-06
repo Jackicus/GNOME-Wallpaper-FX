@@ -262,6 +262,10 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
                 title: 'Weather',
                 description: 'The patterns the weather scene draws, which you can also switch on yourself.',
             }),
+            new Adw.PreferencesGroup({
+                title: 'React',
+                description: 'Patterns that answer the pointer as it moves over the desktop.',
+            }),
         ];
         const lock = () => groups.forEach(g => (g.sensitive = !weather()));
         for (const group of groups) page.add(group);
@@ -297,7 +301,7 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
             reset.add_suffix(button);
             row.add_row(reset);
 
-            groups[effect.weather ? 1 : 0].add(row);
+            groups[effect.react ? 2 : effect.weather ? 1 : 0].add(row);
         }
 
         const all = new Adw.PreferencesGroup({ title: 'All Patterns' });

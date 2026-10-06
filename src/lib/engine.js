@@ -49,7 +49,7 @@ export class MonitorRenderer {
         this._view = view;
         this._clock = clock;
         this._timerId = 0;
-        this._layers = new Map(); // pattern id -> { id, actor, effect, state, rect, travel, density, t }
+        this._layers = new Map(); // pattern id -> { id, actor, effect, state, rect, travel, react, density, t }
         this._at = [0, 0];
 
         this.actor = new Clutter.Actor({
@@ -120,6 +120,7 @@ export class MonitorRenderer {
                 : null,
             rect,
             travel: own,
+            react: effect.react ?? false,
             density: 1,
             t: -1,
         };
@@ -172,7 +173,11 @@ export class MonitorRenderer {
             const epoch = Math.floor(t / EPOCH_S) * EPOCH_S;
             layer.effect.setUniform('u_epoch', 1, [epoch]);
             layer.effect.setUniform('u_time', 1, [t - epoch]);
-            for (const [name, components, values] of layer.state?.uniforms(t, layer.density) ?? [])
+            // A React pattern sees the pointer where its canvas has it, parallax and all.
+            const pointer = layer.react && this._state.pointer
+                ? this._state.pointer.view([layer.rect.x - this.monitor.x, layer.rect.y - this.monitor.y])
+                : null;
+            for (const [name, components, values] of layer.state?.uniforms(t, layer.density, pointer) ?? [])
                 layer.effect.setUniform(name, components, values);
         }
 

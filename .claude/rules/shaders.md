@@ -48,7 +48,7 @@ pattern the prelude: hashes, value noise, `glow()`, `line()`, and the time helpe
 - **Every `State` is a pure function of time.** Spanned monitors each run their own, and
   a monitor that sat paused must pick up exactly where the others are; anything random
   comes from a hash of an index (starfield's meteors are one per eight-second slot).
-- **All sixteen together** take about 3.8 ms of GPU time on the main desktop's GTX 1080 at
+- **All nineteen together** take about 4.2 ms of GPU time on the main desktop's GTX 1080 at
   1080p, and the compositor thread there does about 4% of a core at 60 FPS in the nested
   shell whichever are on.
 - **No `GTypeName`**: GJS names a class after its module's path, so the development
