@@ -54,8 +54,10 @@ offline tools) and `background.md` (the base and the overview's clones).
   its part of one spanning all of them), builds one `MonitorRenderer` per monitor into
   `Main.layoutManager._backgroundGroup` (over the wallpaper, under the windows),
   rebuilds on `monitors-changed`, refits the layers' canvases in place on
-  `span-monitors` and the `parallax` and `pointer-tilt` keys (`MonitorRenderer.setView()`,
-  so nothing fades), and pushes new state on any other settings change.
+  `span-monitors`, the `parallax` and `pointer-tilt` keys, mutter's
+  `workspaces-only-on-primary` and the workspace layout's `layout-rows`
+  (`MonitorRenderer.setView()`, so nothing fades), and pushes new state on any other
+  settings change.
 - `lib/engine.js`: `MonitorRenderer`, a monitor-sized actor with one child per enabled
   pattern, each painted by that pattern's shader effect and faded in and out as it is
   switched; the frame pacing; and `SceneClock`, one clock per pattern (for its own
