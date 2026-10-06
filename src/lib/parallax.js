@@ -1,9 +1,12 @@
 import Clutter from 'gi://Clutter';
+import GdkPixbuf from 'gi://GdkPixbuf';
+import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import GLib from 'gi://GLib';
 import Graphene from 'gi://Graphene';
 import Meta from 'gi://Meta';
 import St from 'gi://St';
+import { FADE_ANIMATION_TIME } from 'resource:///org/gnome/shell/ui/background.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { WINDOW_ANIMATION_TIME } from 'resource:///org/gnome/shell/ui/workspaceAnimation.js';
 
@@ -15,18 +18,22 @@ import { canvasAround, desktopCovered } from './engine.js';
 export class Parallax {
     constructor(renderers) {
         this._renderers = renderers;
-        this._options = { amount: 0, tilt: 0, span: false };
+        this._options = { amount: 0, tilt: 0, span: false, picture: null };
         this._workspaces = null;
         this._pan = null;
         this._tilts = [];
         this._laterId = 0;
         this._managers = [];
+        this._panoramas = new Map();
+        this._image = null;
+        this._cancellable = null;
         this._previews = [];
         this._count = 0;
     }
 
     // `amount` is the wallpaper's travel across the workspaces and `tilt` its reach
-    // either side of centre, each a share of the monitor; both 0 is off.
+    // either side of centre, each a share of the monitor; both 0 is off. `picture` is
+    // the base's file, when it is one.
     update(options) {
         this.destroy();
         this._options = options;
@@ -63,6 +70,23 @@ export class Parallax {
         for (const manager of this._managers)
             manager.connectObject('changed', () => this._place(), this);
 
+        // A picture wider than the monitor's shape (taller, with the workspaces in a
+        // column) has room of its own, which the shell's wallpaper crops away.
+        if (options.picture && !options.span) {
+            const cancellable = new Gio.Cancellable();
+            this._cancellable = cancellable;
+            GdkPixbuf.Pixbuf.get_file_info_async(options.picture, cancellable, (_source, result) => {
+                try {
+                    const [, width, height] = GdkPixbuf.Pixbuf.get_file_info_finish(result);
+                    this._image = [width, height];
+                } catch {
+                    // Cancelled, or not a picture: the shell's wallpaper is enough.
+                    return;
+                }
+                this._showPanoramas();
+            });
+        }
+
         this._place();
     }
 
@@ -76,6 +100,11 @@ export class Parallax {
         this._workspaces.disconnectObject(this);
         this._workspaces = null;
         this.restorePreviews();
+        this._cancellable?.cancel();
+        this._cancellable = null;
+        this._image = null;
+        for (const panorama of this._panoramas.values()) panorama.destroy();
+        this._panoramas.clear();
         for (const adjustment of [this._pan, ...this._tilts.flat()]) {
             adjustment.remove_transition('value');
             adjustment.disconnectObject(this);
@@ -101,7 +130,9 @@ export class Parallax {
 
     // The desktop's wallpaper for the workspace slide, panning there as it does here.
     wallpaperFor(index) {
-        const actor = this._workspaces ? this._managers[index]?.backgroundActor : null;
+        const actor = this._workspaces
+            ? this._panoramas.get(index) ?? this._managers[index]?.backgroundActor
+            : null;
         if (!actor) return null;
 
         const clone = new Clutter.Clone({ source: actor, width: actor.width, height: actor.height });
@@ -123,7 +154,8 @@ export class Parallax {
             const index = background?._monitorIndex;
             const actor = background?._bgManager?.backgroundActor;
             const amount = this._amountOn(index);
-            if (!actor || amount <= 0) continue;
+            // A panorama is not the shell's to show: its preview keeps the whole wallpaper.
+            if (!actor || amount <= 0 || this._panoramas.has(index)) continue;
 
             const at = this._fraction(workspace.metaWorkspace.index());
             const pivot = vertical ? [0.5, at] : [at, 0.5];
@@ -211,6 +243,47 @@ export class Parallax {
         });
     }
 
+    // How big a monitor's wallpaper is drawn: the shell's grown evenly by the travel and
+    // the tilt's reach, or a panorama at the cover size, grown only where that falls short.
+    _size(monitor, index, panorama) {
+        const vertical = global.workspace_manager.layout_rows === -1;
+        const spare = this._amountOn(index) + 2 * this._options.tilt;
+        if (!panorama) return [monitor.width * (1 + spare), monitor.height * (1 + spare)];
+
+        const [width, height] = this._image;
+        const cover = Math.max(monitor.width / width, monitor.height / height);
+        const [needX, needY] = vertical
+            ? [2 * this._options.tilt, spare]
+            : [spare, 2 * this._options.tilt];
+        const zoom = Math.max(1,
+            monitor.width * (1 + needX) / (width * cover),
+            monitor.height * (1 + needY) / (height * cover));
+        return [width * cover * zoom, height * cover * zoom];
+    }
+
+    _showPanoramas() {
+        const vertical = global.workspace_manager.layout_rows === -1;
+        const [width, height] = this._image;
+        const file = Gio.File.new_for_path(this._options.picture);
+
+        Main.layoutManager.monitors.forEach((monitor, index) => {
+            const room = vertical
+                ? height / width > 1.01 * monitor.height / monitor.width
+                : width / height > 1.01 * monitor.width / monitor.height;
+            const under = this._managers[index]?.backgroundActor;
+            if (!room || !under) return;
+
+            // Loaded off the compositor's thread, at no more than the size it is drawn.
+            const [drawnWidth, drawnHeight] = this._size(monitor, index, true).map(Math.round);
+            const panorama = St.TextureCache.get_default().load_file_async(file, drawnWidth, drawnHeight, 1, 1);
+            panorama.set({ x: monitor.x, y: monitor.y, width: drawnWidth, height: drawnHeight, opacity: 0 });
+            under.get_parent().insert_child_above(panorama, under);
+            panorama.ease({ opacity: 255, duration: FADE_ANIMATION_TIME, mode: Clutter.AnimationMode.EASE_OUT_QUAD });
+            this._panoramas.set(index, panorama);
+        });
+        this._place();
+    }
+
     _place() {
         const at = this._pan.value;
         const vertical = global.workspace_manager.layout_rows === -1;
@@ -221,25 +294,32 @@ export class Parallax {
             const spare = amount + 2 * tilt;
             if (spare <= 0) return;
 
-            // Along the workspaces: the tilt's reach, the travel, then the reach again.
-            // Across them the zoom leaves more than the tilt needs, so it is centred.
+            // Along the workspaces: whatever room is not needed either side, the tilt's
+            // reach, the travel, then the reach again. Across them, centred.
             const [tiltX, tiltY] = this._tilts[index]?.map(a => a.value) ?? [0, 0];
-            const along = (tilt + amount * at + tilt * (vertical ? tiltY : tiltX)) / spare;
-            const across = 0.5 + (tilt / spare) * (vertical ? tiltX : tiltY);
-            const [viewX, viewY] = vertical ? [across, along] : [along, across];
+            const [tiltAlong, tiltAcross] = vertical ? [tiltY, tiltX] : [tiltX, tiltY];
+            const [sizeAlong, sizeAcross] = vertical ? [monitor.height, monitor.width] : [monitor.width, monitor.height];
+            const offset = ([drawnWidth, drawnHeight]) => {
+                const [drawnAlong, drawnAcross] = vertical ? [drawnHeight, drawnWidth] : [drawnWidth, drawnHeight];
+                const along = (drawnAlong - sizeAlong * (1 + spare)) / 2 +
+                    (tilt + amount * at + tilt * tiltAlong) * sizeAlong;
+                const across = (drawnAcross - sizeAcross) / 2 + tilt * tiltAcross * sizeAcross;
+                return (vertical ? [across, along] : [along, across]).map(v => -Math.round(v));
+            };
 
             // Grown evenly, so the picture keeps its shape. The content's own size wins
             // over a set one until the request mode changes.
             const actor = this._managers[index]?.backgroundActor;
             if (actor) {
+                const size = this._size(monitor, index, false);
                 actor.request_mode = Clutter.RequestMode.HEIGHT_FOR_WIDTH;
-                actor.set_size(monitor.width * (1 + spare), monitor.height * (1 + spare));
-                actor.set_translation(
-                    -Math.round(monitor.width * spare * viewX),
-                    -Math.round(monitor.height * spare * viewY),
-                    0);
+                actor.set_size(...size);
+                actor.set_translation(...offset(size), 0);
             }
+            const panorama = this._panoramas.get(index);
+            if (panorama) panorama.set_translation(...offset(panorama.get_size()), 0);
 
+            const along = (tilt + amount * at + tilt * tiltAlong) / spare;
             const patterns = vertical
                 ? [0.5 + 0.5 * tiltX, along]
                 : [along, 0.5 + 0.5 * tiltY];

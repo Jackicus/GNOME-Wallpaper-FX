@@ -87,7 +87,7 @@
       <description>Slide the wallpaper and pattern layers with workspace switches.</description>
     </key>
     <key name="parallax-amount" type="d">
-      <range min="0.02" max="0.25"/>
+      <range min="0.02" max="1"/>
       <default>0.08</default>
       <summary>Workspace parallax amount</summary>
       <description>Total travel across workspaces as a share of the monitor's width.</description>
