@@ -233,9 +233,11 @@ export class Parallax {
     // The pointer's place on its monitor (or across them all, spanned), -1 to 1 each
     // way; the others go back to centre. A monitor whose desktop is covered holds
     // still, and nothing moves during a slide, in the overview or with animations off.
+    // A slide is asked for, not read off the position: in a column of workspaces the
+    // shell's slide comes to rest short of the index (private: docs/private-api.md).
     _aim() {
         if (!St.Settings.get().enable_animations || Main.overview.visible ||
-            !Number.isInteger(this._workspaces.value))
+            Main.wm._workspaceAnimation?._switchData)
             return;
 
         const [x, y] = global.get_pointer();
