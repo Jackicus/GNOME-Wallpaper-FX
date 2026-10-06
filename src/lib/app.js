@@ -101,6 +101,7 @@ export class WallpaperFxApp {
             // already the weather's; hence the test below.
             this._weather = new WeatherWatcher(this._settings, () => {
                 if (this._background) this._baseChanged();
+                this._followPointer();
                 this._push(this._state());
             });
         } else if (!on && this._weather) {
