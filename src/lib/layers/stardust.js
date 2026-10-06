@@ -4,11 +4,13 @@ import { around, num, pathMarks, seeded } from '../layer.js';
 // settling FALL U a second, gone within LIFE seconds. A mote's look comes from its
 // index along the path, so it keeps it while it lives.
 const MOTES = 64;
-const SPACING = 12;
-const SCATTER = 16;
-const FALL = 22;
-const LIFE = 1.8;
-const REACH = 14;
+const SPACING = 18;
+const SCATTER = 18;
+const FALL = 20;
+const LIFE = 2.2;
+// The largest motes flare in a cross, fading over FLARE U, and REACH is where it has faded out.
+const FLARE = 7;
+const REACH = 20;
 
 export const density = [0.5, 2];
 
@@ -26,10 +28,18 @@ vec4 stardust(vec2 p) {
         float d2 = dot(o, o);
         if (d2 > ${num(REACH * REACH)} * U * U) continue;
 
-        float twinkle = 0.55 + 0.45 * sin(wphase(7.0 + 6.0 * m.w) + m.w * TAU);
-        vec3 tint = mix(vec3(1.0, 0.86, 0.58), vec3(0.74, 0.84, 1.0), step(0.72, m.w));
-        vec4 g = glow(sqrt(d2), (3.0 + 4.0 * m.w) * U, tint, 0.35);
-        c += g * m.z * m.z * twinkle * (1.0 - c.a);
+        float twinkle = 0.75 + 0.25 * sin(wphase(5.0 + 4.0 * m.w) + m.w * TAU);
+        float fade = m.z * m.z * (3.0 - 2.0 * m.z) * (1.0 - smoothstep(0.94, 1.0, m.z));
+        vec3 tint = mix(vec3(1.0, 0.88, 0.62), vec3(0.78, 0.87, 1.0), step(0.72, m.w));
+        vec4 g = glow(sqrt(d2), (4.5 + 4.5 * m.w) * U, tint, 0.4);
+        if (m.w > 0.6) {
+            vec2 q = abs(o) / U;
+            float a = (m.w - 0.6) / 0.4;
+            float len = ${num(FLARE)} * a + 1.0;
+            float f = 0.45 * a * (exp(-q.y * q.y - q.x / len) + exp(-q.x * q.x - q.y / len));
+            g += vec4(tint * f, f) * (1.0 - g.a);
+        }
+        c += g * fade * twinkle * (1.0 - c.a);
     }
     return c;
 }
