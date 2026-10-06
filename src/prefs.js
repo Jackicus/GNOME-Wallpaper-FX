@@ -312,15 +312,10 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
         settings.bind('speed', speed, 'value', Gio.SettingsBindFlags.DEFAULT);
         all.add(speed);
 
-        const opacity = new Adw.SpinRow({
+        all.add(this._percentRow(ui, 'opacity', [10, 100, 5], {
             title: 'Pattern Opacity (%)',
             subtitle: 'How strongly the patterns show over the background',
-            adjustment: new Gtk.Adjustment({ lower: 10, upper: 100, step_increment: 5 }),
-        });
-        opacity.connect('notify::value', this._follow(ui, 'opacity',
-            () => opacity.set_value(Math.round(settings.get_double('opacity') * 100)),
-            () => settings.set_double('opacity', opacity.get_value() / 100)));
-        all.add(opacity);
+        }));
 
         all.add(this._switchRow(ui, 'span-monitors', {
             title: 'Span All Monitors',
@@ -328,6 +323,19 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
         }));
 
         return page;
+    }
+
+    // A double key shown in percent.
+    _percentRow(ui, key, [lower, upper, step], props) {
+        const { settings } = ui;
+        const row = new Adw.SpinRow({
+            ...props,
+            adjustment: new Gtk.Adjustment({ lower, upper, step_increment: step }),
+        });
+        row.connect('notify::value', this._follow(ui, key,
+            () => row.set_value(Math.round(settings.get_double(key) * 100)),
+            () => settings.set_double(key, row.get_value() / 100)));
+        return row;
     }
 
     _tuningRow(ui, effect, key, title, [low, high]) {
@@ -424,37 +432,28 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
         applyMode();
         ui.watch('background-mode', applyMode);
 
-        const parallaxGroup = new Adw.PreferencesGroup({
-            title: 'Parallax',
-            description: 'Slide the wallpaper and pattern layers with workspace switches.',
-        });
-        page.add(parallaxGroup);
+        const parallax = new Adw.PreferencesGroup({ title: 'Parallax' });
+        page.add(parallax);
 
-        parallaxGroup.add(this._switchRow(ui, 'parallax', {
+        parallax.add(this._switchRow(ui, 'parallax', {
             title: 'Workspace Parallax',
-            subtitle: 'Wallpaper slides behind windows during workspace transitions',
+            subtitle: 'The background slides a little as you change workspace, as if far away',
         }));
 
-        const amountRow = new Adw.ActionRow({
-            title: 'Parallax Amount',
-            subtitle: 'Total travel across workspaces as a share of monitor width',
-        });
-        const scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 2, 25, 1);
-        scale.set({
-            width_request: 200,
-            valign: Gtk.Align.CENTER,
-            draw_value: true,
-            value_pos: Gtk.PositionType.LEFT,
-            digits: 0,
-        });
-        scale.set_format_value_func((_scale, value) => `${Math.round(value)}%`);
-        scale.connect('value-changed', this._follow(ui, 'parallax-amount',
-            () => scale.set_value(Math.round(settings.get_double('parallax-amount') * 100)),
-            () => settings.set_double('parallax-amount', scale.get_value() / 100)));
-        amountRow.add_suffix(scale);
-        parallaxGroup.add(amountRow);
-
-        const syncParallax = () => (amountRow.sensitive = settings.get_boolean('parallax'));
+        const parallaxRows = [
+            this._percentRow(ui, 'parallax-amount', [2, 25, 1], {
+                title: 'Travel (%)',
+                subtitle: 'How far the wallpaper moves from the first workspace to the last',
+            }),
+            this._percentRow(ui, 'parallax-depth', [0, 200, 10], {
+                title: 'Pattern Depth (%)',
+                subtitle: 'How much further the patterns move, each by its own distance',
+            }),
+        ];
+        const syncParallax = () => {
+            for (const row of parallaxRows) row.sensitive = settings.get_boolean('parallax');
+        };
+        for (const row of parallaxRows) parallax.add(row);
         syncParallax();
         ui.watch('parallax', syncParallax);
 
