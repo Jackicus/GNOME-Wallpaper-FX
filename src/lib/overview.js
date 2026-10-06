@@ -87,7 +87,7 @@ export class OverviewCanvas {
     }
 
     _joinSlide(switchData) {
-        if (this._parallax?.joinSlide(switchData, this._sourceFor)) return;
+        if (this._parallax.joinSlide(switchData)) return;
 
         for (const strip of switchData.monitors ?? []) {
             const index = strip._monitor?.index;

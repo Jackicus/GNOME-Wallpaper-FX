@@ -64,7 +64,7 @@ export class WallpaperFxApp {
         this._overview.destroy();
         this._overview = null;
 
-        this._parallax?.destroy();
+        this._parallax.destroy();
         this._parallax = null;
 
         this._weather?.destroy();
@@ -178,14 +178,14 @@ export class WallpaperFxApp {
         this._background.update(this._state());
         this._build();
         this._overview.invalidate();
-        this._parallax?.update(this._state());
+        this._parallax.update(this._state());
     }
 
     _push(state) {
         this._tuneClock(state);
         for (const renderer of this._renderers.values())
             renderer.setState(state);
-        this._parallax?.update(state);
+        this._parallax.update(state);
     }
 
     _tuneClock(state) {

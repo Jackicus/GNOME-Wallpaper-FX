@@ -6,6 +6,7 @@ import { FADE_ANIMATION_TIME } from 'resource:///org/gnome/shell/ui/background.j
 
 import { EFFECTS } from './catalog.js';
 import { EPOCH_S, effectClass } from './shader.js';
+import { PATTERN_PARALLAX_FACTOR } from './parallax.js';
 
 // A longer gap between paints is a pause: the animation picks up where it stopped.
 const MAX_STEP_S = 0.1;
@@ -73,7 +74,7 @@ export class MonitorRenderer {
 
         const vertical = global.workspace_manager.layout_rows === -1;
         const mDim = vertical ? this.monitor.height : this.monitor.width;
-        const extra = state.parallax ? Math.ceil(2.5 * state.parallaxAmount * mDim) : 0;
+        const extra = state.parallax ? Math.ceil(PATTERN_PARALLAX_FACTOR * state.parallaxAmount * mDim) : 0;
         const canvasWidth = this.monitor.width + (vertical ? 0 : extra);
         const canvasHeight = this.monitor.height + (vertical ? extra : 0);
         if (canvasWidth !== this._canvasWidth || canvasHeight !== this._canvasHeight) {
