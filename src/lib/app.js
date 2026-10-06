@@ -61,6 +61,11 @@ export class WallpaperFxApp {
 
         this._interface.connectObject('changed::accent-color',
             () => this._background.update(this._state()), this);
+
+        // Which monitors switch workspaces, and along which axis, set each one's travel.
+        this._mutter = new Gio.Settings({ schema_id: 'org.gnome.mutter' });
+        this._mutter.connectObject('changed::workspaces-only-on-primary', () => this._reframe(), this);
+        global.workspace_manager.connectObject('notify::layout-rows', () => this._reframe(), this);
     }
 
     disable() {
@@ -68,6 +73,9 @@ export class WallpaperFxApp {
         this._settings.disconnectObject(this);
         this._interface.disconnectObject(this);
         this._interface = null;
+        this._mutter.disconnectObject(this);
+        this._mutter = null;
+        global.workspace_manager.disconnectObject(this);
 
         this._overview.destroy();
         this._overview = null;
