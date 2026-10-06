@@ -28,6 +28,7 @@ because `src/` is changing; functions are named instead.
 | `Main.wm._workspaceAnimation`, override of `_prepareWorkspaceSwitch` | overview.js | Patterns vanish during a workspace slide only | Yes, silently |
 | `this._switchData.monitors`, `strip._monitor`, `strip._workspaceGroups`, `group._background` | overview.js | Same | Yes, silently |
 | `Main.layoutManager._bgManagers`, `manager.backgroundActor`, its `changed` signal | parallax.js | Parallax moves the patterns only, never the wallpaper | Yes, silently |
+| `workspace._background._bgManager.backgroundActor`, `._monitorIndex` | parallax.js | The overview's previews show the whole wallpaper, as without parallax | Yes, silently |
 | `class extends Shell.GLSLEffect` | shader.js | `enable()` throws and the extension shows as errored with the base taken over (below). **Removed in GNOME 51** | No |
 | `vfunc_paint_target(node, paintContext)` | shader.js | Patterns freeze on their first frame | No |
 | `Cogl.SnippetHook.FRAGMENT` | shader.js | Every pattern fails to build | No |
@@ -510,6 +511,24 @@ builds new managers on `monitors-changed`, and app.js calls `update()` again the
 
 **If it changes.** With no `_bgManagers` the wallpaper stays still and the
 patterns still pan.
+
+### `workspace._background._bgManager.backgroundActor` for the previews (parallax.js)
+
+**What for.** Each overview preview has the shell's own wallpaper actor
+(`WorkspaceBackground` in `ui/workspace.js`), allocated to the preview's size,
+which animates as the overview opens. `placePreviews()` zooms it by a scale about
+a normalized pivot at the workspace's place along the panorama, so it shows that
+workspace's part at any size. The shell rounds the preview's corners inside the
+content, at the work area in the content's own pixels
+(`set_rounded_clip_bounds()`, public on `Meta.BackgroundContent`); under the zoom
+those bounds are mapped back through the pivot, or the corners land outside the
+preview and it shows square. `restorePreviews()`, on `hidden` and whenever the
+previews are placed again, puts back scale 1 and the work area. The shell's own
+`_updateRoundedClipBounds()` runs again only on `workareas-changed` and a new
+wallpaper, which in the overview are rare; the preview then shows square corners
+until the overview next opens.
+
+**If it changes.** Without `_bgManager` the previews are left alone.
 
 ## The renderer (shader.js, engine.js)
 

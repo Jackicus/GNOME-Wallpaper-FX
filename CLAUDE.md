@@ -76,7 +76,8 @@ offline tools) and `background.md` (the base and the overview's clones).
   (`Main.createWorkspacesAdjustment()`), and the patterns panned further through
   `MonitorRenderer.pan()`: each its catalog `depth` times the wallpaper's travel, scaled by
   `parallax-depth`, across a canvas of its own made that much longer.
-  `overview.js` puts the panned wallpaper under the slide's strip.
+  `overview.js` puts the panned wallpaper under the slide's strip, and has each overview
+  preview zoomed to its own workspace's part (`placePreviews()`).
 - `lib/system.js`: the system's say: UPower's `OnBattery` (for `pause-on-battery`),
   power-profiles-daemon's active profile, and St's `enable-animations`.
 - `lib/weather.js`: `WeatherWatcher`, for the weather scene: the place (the first in

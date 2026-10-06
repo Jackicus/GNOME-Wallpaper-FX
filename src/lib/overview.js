@@ -38,9 +38,9 @@ class WallpaperFxPreviewHost extends Clutter.Actor {
 });
 
 export class OverviewCanvas {
-    constructor(sourceFor, wallpaperFor) {
+    constructor(sourceFor, parallax) {
         this._sourceFor = sourceFor;
-        this._wallpaperFor = wallpaperFor;
+        this._parallax = parallax;
         this._clones = [];
         this._attached = false;
         this._slideHook = null;
@@ -92,7 +92,7 @@ export class OverviewCanvas {
             const source = index === undefined ? null : this._sourceFor(index);
 
             // Parallax: one wallpaper under the whole strip, moving at its own pace.
-            const panned = index === undefined ? null : this._wallpaperFor(index);
+            const panned = index === undefined ? null : this._parallax.wallpaperFor(index);
             if (panned) {
                 for (const group of strip._workspaceGroups ?? [])
                     group._background?.get_first_child()?.hide();
@@ -118,8 +118,10 @@ export class OverviewCanvas {
         this._attached = true;
 
         const monitors = Main.layoutManager.monitors;
+        const previews = this._workspacePreviews();
+        this._parallax.placePreviews(previews);
 
-        for (const workspace of this._workspacePreviews()) {
+        for (const workspace of previews) {
             const background = workspace._background;
             const group = background?._backgroundGroup;
             const index = background?._monitorIndex;
@@ -165,6 +167,7 @@ export class OverviewCanvas {
 
     _detach() {
         this._attached = false;
+        this._parallax.restorePreviews();
         for (const actor of [...this._clones]) actor.destroy();
         this._clones = [];
     }
