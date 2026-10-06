@@ -71,13 +71,15 @@ offline tools) and `background.md` (the base and the overview's clones).
 - `lib/overview.js`: the patterns cloned into the overview's workspace previews, its
   thumbnail strip, and the workspace-slide strip. Without it the desktop goes bare the
   moment any of those appear.
-- `lib/parallax.js`: `WorkspaceParallax`, with `parallax` on: the desktop's wallpaper
-  grown evenly by `parallax-amount` and panned across it with the workspace position
-  (`Main.createWorkspacesAdjustment()`), and the patterns panned further through
-  `MonitorRenderer.pan()`: each its catalog `depth` times the wallpaper's travel, scaled by
-  `parallax-depth`, across a canvas of its own made that much longer.
-  `overview.js` puts the panned wallpaper under the slide's strip, and has each overview
-  preview zoomed to its own workspace's part (`placePreviews()`).
+- `lib/parallax.js`: `Parallax`, for `parallax` and `pointer-tilt`: the desktop's wallpaper
+  grown evenly by the travel both need and moved inside it, by the workspace position
+  (`Main.createWorkspacesAdjustment()`) along the workspaces and by the pointer's place on
+  its monitor (or on all of them, spanned) either way; the patterns move further through
+  `MonitorRenderer.pan()`, each its catalog `depth` times the wallpaper, scaled by
+  `parallax-depth`, across a canvas of its own made that much longer. The tilt rests while
+  the desktop is covered, in a slide, in the overview and with animations off. `overview.js`
+  puts the moved wallpaper under the slide's strip, and has each overview preview zoomed to
+  its own workspace's part (`placePreviews()`).
 - `lib/system.js`: the system's say: UPower's `OnBattery` (for `pause-on-battery`),
   power-profiles-daemon's active profile, and St's `enable-animations`.
 - `lib/weather.js`: `WeatherWatcher`, for the weather scene: the place (the first in

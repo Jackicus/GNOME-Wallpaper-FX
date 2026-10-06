@@ -440,22 +440,36 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
             subtitle: 'The background slides a little as you change workspace, as if far away',
         }));
 
-        const parallaxRows = [
-            this._percentRow(ui, 'parallax-amount', [2, 25, 1], {
-                title: 'Travel (%)',
-                subtitle: 'How far the wallpaper moves from the first workspace to the last',
-            }),
-            this._percentRow(ui, 'parallax-depth', [0, 200, 10], {
-                title: 'Pattern Depth (%)',
-                subtitle: 'How much further the patterns move, each by its own distance',
-            }),
-        ];
+        const travel = this._percentRow(ui, 'parallax-amount', [2, 25, 1], {
+            title: 'Travel (%)',
+            subtitle: 'How far the wallpaper moves from the first workspace to the last',
+        });
+        parallax.add(travel);
+
+        parallax.add(this._switchRow(ui, 'pointer-tilt', {
+            title: 'Pointer Tilt',
+            subtitle: 'The background leans away from the pointer on the desktop',
+        }));
+        const reach = this._percentRow(ui, 'pointer-tilt-amount', [1, 5, 1], {
+            title: 'Tilt (%)',
+            subtitle: 'How far the wallpaper moves either side of centre',
+        });
+        parallax.add(reach);
+
+        const depth = this._percentRow(ui, 'parallax-depth', [0, 200, 10], {
+            title: 'Pattern Depth (%)',
+            subtitle: 'How much further the patterns move, each by its own distance',
+        });
+        parallax.add(depth);
+
         const syncParallax = () => {
-            for (const row of parallaxRows) row.sensitive = settings.get_boolean('parallax');
+            travel.sensitive = settings.get_boolean('parallax');
+            reach.sensitive = settings.get_boolean('pointer-tilt');
+            depth.sensitive = travel.sensitive || reach.sensitive;
         };
-        for (const row of parallaxRows) parallax.add(row);
         syncParallax();
         ui.watch('parallax', syncParallax);
+        ui.watch('pointer-tilt', syncParallax);
 
         return page;
     }

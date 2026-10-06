@@ -50,7 +50,7 @@ export class MonitorRenderer {
         this._clock = clock;
         this._timerId = 0;
         this._layers = new Map(); // pattern id -> { id, actor, effect, state, rect, travel, density, t }
-        this._at = 0;
+        this._at = [0, 0];
 
         this.actor = new Clutter.Actor({
             name: `WallpaperFx-Monitor-${monitor.index}`,
@@ -138,9 +138,9 @@ export class MonitorRenderer {
         return layer;
     }
 
-    // Parallax: the monitor's view slides across each layer's longer canvas.
-    pan(at) {
-        this._at = at;
+    // Parallax: the monitor's view slides across each layer's longer canvas, 0 to 1 each way.
+    pan(x, y) {
+        this._at = [x, y];
         for (const layer of this._layers.values()) {
             this._place(layer);
             layer.effect.queue_repaint();
@@ -150,8 +150,8 @@ export class MonitorRenderer {
     // The State reads the same rect, so what it culls to follows the view.
     _place(layer) {
         const { canvas } = this._view;
-        layer.rect.x = this.monitor.x - canvas.x + layer.travel[0] * this._at;
-        layer.rect.y = this.monitor.y - canvas.y + layer.travel[1] * this._at;
+        layer.rect.x = this.monitor.x - canvas.x + layer.travel[0] * this._at[0];
+        layer.rect.y = this.monitor.y - canvas.y + layer.travel[1] * this._at[1];
         layer.effect.setUniform('u_origin', 2, [layer.rect.x, layer.rect.y]);
     }
 
@@ -210,7 +210,7 @@ export class MonitorRenderer {
 
 // Clutter culls a covered background, but the strip under the panel keeps it
 // painting; this lets it rest.
-function desktopCovered(index) {
+export function desktopCovered(index) {
     if (global.display.get_monitor_in_fullscreen(index)) return true;
 
     const area = Main.layoutManager.getWorkAreaForMonitor(index);
@@ -242,4 +242,15 @@ function subtract(a, b) {
     if (a.x < x1) pieces.push({ x: a.x, y: y1, width: x1 - a.x, height: y2 - y1 });
     if (x2 < a.x + a.width) pieces.push({ x: x2, y: y1, width: a.x + a.width - x2, height: y2 - y1 });
     return pieces;
+}
+
+export function canvasAround(monitors) {
+    const x = Math.min(...monitors.map(m => m.x));
+    const y = Math.min(...monitors.map(m => m.y));
+    return {
+        x,
+        y,
+        width: Math.max(...monitors.map(m => m.x + m.width)) - x,
+        height: Math.max(...monitors.map(m => m.y + m.height)) - y,
+    };
 }
