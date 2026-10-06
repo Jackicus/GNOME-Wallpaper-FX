@@ -37,8 +37,8 @@ export class State { ... }
   with its id (`drizzleDrop`, `drizzle_meteor`), because a pattern's GLSL is
   compiled alongside the shared prelude and names must not collide.
 - The catalog entry adds `id`, `title` and `desc` (the prefs dialog shows the
-  last two), `weather: true` for a pattern the weather scene draws (prefs lists
-  those under their own heading), `depth` (how many times as far as the wallpaper
+  last two), `weather: true` for a pattern the weather scene draws and `react: true`
+  for one that answers the pointer (prefs lists each under its own heading), `depth` (how many times as far as the wallpaper
   it pans with parallax: about 1.2 for a far sky, 3.5 for what is nearest) and
   spreads the module in.
 
@@ -129,7 +129,17 @@ the constructor: parallax moves it. `uniforms(t, density)`
 returns `[name, components, values]` triples and is called once a frame with
 the pattern's time in double precision.
 
-**It must be a pure function of `t`** (and its constructor arguments): no
+A React pattern's `uniforms(t, density, pointer)` also gets the pointer, in this
+layer's canvas pixels with parallax and spanning taken in: `x`, `y`, `speed` (px/s
+over the last tenth of a second), `idle` (seconds since it last moved) and `trail`,
+its samples over the last three seconds, newest first, each `{ x, y, age, odometer }`
+in real seconds and px travelled. `pointer` is null when there is none, as in
+`render` without one. `pathMarks()` in `layer.js` places marks along the path that
+stay put as the trail grows; `around()` gives a box for the shader to leave early
+outside of.
+
+**It must be a pure function of `t`** (and the pointer, for a React pattern, which
+every monitor sees alike, and its constructor arguments): no
 `Math.random`, no state carried from frame to frame. Two monitors spanning one
 picture each run their own `State`, and they must agree; a monitor that sat
 paused behind a window must pick up exactly where the other one is. Use
@@ -183,5 +193,6 @@ node scripts/shaders.mjs render src/lib/layers/drizzle.js --out drizzle.png \
 desktop, into one PNG, the frames stacked top to bottom — the quickest way to
 see what a change did and how it moves. `--span 2` draws two monitors side by
 side as one spanned canvas, with the seam marked, to check the picture runs
-across it. Then look at it for real in the nested shell (`make nested`), where
+across it. A React pattern is drawn with the pointer sweeping a loop across the
+canvas. Then look at it for real in the nested shell (`make nested`), where
 the motion can be judged.

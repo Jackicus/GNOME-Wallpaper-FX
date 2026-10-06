@@ -8,6 +8,8 @@ import { OverviewCanvas } from './overview.js';
 import { ShellBackground } from './background.js';
 import { WeatherWatcher } from './weather.js';
 import { Parallax } from './parallax.js';
+import { PointerTrail } from './pointer.js';
+import { EFFECTS } from './catalog.js';
 
 const BASE_KEYS = new Set([
     'background-mode', 'color-palette', 'custom-image', 'span-monitors', 'weather', 'weather-background',
@@ -24,7 +26,9 @@ export class WallpaperFxApp {
         this._interface = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' });
         this._system = new SystemState(() => this._push(this._state()));
         this._weather = null;
+        this._pointer = null;
         this._followWeather();
+        this._followPointer();
 
         this._background = new ShellBackground();
         this._background.update(this._state());
@@ -43,6 +47,7 @@ export class WallpaperFxApp {
             // Written by the weather itself, which says when its look changes.
             if (key === 'weather-status') return;
             if (key === 'weather') this._followWeather();
+            if (key === 'enabled-effects' || key === 'weather') this._followPointer();
             if (key === 'span-monitors' || key.startsWith('parallax') || key.startsWith('pointer-tilt')) {
                 this._rebuild();
                 return;
@@ -71,6 +76,9 @@ export class WallpaperFxApp {
         this._weather?.destroy();
         this._weather = null;
 
+        this._pointer?.destroy();
+        this._pointer = null;
+
         this._system.destroy();
         this._system = null;
 
@@ -98,6 +106,18 @@ export class WallpaperFxApp {
         }
     }
 
+    // Followed only while a React pattern is on.
+    _followPointer() {
+        const ids = this._weather?.look?.['enabled-effects'] ?? this._settings.get_strv('enabled-effects');
+        const wanted = EFFECTS.some(e => e.react && ids.includes(e.id));
+        if (wanted && !this._pointer) {
+            this._pointer = new PointerTrail();
+        } else if (!wanted && this._pointer) {
+            this._pointer.destroy();
+            this._pointer = null;
+        }
+    }
+
     _state() {
         const s = this._settings;
         // The weather's look stands in for the user's keys, which stay as they are.
@@ -110,6 +130,7 @@ export class WallpaperFxApp {
             colorPalette: sky?.['color-palette'] ?? s.get_string('color-palette'),
             customImage: s.get_string('custom-image'),
             accent: this._interface.get_string('accent-color'),
+            pointer: this._pointer,
             span: this._spanning(),
             baseSize: this._baseSize(),
             targetFps: s.get_int('target-fps'),

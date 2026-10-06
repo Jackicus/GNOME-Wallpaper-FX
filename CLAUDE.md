@@ -82,6 +82,9 @@ offline tools) and `background.md` (the base and the overview's clones).
   its own workspace's part (`placePreviews()`).
 - `lib/system.js`: the system's say: UPower's `OnBattery` (for `pause-on-battery`),
   power-profiles-daemon's active profile, and St's `enable-animations`.
+- `lib/pointer.js`: `PointerTrail`, kept by app.js only while a React pattern (catalog
+  `react`) is on: the pointer's samples from the cursor tracker over the last three
+  seconds, handed to each React layer's `State` in its own canvas pixels.
 - `lib/weather.js`: `WeatherWatcher`, for the weather scene: the place (the first in
   GNOME Weather's list, as the shell keeps it in `org.gnome.shell.weather` `locations`;
   `weatherPlace()`, which prefs shows too), a GWeather report for it (its METAR station
