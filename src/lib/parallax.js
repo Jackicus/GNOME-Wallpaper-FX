@@ -257,9 +257,11 @@ export class Parallax {
     // The pointer's place on its monitor (or across them all, spanned), -1 to 1 each
     // way; the others go back to centre. A monitor whose desktop is covered holds
     // still, and nothing moves during a slide, in the overview or with animations off.
+    // A slide is asked for, not read off the position: in a column of workspaces the
+    // shell's slide comes to rest short of the index (private: docs/private-api.md).
     _aim() {
         if (!St.Settings.get().enable_animations || Main.overview.visible ||
-            !Number.isInteger(this._workspaces.value))
+            Main.wm._workspaceAnimation?._switchData)
             return;
 
         const [x, y] = global.get_pointer();
@@ -344,13 +346,15 @@ export class Parallax {
         const file = this._image ? Gio.File.new_for_path(this._loaded) : null;
 
         Main.layoutManager.monitors.forEach((monitor, index) => {
-            const room = file && (vertical
+            // A monitor with nothing to move keeps the shell's wallpaper.
+            const moves = this._amountOn(index) + 2 * this._options.tilt > 0;
+            const room = file && moves && (vertical
                 ? height / width > 1.01 * monitor.height / monitor.width
                 : width / height > 1.01 * monitor.width / monitor.height);
             const under = this._managers[index]?.backgroundActor;
             const old = this._panoramaOn(index);
             if (!room || !under) {
-                if (old) this._retire(old);
+                this._retire(index);
                 return;
             }
             const [drawnWidth, drawnHeight] = this._size(monitor, index, true).map(Math.round);
@@ -376,7 +380,10 @@ export class Parallax {
                 opacity: 255,
                 duration: FADE_ANIMATION_TIME,
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-                onStopped: finished => finished && old?.actor.destroy(),
+                // Every panorama it covers, including one whose own fade-in was cut short.
+                onStopped: finished => finished && this._panoramas
+                    .filter(p => p.index === index && p.retiring && p !== panorama)
+                    .forEach(p => p.actor.destroy()),
             });
             if (image.content) reveal();
             else image.connect('notify::content', reveal);
@@ -384,14 +391,17 @@ export class Parallax {
         if (this._workspaces) this._place();
     }
 
-    _retire(panorama) {
-        panorama.retiring = true;
-        panorama.actor.ease({
-            opacity: 0,
-            duration: FADE_ANIMATION_TIME,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            onStopped: finished => finished && panorama.actor.destroy(),
-        });
+    // Fades out every panorama on the monitor, the ones already replaced included.
+    _retire(index) {
+        for (const panorama of this._panoramas.filter(p => p.index === index)) {
+            panorama.retiring = true;
+            panorama.actor.ease({
+                opacity: 0,
+                duration: FADE_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onStopped: finished => finished && panorama.actor.destroy(),
+            });
+        }
     }
 
     _place() {

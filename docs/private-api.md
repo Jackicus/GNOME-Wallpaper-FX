@@ -26,6 +26,7 @@ because `src/` is changing; functions are named instead.
 | `workspace._background._backgroundGroup`, `._monitorIndex` | overview.js | Same | Yes, silently |
 | `Main.overview._overview.controls._thumbnailsBox._thumbnails`, `thumbnail._contents` | overview.js | Patterns vanish from the thumbnail strip only | Yes, silently |
 | `Main.wm._workspaceAnimation`, override of `_prepareWorkspaceSwitch` | overview.js | Patterns vanish during a workspace slide only | Yes, silently |
+| `Main.wm._workspaceAnimation._switchData` | parallax.js | The pointer tilt also moves during a workspace slide | Yes, silently |
 | `this._switchData.monitors`, `strip._monitor`, `strip._workspaceGroups`, `group._background` | overview.js | Same | Yes, silently |
 | `Main.layoutManager._bgManagers`, `manager.backgroundActor`, its `changed` signal, its parent | parallax.js | Parallax moves the patterns only, never the wallpaper, and a wide picture is zoomed as any other | Yes, silently |
 | `workspace._background._bgManager.backgroundActor`, `._monitorIndex` | parallax.js | The overview's previews show the whole wallpaper, as without parallax | Yes, silently |
@@ -526,7 +527,8 @@ kept while its file, place and drawn size hold (a change of travel a wide
 picture has the room for), and crossfaded with its replacement otherwise, as
 the shell crossfades beneath. The slide clones it in place of the shell's. A new
 wallpaper from the shell goes to the bottom of the group, so the panorama stays
-above it. Spanned monitors and the overview's previews keep the shell's.
+above it. Spanned monitors, a monitor with nothing to move (no travel where only
+the primary switches, and no tilt) and the overview's previews keep the shell's.
 
 **If it changes.** With no `_bgManagers` the wallpaper stays still and the
 patterns still pan.
@@ -551,6 +553,19 @@ overview is rare, and the preview then shows square corners until the overview
 next opens.
 
 **If it changes.** Without `_bgManager` the previews are left alone.
+
+### `Main.wm._workspaceAnimation._switchData` for the tilt (parallax.js)
+
+**What for.** The pointer tilt holds still while a workspace slide (keyboard or
+swipe) runs. `_switchData` is set from `_prepareWorkspaceSwitch()` until
+`_finishWorkspaceSwitch()`, so it says exactly that. The workspace position cannot:
+with the workspaces in a column, 50.5's `MonitorGroup` lifts every workspace after
+the first by the panel's height on the primary monitor, so the position comes to
+rest short of the index (1.942 on the third workspace after Super+End, checked in
+the nested shell) and is never whole again.
+
+**If it changes.** Optional-chained: the tilt then follows the pointer during a
+slide too, moving the slide's wallpaper with it.
 
 ## The renderer (shader.js, engine.js)
 
