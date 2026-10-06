@@ -221,7 +221,8 @@ export class WallpaperFxApp {
         const { amount, tilt } = this._parallaxOptions();
         const depth = this._settings.get_double('parallax-depth');
         const vertical = global.workspace_manager.layout_rows === -1;
-        const onlyPrimary = Meta.prefs_get_workspaces_only_on_primary();
+        // Spanned, one picture: every monitor moves with the primary's workspaces.
+        const onlyPrimary = !this._spanning() && Meta.prefs_get_workspaces_only_on_primary();
         for (const [index, view] of views.entries()) {
             const moves = !onlyPrimary || index === Main.layoutManager.primaryIndex;
             const along = ((moves ? amount : 0) + 2 * tilt) * depth;

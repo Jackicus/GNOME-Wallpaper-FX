@@ -77,7 +77,9 @@ offline tools) and `background.md` (the base and the overview's clones).
 - `lib/parallax.js`: `Parallax`, for `parallax` and `pointer-tilt`: the desktop's wallpaper
   grown evenly by the travel both need and moved inside it, by the workspace position
   (`Main.createWorkspacesAdjustment()`) along the workspaces and by the pointer's place on
-  its monitor (or on all of them, spanned) either way; the patterns move further through
+  its monitor either way. Spanned, the monitors move as one picture with the primary's
+  workspaces, each part of the wallpaper grown where it falls in the whole canvas and
+  reaching over the others, so the parts meet. The patterns move further through
   `MonitorRenderer.pan()`, each its catalog `depth` times the wallpaper, scaled by
   `parallax-depth`, across a canvas of its own made that much longer. A picture base wider
   than the monitor's shape is shown on a panorama actor of its own, unzoomed where it has

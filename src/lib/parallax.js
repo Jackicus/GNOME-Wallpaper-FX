@@ -135,16 +135,32 @@ export class Parallax {
     }
 
     // The desktop's wallpaper for the workspace slide, panning there as it does here.
+    // Spanned, every monitor's part, since each reaches over the others.
     wallpaperFor(index) {
-        const actor = this._workspaces
-            ? this._panoramaOn(index)?.actor ?? this._managers[index]?.backgroundActor
-            : null;
-        if (!actor) return null;
+        if (!this._workspaces) return null;
 
-        const clone = new Clutter.Clone({ source: actor, width: actor.width, height: actor.height });
-        for (const prop of ['translation-x', 'translation-y'])
-            actor.bind_property(prop, clone, prop, GObject.BindingFlags.SYNC_CREATE);
-        return clone;
+        const monitor = Main.layoutManager.monitors[index];
+        const indices = this._options.span ? this._managers.map((_m, i) => i) : [index];
+        const clones = indices
+            .map(i => this._panoramaOn(i)?.actor ?? this._managers[i]?.backgroundActor)
+            .filter(actor => actor)
+            .map(actor => {
+                const clone = new Clutter.Clone({
+                    source: actor,
+                    x: actor.x - monitor.x,
+                    y: actor.y - monitor.y,
+                    width: actor.width,
+                    height: actor.height,
+                });
+                for (const prop of ['translation-x', 'translation-y'])
+                    actor.bind_property(prop, clone, prop, GObject.BindingFlags.SYNC_CREATE);
+                return clone;
+            });
+        if (!clones.length) return null;
+
+        const group = new Clutter.Actor();
+        for (const clone of clones) group.add_child(clone);
+        return group;
     }
 
     // Each overview preview shows its own workspace's part of the wallpaper, at the
@@ -167,7 +183,14 @@ export class Parallax {
             // A panorama is not the shell's to show: its preview keeps the whole wallpaper.
             if (!actor || spare <= 0 || this._panoramaOn(index)) continue;
 
-            const at = (tilt + amount * this._fraction(workspace.metaWorkspace.index())) / spare;
+            // Spanned, as much of its workspace's view as its own part of the picture holds.
+            const monitor = Main.layoutManager.monitors[index];
+            const box = this._options.span ? canvasAround(Main.layoutManager.monitors) : monitor;
+            const [start, length, boxStart, boxLength] = vertical
+                ? [monitor.y, monitor.height, box.y, box.height]
+                : [monitor.x, monitor.width, box.x, box.width];
+            const view = (tilt + amount * this._fraction(workspace.metaWorkspace.index())) * boxLength / spare;
+            const at = Math.min(1, Math.max(0, (view - (start - boxStart)) / length));
             const pivot = vertical ? [0.5, at] : [at, 0.5];
             actor.set_pivot_point(...pivot);
             actor.set_scale(1 + spare, 1 + spare);
@@ -195,9 +218,10 @@ export class Parallax {
         return this._panoramas.find(p => p.index === index && !p.retiring) ?? null;
     }
 
-    // The workspace travel this monitor has: none where only the primary switches.
+    // The workspace travel this monitor has: none where only the primary switches,
+    // unless the monitors span one picture, which moves as one.
     _amountOn(index) {
-        const onlyPrimary = Meta.prefs_get_workspaces_only_on_primary();
+        const onlyPrimary = !this._options.span && Meta.prefs_get_workspaces_only_on_primary();
         return onlyPrimary && index !== Main.layoutManager.primaryIndex ? 0 : this._options.amount;
     }
 
@@ -381,10 +405,13 @@ export class Parallax {
             if (spare <= 0) return;
 
             // Along the workspaces: whatever room is not needed either side, the tilt's
-            // reach, the travel, then the reach again. Across them, centred.
+            // reach, the travel, then the reach again. Across them, centred. Spanned, all
+            // of that is a share of the whole canvas, and each monitor's part of the
+            // shell's wallpaper is grown where it falls in it, so the parts still meet.
+            const box = this._options.span ? canvasAround(Main.layoutManager.monitors) : monitor;
             const [tiltX, tiltY] = this._tilts[index]?.map(a => a.value) ?? [0, 0];
             const [tiltAlong, tiltAcross] = vertical ? [tiltY, tiltX] : [tiltX, tiltY];
-            const [sizeAlong, sizeAcross] = vertical ? [monitor.height, monitor.width] : [monitor.width, monitor.height];
+            const [sizeAlong, sizeAcross] = vertical ? [box.height, box.width] : [box.width, box.height];
             const offset = ([drawnWidth, drawnHeight]) => {
                 const [drawnAlong, drawnAcross] = vertical ? [drawnHeight, drawnWidth] : [drawnWidth, drawnHeight];
                 const along = (drawnAlong - sizeAlong * (1 + spare)) / 2 +
@@ -392,21 +419,22 @@ export class Parallax {
                 const across = (drawnAcross - sizeAcross) / 2 + tilt * tiltAcross * sizeAcross;
                 return (vertical ? [across, along] : [along, across]).map(v => -Math.round(v));
             };
-            // Clipped to its monitor: grown past it, it would paint over the next one.
+            // Clipped to its monitor (spanned, to the canvas): grown past it, it would
+            // paint over the next one.
             const move = (actor, size) => {
                 const [x, y] = offset(size);
-                actor.set_translation(x, y, 0);
-                actor.set_clip(-x, -y, monitor.width, monitor.height);
+                const [dx, dy] = [monitor.x - box.x, monitor.y - box.y].map(d => Math.round(d * spare));
+                actor.set_translation(x + dx, y + dy, 0);
+                actor.set_clip(box.x - monitor.x - x - dx, box.y - monitor.y - y - dy, box.width, box.height);
             };
 
             // Grown evenly, so the picture keeps its shape. The content's own size wins
             // over a set one until the request mode changes.
             const actor = this._managers[index]?.backgroundActor;
             if (actor) {
-                const size = this._size(monitor, index, false);
                 actor.request_mode = Clutter.RequestMode.HEIGHT_FOR_WIDTH;
-                actor.set_size(...size);
-                move(actor, size);
+                actor.set_size(...this._size(monitor, index, false));
+                move(actor, [box.width * (1 + spare), box.height * (1 + spare)]);
             }
             for (const panorama of this._panoramas) {
                 if (panorama.index === index)
