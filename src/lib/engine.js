@@ -6,7 +6,6 @@ import { FADE_ANIMATION_TIME } from 'resource:///org/gnome/shell/ui/background.j
 
 import { EFFECTS } from './catalog.js';
 import { EPOCH_S, effectClass } from './shader.js';
-import { PATTERN_PARALLAX_FACTOR } from './parallax.js';
 
 // A longer gap between paints is a pause: the animation picks up where it stopped.
 const MAX_STEP_S = 0.1;
@@ -50,7 +49,8 @@ export class MonitorRenderer {
         this._view = view;
         this._clock = clock;
         this._timerId = 0;
-        this._layers = new Map(); // pattern id -> { id, actor, effect, state, density, t }
+        this._layers = new Map(); // pattern id -> { id, actor, effect, state, rect, density, t }
+        this._at = 0;
 
         this.actor = new Clutter.Actor({
             name: `WallpaperFx-Monitor-${monitor.index}`,
@@ -63,31 +63,11 @@ export class MonitorRenderer {
             clip_to_allocation: true,
         });
 
-        this.canvas = new Clutter.Actor({ reactive: false });
-        this.actor.add_child(this.canvas);
-
         this.setState(state);
     }
 
     setState(state) {
         this._state = state;
-
-        const vertical = global.workspace_manager.layout_rows === -1;
-        const mDim = vertical ? this.monitor.height : this.monitor.width;
-        const extra = state.parallax ? Math.ceil(PATTERN_PARALLAX_FACTOR * state.parallaxAmount * mDim) : 0;
-        const canvasWidth = this.monitor.width + (vertical ? 0 : extra);
-        const canvasHeight = this.monitor.height + (vertical ? extra : 0);
-        if (canvasWidth !== this._canvasWidth || canvasHeight !== this._canvasHeight) {
-            this._canvasWidth = canvasWidth;
-            this._canvasHeight = canvasHeight;
-            this.canvas.width = canvasWidth;
-            this.canvas.height = canvasHeight;
-            for (const layer of this._layers.values()) {
-                layer.actor.width = canvasWidth;
-                layer.actor.height = canvasHeight;
-                layer.effect.setUniform('u_res', 2, [canvasWidth, canvasHeight]);
-            }
-        }
 
         const wanted = EFFECTS.filter(e => state.enabledEffects.includes(e.id));
         for (const [id, layer] of this._layers) {
@@ -109,7 +89,7 @@ export class MonitorRenderer {
                 layer = this._createLayer(effect);
                 this._layers.set(effect.id, layer);
             }
-            this.canvas.set_child_at_index(layer.actor, index);
+            this.actor.set_child_at_index(layer.actor, index);
 
             const tuning = state.tuning[effect.id] ?? {};
             const [low, high] = effect.density ?? [1, 1];
@@ -126,39 +106,50 @@ export class MonitorRenderer {
 
     _createLayer(effect) {
         const { canvas, unit, seed } = this._view;
-        const width = this._canvasWidth ?? this.monitor.width;
-        const height = this.monitor.height;
-        const origin = [this.monitor.x - canvas.x, this.monitor.y - canvas.y];
+        const { width, height } = this.monitor;
+        const rect = { x: 0, y: 0, width, height };
         const Effect = effectClass(effect);
         const layer = {
             id: effect.id,
             actor: new Clutter.Actor({ width, height, reactive: false, opacity: 0 }),
             effect: new Effect(),
             state: effect.State
-                ? new effect.State({
-                    width: canvas.width,
-                    height: canvas.height,
-                    unit,
-                    seed,
-                    rect: { x: origin[0], y: origin[1], width, height },
-                })
+                ? new effect.State({ width: canvas.width, height: canvas.height, unit, seed, rect })
                 : null,
+            rect,
             density: 1,
             t: -1,
         };
 
         const fx = layer.effect;
         fx.setUniform('u_res', 2, [width, height]);
-        fx.setUniform('u_origin', 2, origin);
+        this._place(layer);
         fx.setUniform('u_canvas', 2, [canvas.width, canvas.height]);
         fx.setUniform('u_unit', 1, [unit]);
         fx.setUniform('u_seed', 1, [seed]);
         fx.onPaint = () => this._onPaint(layer);
         layer.actor.add_effect(fx);
-        this.canvas.add_child(layer.actor);
+        this.actor.add_child(layer.actor);
 
         layer.actor.ease({ opacity: 255, duration: FADE_ANIMATION_TIME, mode: Clutter.AnimationMode.EASE_OUT_QUAD });
         return layer;
+    }
+
+    // Parallax: the monitor's view slides across a canvas made longer for it (app.js).
+    pan(at) {
+        this._at = at;
+        for (const layer of this._layers.values()) {
+            this._place(layer);
+            layer.effect.queue_repaint();
+        }
+    }
+
+    // The State reads the same rect, so what it culls to follows the view.
+    _place(layer) {
+        const { canvas, pan } = this._view;
+        layer.rect.x = this.monitor.x - canvas.x + pan[0] * this._at;
+        layer.rect.y = this.monitor.y - canvas.y + pan[1] * this._at;
+        layer.effect.setUniform('u_origin', 2, [layer.rect.x, layer.rect.y]);
     }
 
     // A paint through a clone (the overview, the slide) is never covered.

@@ -1,4 +1,5 @@
 import Gio from 'gi://Gio';
+import Meta from 'gi://Meta';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import { MonitorRenderer, SceneClock } from './engine.js';
@@ -6,7 +7,7 @@ import { SystemState } from './system.js';
 import { OverviewCanvas } from './overview.js';
 import { ShellBackground } from './background.js';
 import { WeatherWatcher } from './weather.js';
-import { ParallaxManager } from './parallax.js';
+import { PATTERN_DEPTH, WorkspaceParallax } from './parallax.js';
 
 const BASE_KEYS = new Set([
     'background-mode', 'color-palette', 'custom-image', 'span-monitors', 'weather', 'weather-background',
@@ -30,10 +31,11 @@ export class WallpaperFxApp {
 
         this._build();
 
-        this._parallax = new ParallaxManager(() => this._renderers);
-        this._parallax.enable(this._state());
+        this._parallax = new WorkspaceParallax(this._renderers);
+        this._parallax.update(this._parallaxAmount());
 
-        this._overview = new OverviewCanvas(index => this._renderers.get(index)?.actor ?? null, this._parallax);
+        this._overview = new OverviewCanvas(index => this._renderers.get(index)?.actor ?? null,
+            index => this._parallax.wallpaperFor(index));
         this._overview.enable();
 
         Main.layoutManager.connectObject('monitors-changed', () => this._rebuild(), this);
@@ -42,7 +44,7 @@ export class WallpaperFxApp {
             // Written by the weather itself, which says when its look changes.
             if (key === 'weather-status') return;
             if (key === 'weather') this._followWeather();
-            if (key === 'span-monitors') {
+            if (key === 'span-monitors' || key.startsWith('parallax')) {
                 this._rebuild();
                 return;
             }
@@ -116,12 +118,14 @@ export class WallpaperFxApp {
             opacity: s.get_double('opacity'),
             pauseWhenCovered: s.get_boolean('pause-when-covered'),
             pauseOnBattery: s.get_boolean('pause-on-battery'),
-            parallax: s.get_boolean('parallax'),
-            parallaxAmount: s.get_double('parallax-amount'),
             onBattery: this._system.onBattery,
             powerSaver: this._system.powerSaver,
             animations: this._system.animations,
         };
+    }
+
+    _parallaxAmount() {
+        return this._settings.get_boolean('parallax') ? this._settings.get_double('parallax-amount') : 0;
     }
 
     _spanning() {
@@ -138,19 +142,32 @@ export class WallpaperFxApp {
     }
 
     // Spanned, every monitor draws its part of one canvas, sized by the primary.
+    // With parallax the canvas is longer by the patterns' travel, and `pan` is that travel.
     _views() {
         const monitors = Main.layoutManager.monitors;
-        if (!this._spanning()) {
-            return monitors.map(m => ({
+        const views = this._spanning()
+            ? monitors.map(() => ({
+                canvas: canvasAround(monitors),
+                unit: Main.layoutManager.primaryMonitor.height / 1080,
+                seed: 0,
+            }))
+            : monitors.map(m => ({
                 canvas: { x: m.x, y: m.y, width: m.width, height: m.height },
                 unit: m.height / 1080,
                 seed: m.index * 17.31,
             }));
-        }
 
-        const canvas = canvasAround(monitors);
-        const unit = Main.layoutManager.primaryMonitor.height / 1080;
-        return monitors.map(() => ({ canvas, unit, seed: 0 }));
+        const share = PATTERN_DEPTH * this._parallaxAmount();
+        const vertical = global.workspace_manager.layout_rows === -1;
+        const onlyPrimary = Meta.prefs_get_workspaces_only_on_primary();
+        for (const [index, view] of views.entries()) {
+            const moves = share > 0 && (!onlyPrimary || index === Main.layoutManager.primaryIndex);
+            const travel = moves ? Math.round(share * (vertical ? view.canvas.height : view.canvas.width)) : 0;
+            view.pan = vertical ? [0, travel] : [travel, 0];
+            view.canvas.width += view.pan[0];
+            view.canvas.height += view.pan[1];
+        }
+        return views;
     }
 
     _build() {
@@ -177,15 +194,14 @@ export class WallpaperFxApp {
     _rebuild() {
         this._background.update(this._state());
         this._build();
+        this._parallax.update(this._parallaxAmount());
         this._overview.invalidate();
-        this._parallax.update(this._state());
     }
 
     _push(state) {
         this._tuneClock(state);
         for (const renderer of this._renderers.values())
             renderer.setState(state);
-        this._parallax.update(state);
     }
 
     _tuneClock(state) {

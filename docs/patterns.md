@@ -44,7 +44,9 @@ export class State { ... }
 
 - `p` is in **canvas pixels**, y down. The canvas is the monitor the actor is
   on, or — with *Span All Monitors* — the box around every monitor, so one
-  picture runs across all of them. Its size is `u_canvas`.
+  picture runs across all of them. Its size is `u_canvas`. With *Workspace
+  Parallax* the canvas is longer than the monitor along the workspace axis and
+  the monitor's view (`u_origin`) slides across it as workspaces change.
 - **Size things in `U`**: one pixel of a 1080-line screen. A glow of radius
   `6.0 * U` is 6 px on a 1080p monitor and 12 on a 4K one, so the pattern looks
   the same everywhere, only sharper where there are more pixels.
@@ -119,7 +121,8 @@ new State({ width, height, unit, seed, rect })
 
 `width`/`height` are the canvas's, `unit` is U, `seed` as `u_seed`, and `rect`
 is this monitor's part of the canvas (`x, y, width, height`) — use it to hand
-the shader only what can be seen on this monitor. `uniforms(t, density)`
+the shader only what can be seen on this monitor. Read it in `uniforms()`, not
+the constructor: parallax moves it. `uniforms(t, density)`
 returns `[name, components, values]` triples and is called once a frame with
 the pattern's time in double precision.
 

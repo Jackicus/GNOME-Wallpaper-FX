@@ -26,8 +26,8 @@ because `src/` is changing; functions are named instead.
 | `workspace._background._backgroundGroup`, `._monitorIndex` | overview.js | Same | Yes, silently |
 | `Main.overview._overview.controls._thumbnailsBox._thumbnails`, `thumbnail._contents` | overview.js | Patterns vanish from the thumbnail strip only | Yes, silently |
 | `Main.wm._workspaceAnimation`, override of `_prepareWorkspaceSwitch` | overview.js | Patterns vanish during a workspace slide only | Yes, silently |
-| `this._switchData.monitors`, `strip._monitor`, `strip._workspaceGroups`, `group._background`, `strip.progress`, `notify::progress` | overview.js, parallax.js | Parallax/patterns vanish or do not slide during a workspace switch | Yes, silently |
-| `Main.layoutManager._bgManagers[i].backgroundActor` | parallax.js | Desktop wallpaper does not offset for active workspace parallax | Yes, silently |
+| `this._switchData.monitors`, `strip._monitor`, `strip._workspaceGroups`, `group._background` | overview.js | Same | Yes, silently |
+| `Main.layoutManager._bgManagers`, `manager.backgroundActor`, its `changed` signal | parallax.js | Parallax moves the patterns only, never the wallpaper | Yes, silently |
 | `class extends Shell.GLSLEffect` | shader.js | `enable()` throws and the extension shows as errored with the base taken over (below). **Removed in GNOME 51** | No |
 | `vfunc_paint_target(node, paintContext)` | shader.js | Patterns freeze on their first frame | No |
 | `Cogl.SnippetHook.FRAGMENT` | shader.js | Every pattern fails to build | No |
@@ -453,46 +453,63 @@ and joining nothing, so the other extension's wrap survives either order of
 enabling and disabling. `InjectionManager.clear()` is not used: it would put back
 the method seen at enable over the other wrap.
 
-### `this._switchData.monitors`, `strip._monitor`, `strip._workspaceGroups`, `group._background`, `strip.progress`
+### `this._switchData.monitors`, `strip._monitor`, `strip._workspaceGroups`, `group._background`
 
-`_joinSlide()` / `ParallaxManager.joinSlide()`:
+`_joinSlide()`:
 
 ```js
 for (const strip of switchData.monitors ?? []) {
-    const monitor = strip._monitor;
-    const groups = strip._workspaceGroups ?? [];
+    const index = strip._monitor?.index;
     ...
-    // When parallax is active:
-    const firstBg = groups[0]._background;
-    if (firstBg) {
-        groups[0].remove_child(firstBg);
-        strip.insert_child_at_index(firstBg, 0);
+    for (const group of strip._workspaceGroups ?? []) {
+        const wallpaper = group._background?.get_first_child();
+        if (wallpaper)
+            group._background.insert_child_above(this._cloneOf(source), wallpaper);
     }
-    for (let i = 1; i < groups.length; i++)
-        if (groups[i]._background) groups[i]._background.visible = false;
-    strip.insert_child_above(patternClone, firstBg);
-    strip.connect('notify::progress', update);
 }
 ```
 
 **What for.** `switchData.monitors` are the per-monitor `MonitorGroup` strips,
-each with its `_monitor` and its `_workspaceGroups`. When parallax is enabled,
-the first workspace's background is reparented to the strip at index 0 (below
-the sliding container), other group backgrounds are hidden, and a pattern clone is
-placed directly above the wallpaper. As `strip.progress` updates, the wallpaper
-and pattern layer translate at their respective parallax rates while windows slide
-at 100%. When parallax is disabled, pattern clones are inserted into each group
-above the wallpaper as before.
+each with its `_monitor` and its `_workspaceGroups`. The clone goes above each
+group's wallpaper and below that workspace's windows.
 
 **The structure differs by version.** In 45 through 49, `group._background` is a
 `Meta.BackgroundGroup` whose first child is the wallpaper actor (49 also puts
 desktop-window clones in it, after the wallpaper). In 50 and 51 it is a
 `WorkspaceBackground`, a new class whose first child is a `Meta.BackgroundGroup`
-holding the wallpaper, followed by desktop-window clones.
+holding the wallpaper, followed by desktop-window clones. Either way
+`get_first_child()` is the wallpaper and the clone lands just above it, under
+desktop icons. Only 50 has been seen working.
+
+**With parallax** the group's wallpaper would slide at the windows' pace, so
+`_joinSlide()` hides each group's `get_first_child()` and puts one clone of the
+desktop's panned wallpaper (`WorkspaceParallax.wallpaperFor()`) at the bottom of
+the strip, under its sliding container, with the patterns' clone just above it.
+The clone's translation is bound to the desktop actor's, which follows the
+workspace position through the slide.
 
 **If it changes.** Every step is optional-chained or checked, so a change means
-no clones or parallax slide: the patterns or wallpaper slide degrades quietly.
-Clones and reparented actors belong to the strip and die with it.
+no clones: the patterns vanish during the slide only. The clones belong to the
+strip and die with it; they are not tracked.
+
+### `Main.layoutManager._bgManagers` for parallax (parallax.js)
+
+```js
+this._managers = [...Main.layoutManager._bgManagers ?? []];
+for (const manager of this._managers)
+    manager.connectObject('changed', () => this._place(), this);
+```
+
+**What for.** Each manager's `backgroundActor` is the desktop's wallpaper on one
+monitor. Parallax grows it evenly by the travel and translates it.
+`request_mode` goes from `CONTENT_SIZE` to `HEIGHT_FOR_WIDTH` while it does,
+since the content's own size otherwise wins over a set one; `destroy()` puts
+back `CONTENT_SIZE`, no fixed size and no translation. A new wallpaper is a new
+actor, announced by `changed`, so each change places the new one. The shell
+builds new managers on `monitors-changed`, and app.js calls `update()` again then.
+
+**If it changes.** With no `_bgManagers` the wallpaper stays still and the
+patterns still pan.
 
 ## The renderer (shader.js, engine.js)
 
@@ -637,6 +654,13 @@ what paces a 240Hz monitor and a 60Hz one separately. On an X11 session (45 to
 pace at one rate there.
 
 ## Public, but worth knowing
+
+- **`Main.createWorkspacesAdjustment()`** (parallax.js). The workspace position
+  as an `St.Adjustment`, from 0 to the last index. The switch animation, a swipe
+  and the overview's scrolling all drive it. The shell resets it to the active
+  index, with no transition, when a workspace is added or removed, which is why
+  parallax eases its own pan then. With animations off, a switch moves it
+  straight to the new index.
 
 - **`St.Settings.get().enable_animations`** (system.js). This is not only the
   user's switch. The shell also turns it off with `inhibit_animations()`
