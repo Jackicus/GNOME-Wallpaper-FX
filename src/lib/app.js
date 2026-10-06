@@ -52,7 +52,7 @@ export class WallpaperFxApp {
             if (key === 'weather') this._followWeather();
             if (key === 'enabled-effects' || key === 'weather') this._followPointer();
             if (key === 'span-monitors' || key.startsWith('parallax') || key.startsWith('pointer-tilt')) {
-                this._rebuild();
+                this._reframe();
                 return;
             }
             if (BASE_KEYS.has(key)) this._baseChanged();
@@ -113,8 +113,9 @@ export class WallpaperFxApp {
 
     _baseChanged() {
         this._followDaytime();
-        this._background.update(this._state());
-        this._parallax.update(this._parallaxOptions());
+        const state = this._state();
+        this._background.update(state);
+        this._parallax.setPicture(pictureOf(state));
     }
 
     // Followed only while the base is the time of day's.
@@ -244,9 +245,21 @@ export class WallpaperFxApp {
         }
     }
 
+    // New monitors: everything is built again for them.
     _rebuild() {
         this._background.update(this._state());
         this._build();
+        this._parallax.update(this._parallaxOptions());
+        this._overview.invalidate();
+    }
+
+    // A new canvas for the same monitors: the layers are refitted where they are, so
+    // a slider dragged in prefs does not blink the patterns off and in.
+    _reframe() {
+        this._background.update(this._state());
+        const views = this._views();
+        for (const [index, renderer] of this._renderers)
+            renderer.setView(views[index]);
         this._parallax.update(this._parallaxOptions());
         this._overview.invalidate();
     }
