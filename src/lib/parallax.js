@@ -1,5 +1,6 @@
 import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
+import Graphene from 'gi://Graphene';
 import Meta from 'gi://Meta';
 import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -14,6 +15,7 @@ export class WorkspaceParallax {
         this._workspaces = null;
         this._pan = null;
         this._managers = [];
+        this._previews = [];
         this._count = 0;
     }
 
@@ -45,6 +47,7 @@ export class WorkspaceParallax {
         global.workspace_manager.disconnectObject(this);
         this._workspaces.disconnectObject(this);
         this._workspaces = null;
+        this.restorePreviews();
         this._pan.remove_transition('value');
         this._pan.disconnectObject(this);
         this._pan = null;
@@ -76,9 +79,50 @@ export class WorkspaceParallax {
         return clone;
     }
 
+    // Each overview preview shows its own workspace's part of the panorama. Its
+    // wallpaper is the shell's, sized by the preview, so the zoom is a scale about a
+    // pivot, and the rounded clip, in the content's own pixels, is mapped back by it.
+    placePreviews(workspaces) {
+        this.restorePreviews();
+        if (!this._workspaces) return;
+
+        const onlyPrimary = Meta.prefs_get_workspaces_only_on_primary();
+        const vertical = global.workspace_manager.layout_rows === -1;
+        for (const workspace of workspaces) {
+            const background = workspace._background;
+            const index = background?._monitorIndex;
+            const actor = background?._bgManager?.backgroundActor;
+            if (!actor || (onlyPrimary && index !== Main.layoutManager.primaryIndex)) continue;
+
+            const at = this._fraction(workspace.metaWorkspace.index());
+            const pivot = vertical ? [0.5, at] : [at, 0.5];
+            actor.set_pivot_point(...pivot);
+            actor.set_scale(1 + this._amount, 1 + this._amount);
+            actor.content.set_rounded_clip_bounds(clipBounds(index, pivot, 1 + this._amount));
+
+            const preview = { actor, index };
+            actor.connectObject('destroy', () => this._previews.splice(this._previews.indexOf(preview), 1), this);
+            this._previews.push(preview);
+        }
+    }
+
+    restorePreviews() {
+        for (const { actor, index } of this._previews) {
+            actor.disconnectObject(this);
+            actor.set_scale(1, 1);
+            actor.content.set_rounded_clip_bounds(clipBounds(index, [0, 0], 1));
+        }
+        this._previews = [];
+    }
+
     _target() {
+        return this._fraction(this._workspaces.value);
+    }
+
+    // Where a workspace position sits along the panorama, 0 to 1.
+    _fraction(position) {
         const { n_workspaces: count, layout_rows: rows } = global.workspace_manager;
-        const at = count > 1 ? this._workspaces.value / (count - 1) : 0.5;
+        const at = count > 1 ? position / (count - 1) : 0.5;
         const rtl = rows !== -1 && Clutter.get_default_text_direction() === Clutter.TextDirection.RTL;
         return Math.min(1, Math.max(0, rtl ? 1 - at : at));
     }
@@ -125,4 +169,19 @@ export class WorkspaceParallax {
         for (const renderer of this._renderers.values())
             renderer.pan(at);
     }
+}
+
+// The work area, where the shell rounds a preview's corners, as the content sees it
+// under a zoom about `pivot` (a fraction of the monitor).
+function clipBounds(index, [px, py], zoom) {
+    const monitor = Main.layoutManager.monitors[index];
+    const work = Main.layoutManager.getWorkAreaForMonitor(index);
+    const cx = px * monitor.width;
+    const cy = py * monitor.height;
+    const rect = new Graphene.Rect();
+    rect.origin.x = cx + (work.x - monitor.x - cx) / zoom;
+    rect.origin.y = cy + (work.y - monitor.y - cy) / zoom;
+    rect.size.width = work.width / zoom;
+    rect.size.height = work.height / zoom;
+    return rect;
 }

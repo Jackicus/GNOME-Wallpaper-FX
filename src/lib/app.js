@@ -34,8 +34,7 @@ export class WallpaperFxApp {
         this._parallax = new WorkspaceParallax(this._renderers);
         this._parallax.update(this._parallaxAmount());
 
-        this._overview = new OverviewCanvas(index => this._renderers.get(index)?.actor ?? null,
-            index => this._parallax.wallpaperFor(index));
+        this._overview = new OverviewCanvas(index => this._renderers.get(index)?.actor ?? null, this._parallax);
         this._overview.enable();
 
         Main.layoutManager.connectObject('monitors-changed', () => this._rebuild(), this);
