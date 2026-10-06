@@ -93,5 +93,16 @@
       <summary>Workspace parallax pattern depth</summary>
       <description>How far the patterns pan, as a multiple of each one's own depth; 0 holds them still.</description>
     </key>
+    <key name="pointer-tilt" type="b">
+      <default>false</default>
+      <summary>Pointer tilt</summary>
+      <description>The wallpaper and patterns lean away from the pointer on the desktop.</description>
+    </key>
+    <key name="pointer-tilt-amount" type="d">
+      <range min="0.01" max="0.05"/>
+      <default>0.02</default>
+      <summary>Pointer tilt reach</summary>
+      <description>How far the wallpaper moves either side of centre, as a share of the monitor.</description>
+    </key>
   </schema>
 </schemalist>

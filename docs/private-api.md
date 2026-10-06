@@ -674,6 +674,11 @@ pace at one rate there.
 
 ## Public, but worth knowing
 
+- **`global.backend.get_cursor_tracker()`'s `position-invalidated`** and
+  `global.compositor.get_laters()` (parallax.js). The pointer tilt reads
+  `global.get_pointer()` once a frame at most, from a `BEFORE_REDRAW` later booked
+  by the first move after a frame.
+
 - **`Main.createWorkspacesAdjustment()`** (parallax.js). The workspace position
   as an `St.Adjustment`, from 0 to the last index. The switch animation, a swipe
   and the overview's scrolling all drive it. The shell resets it to the active

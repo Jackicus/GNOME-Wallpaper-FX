@@ -1,30 +1,37 @@
 import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
+import GLib from 'gi://GLib';
 import Graphene from 'gi://Graphene';
 import Meta from 'gi://Meta';
 import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { WINDOW_ANIMATION_TIME } from 'resource:///org/gnome/shell/ui/workspaceAnimation.js';
 
-// Pans each monitor's wallpaper, zoomed by the travel it needs, with the shell's
-// own workspace position: a switch, a swipe and the overview's scrolling all move it.
-export class WorkspaceParallax {
+import { canvasAround, desktopCovered } from './engine.js';
+
+// Moves each monitor's wallpaper inside an even zoom, and the patterns further, by the
+// shell's own workspace position (a switch, a swipe and the overview's scrolling all
+// move it) and, with the pointer tilt, by where the pointer is on the desktop.
+export class Parallax {
     constructor(renderers) {
         this._renderers = renderers;
-        this._amount = 0;
+        this._options = { amount: 0, tilt: 0, span: false };
         this._workspaces = null;
         this._pan = null;
+        this._tilts = [];
+        this._laterId = 0;
         this._managers = [];
         this._previews = [];
         this._count = 0;
     }
 
-    // `amount` is the wallpaper's whole travel as a share of the monitor; 0 is off.
-    update(amount) {
+    // `amount` is the wallpaper's travel across the workspaces and `tilt` its reach
+    // either side of centre, each a share of the monitor; both 0 is off.
+    update(options) {
         this.destroy();
-        if (amount <= 0) return;
+        this._options = options;
+        if (options.amount <= 0 && options.tilt <= 0) return;
 
-        this._amount = amount;
         this._count = global.workspace_manager.n_workspaces;
         this._workspaces = Main.createWorkspacesAdjustment(global.stage);
         this._workspaces.connectObject('notify::value', () => this._follow(), this);
@@ -32,6 +39,24 @@ export class WorkspaceParallax {
 
         this._pan = new St.Adjustment({ actor: global.stage, upper: 1, value: this._target() });
         this._pan.connectObject('notify::value', () => this._place(), this);
+
+        // Spanned, the monitors tilt as one so the picture stays whole.
+        const tiltOf = () => ['x', 'y'].map(() => {
+            const adjustment = new St.Adjustment({ actor: global.stage, lower: -1, upper: 1 });
+            adjustment.connectObject('notify::value', () => this._place(), this);
+            return adjustment;
+        });
+        const shared = options.span ? tiltOf() : null;
+        this._tilts = options.tilt > 0 ? Main.layoutManager.monitors.map(() => shared ?? tiltOf()) : [];
+        if (options.tilt > 0) {
+            global.backend.get_cursor_tracker().connectObject('position-invalidated', () => {
+                this._laterId ||= global.compositor.get_laters().add(Meta.LaterType.BEFORE_REDRAW, () => {
+                    this._laterId = 0;
+                    this._aim();
+                    return GLib.SOURCE_REMOVE;
+                });
+            }, this);
+        }
 
         // A new wallpaper is a new actor (private: docs/private-api.md).
         this._managers = [...Main.layoutManager._bgManagers ?? []];
@@ -45,12 +70,18 @@ export class WorkspaceParallax {
         if (!this._workspaces) return;
 
         global.workspace_manager.disconnectObject(this);
+        global.backend.get_cursor_tracker().disconnectObject(this);
+        if (this._laterId) global.compositor.get_laters().remove(this._laterId);
+        this._laterId = 0;
         this._workspaces.disconnectObject(this);
         this._workspaces = null;
         this.restorePreviews();
-        this._pan.remove_transition('value');
-        this._pan.disconnectObject(this);
+        for (const adjustment of [this._pan, ...this._tilts.flat()]) {
+            adjustment.remove_transition('value');
+            adjustment.disconnectObject(this);
+        }
         this._pan = null;
+        this._tilts = [];
 
         for (const manager of this._managers) {
             manager.disconnectObject(this);
@@ -65,7 +96,7 @@ export class WorkspaceParallax {
         this._managers = [];
 
         for (const renderer of this._renderers.values())
-            renderer.pan(0);
+            renderer.pan(0, 0);
     }
 
     // The desktop's wallpaper for the workspace slide, panning there as it does here.
@@ -86,19 +117,19 @@ export class WorkspaceParallax {
         this.restorePreviews();
         if (!this._workspaces) return;
 
-        const onlyPrimary = Meta.prefs_get_workspaces_only_on_primary();
         const vertical = global.workspace_manager.layout_rows === -1;
         for (const workspace of workspaces) {
             const background = workspace._background;
             const index = background?._monitorIndex;
             const actor = background?._bgManager?.backgroundActor;
-            if (!actor || (onlyPrimary && index !== Main.layoutManager.primaryIndex)) continue;
+            const amount = this._amountOn(index);
+            if (!actor || amount <= 0) continue;
 
             const at = this._fraction(workspace.metaWorkspace.index());
             const pivot = vertical ? [0.5, at] : [at, 0.5];
             actor.set_pivot_point(...pivot);
-            actor.set_scale(1 + this._amount, 1 + this._amount);
-            actor.content.set_rounded_clip_bounds(clipBounds(index, pivot, 1 + this._amount));
+            actor.set_scale(1 + amount, 1 + amount);
+            actor.content.set_rounded_clip_bounds(clipBounds(index, pivot, 1 + amount));
 
             const preview = { actor, index };
             actor.connectObject('destroy', () => this._previews.splice(this._previews.indexOf(preview), 1), this);
@@ -113,6 +144,12 @@ export class WorkspaceParallax {
             actor.content.set_rounded_clip_bounds(clipBounds(index, [0, 0], 1));
         }
         this._previews = [];
+    }
+
+    // The workspace travel this monitor has: none where only the primary switches.
+    _amountOn(index) {
+        const onlyPrimary = Meta.prefs_get_workspaces_only_on_primary();
+        return onlyPrimary && index !== Main.layoutManager.primaryIndex ? 0 : this._options.amount;
     }
 
     _target() {
@@ -144,30 +181,70 @@ export class WorkspaceParallax {
         }
     }
 
+    // The pointer's place on its monitor (or across them all, spanned), -1 to 1 each
+    // way; the others go back to centre. Held while a desktop is covered, during a
+    // slide, in the overview and with animations off.
+    _aim() {
+        if (!St.Settings.get().enable_animations || Main.overview.visible ||
+            !Number.isInteger(this._workspaces.value))
+            return;
+
+        const [x, y] = global.get_pointer();
+        const monitors = Main.layoutManager.monitors;
+        const area = this._options.span ? canvasAround(monitors) : null;
+        monitors.forEach((monitor, index) => {
+            const box = area ?? monitor;
+            const inside = x >= box.x && x < box.x + box.width && y >= box.y && y < box.y + box.height;
+            if (desktopCovered(index)) return;
+
+            const [tiltX, tiltY] = this._tilts[index];
+            const aim = [
+                inside ? 2 * (x - box.x) / box.width - 1 : 0,
+                inside ? 2 * (y - box.y) / box.height - 1 : 0,
+            ];
+            for (const [adjustment, value] of [[tiltX, aim[0]], [tiltY, aim[1]]]) {
+                adjustment.ease(value, {
+                    duration: WINDOW_ANIMATION_TIME,
+                    mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                });
+            }
+        });
+    }
+
     _place() {
         const at = this._pan.value;
         const vertical = global.workspace_manager.layout_rows === -1;
-        const onlyPrimary = Meta.prefs_get_workspaces_only_on_primary();
+        const { tilt } = this._options;
 
-        this._managers.forEach((manager, index) => {
-            const actor = manager.backgroundActor;
-            if (!actor || (onlyPrimary && index !== Main.layoutManager.primaryIndex)) return;
+        Main.layoutManager.monitors.forEach((monitor, index) => {
+            const amount = this._amountOn(index);
+            const spare = amount + 2 * tilt;
+            if (spare <= 0) return;
+
+            // Along the workspaces: the tilt's reach, the travel, then the reach again.
+            // Across them the zoom leaves more than the tilt needs, so it is centred.
+            const [tiltX, tiltY] = this._tilts[index]?.map(a => a.value) ?? [0, 0];
+            const along = (tilt + amount * at + tilt * (vertical ? tiltY : tiltX)) / spare;
+            const across = 0.5 + (tilt / spare) * (vertical ? tiltX : tiltY);
+            const [viewX, viewY] = vertical ? [across, along] : [along, across];
 
             // Grown evenly, so the picture keeps its shape. The content's own size wins
             // over a set one until the request mode changes.
-            const { width, height } = Main.layoutManager.monitors[index];
-            const spareX = width * this._amount;
-            const spareY = height * this._amount;
-            actor.request_mode = Clutter.RequestMode.HEIGHT_FOR_WIDTH;
-            actor.set_size(width + spareX, height + spareY);
-            actor.set_translation(
-                -Math.round(vertical ? spareX / 2 : spareX * at),
-                -Math.round(vertical ? spareY * at : spareY / 2),
-                0);
-        });
+            const actor = this._managers[index]?.backgroundActor;
+            if (actor) {
+                actor.request_mode = Clutter.RequestMode.HEIGHT_FOR_WIDTH;
+                actor.set_size(monitor.width * (1 + spare), monitor.height * (1 + spare));
+                actor.set_translation(
+                    -Math.round(monitor.width * spare * viewX),
+                    -Math.round(monitor.height * spare * viewY),
+                    0);
+            }
 
-        for (const renderer of this._renderers.values())
-            renderer.pan(at);
+            const patterns = vertical
+                ? [0.5 + 0.5 * tiltX, along]
+                : [along, 0.5 + 0.5 * tiltY];
+            this._renderers.get(index)?.pan(...patterns);
+        });
     }
 }
 

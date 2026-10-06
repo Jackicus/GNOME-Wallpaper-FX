@@ -2,12 +2,12 @@ import Gio from 'gi://Gio';
 import Meta from 'gi://Meta';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-import { MonitorRenderer, SceneClock } from './engine.js';
+import { MonitorRenderer, SceneClock, canvasAround } from './engine.js';
 import { SystemState } from './system.js';
 import { OverviewCanvas } from './overview.js';
 import { ShellBackground } from './background.js';
 import { WeatherWatcher } from './weather.js';
-import { WorkspaceParallax } from './parallax.js';
+import { Parallax } from './parallax.js';
 
 const BASE_KEYS = new Set([
     'background-mode', 'color-palette', 'custom-image', 'span-monitors', 'weather', 'weather-background',
@@ -31,8 +31,8 @@ export class WallpaperFxApp {
 
         this._build();
 
-        this._parallax = new WorkspaceParallax(this._renderers);
-        this._parallax.update(this._parallaxAmount());
+        this._parallax = new Parallax(this._renderers);
+        this._parallax.update(this._parallaxOptions());
 
         this._overview = new OverviewCanvas(index => this._renderers.get(index)?.actor ?? null, this._parallax);
         this._overview.enable();
@@ -43,7 +43,7 @@ export class WallpaperFxApp {
             // Written by the weather itself, which says when its look changes.
             if (key === 'weather-status') return;
             if (key === 'weather') this._followWeather();
-            if (key === 'span-monitors' || key.startsWith('parallax')) {
+            if (key === 'span-monitors' || key.startsWith('parallax') || key.startsWith('pointer-tilt')) {
                 this._rebuild();
                 return;
             }
@@ -123,8 +123,13 @@ export class WallpaperFxApp {
         };
     }
 
-    _parallaxAmount() {
-        return this._settings.get_boolean('parallax') ? this._settings.get_double('parallax-amount') : 0;
+    _parallaxOptions() {
+        const s = this._settings;
+        return {
+            amount: s.get_boolean('parallax') ? s.get_double('parallax-amount') : 0,
+            tilt: s.get_boolean('pointer-tilt') ? s.get_double('pointer-tilt-amount') : 0,
+            span: this._spanning(),
+        };
     }
 
     _spanning() {
@@ -156,13 +161,18 @@ export class WallpaperFxApp {
                 seed: m.index * 17.31,
             }));
 
-        const share = this._parallaxAmount() * this._settings.get_double('parallax-depth');
+        // As the wallpaper's: the workspace travel plus the tilt's reach both ways along the
+        // workspaces, the tilt's alone across them (parallax.js).
+        const { amount, tilt } = this._parallaxOptions();
+        const depth = this._settings.get_double('parallax-depth');
         const vertical = global.workspace_manager.layout_rows === -1;
         const onlyPrimary = Meta.prefs_get_workspaces_only_on_primary();
         for (const [index, view] of views.entries()) {
-            const moves = share > 0 && (!onlyPrimary || index === Main.layoutManager.primaryIndex);
-            const travel = moves ? Math.round(share * (vertical ? view.canvas.height : view.canvas.width)) : 0;
-            view.travel = vertical ? [0, travel] : [travel, 0];
+            const moves = !onlyPrimary || index === Main.layoutManager.primaryIndex;
+            const along = ((moves ? amount : 0) + 2 * tilt) * depth;
+            const across = 2 * tilt * depth;
+            const [x, y] = vertical ? [across, along] : [along, across];
+            view.travel = [Math.round(x * view.canvas.width), Math.round(y * view.canvas.height)];
         }
         return views;
     }
@@ -191,7 +201,7 @@ export class WallpaperFxApp {
     _rebuild() {
         this._background.update(this._state());
         this._build();
-        this._parallax.update(this._parallaxAmount());
+        this._parallax.update(this._parallaxOptions());
         this._overview.invalidate();
     }
 
@@ -213,15 +223,4 @@ export class WallpaperFxApp {
             renderer.destroy();
         this._renderers.clear();
     }
-}
-
-function canvasAround(monitors) {
-    const x = Math.min(...monitors.map(m => m.x));
-    const y = Math.min(...monitors.map(m => m.y));
-    return {
-        x,
-        y,
-        width: Math.max(...monitors.map(m => m.x + m.width)) - x,
-        height: Math.max(...monitors.map(m => m.y + m.height)) - y,
-    };
 }
