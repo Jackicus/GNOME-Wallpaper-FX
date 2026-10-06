@@ -320,7 +320,9 @@ export class Parallax {
         const file = this._image ? Gio.File.new_for_path(this._loaded) : null;
 
         Main.layoutManager.monitors.forEach((monitor, index) => {
-            const room = file && (vertical
+            // A monitor with nothing to move keeps the shell's wallpaper.
+            const moves = this._amountOn(index) + 2 * this._options.tilt > 0;
+            const room = file && moves && (vertical
                 ? height / width > 1.01 * monitor.height / monitor.width
                 : width / height > 1.01 * monitor.width / monitor.height);
             const under = this._managers[index]?.backgroundActor;
