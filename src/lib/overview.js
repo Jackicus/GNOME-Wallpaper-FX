@@ -38,8 +38,9 @@ class WallpaperFxPreviewHost extends Clutter.Actor {
 });
 
 export class OverviewCanvas {
-    constructor(sourceFor) {
+    constructor(sourceFor, parallax = null) {
         this._sourceFor = sourceFor;
+        this._parallax = parallax;
         this._clones = [];
         this._attached = false;
         this._slideHook = null;
@@ -86,6 +87,8 @@ export class OverviewCanvas {
     }
 
     _joinSlide(switchData) {
+        if (this._parallax?.joinSlide(switchData, this._sourceFor)) return;
+
         for (const strip of switchData.monitors ?? []) {
             const index = strip._monitor?.index;
             const source = index === undefined ? null : this._sourceFor(index);

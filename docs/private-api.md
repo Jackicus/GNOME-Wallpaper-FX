@@ -26,7 +26,8 @@ because `src/` is changing; functions are named instead.
 | `workspace._background._backgroundGroup`, `._monitorIndex` | overview.js | Same | Yes, silently |
 | `Main.overview._overview.controls._thumbnailsBox._thumbnails`, `thumbnail._contents` | overview.js | Patterns vanish from the thumbnail strip only | Yes, silently |
 | `Main.wm._workspaceAnimation`, override of `_prepareWorkspaceSwitch` | overview.js | Patterns vanish during a workspace slide only | Yes, silently |
-| `this._switchData.monitors`, `strip._monitor`, `strip._workspaceGroups`, `group._background` | overview.js | Same | Yes, silently |
+| `this._switchData.monitors`, `strip._monitor`, `strip._workspaceGroups`, `group._background`, `strip.progress`, `notify::progress` | overview.js, parallax.js | Parallax/patterns vanish or do not slide during a workspace switch | Yes, silently |
+| `Main.layoutManager._bgManagers[i].backgroundActor` | parallax.js | Desktop wallpaper does not offset for active workspace parallax | Yes, silently |
 | `class extends Shell.GLSLEffect` | shader.js | `enable()` throws and the extension shows as errored with the base taken over (below). **Removed in GNOME 51** | No |
 | `vfunc_paint_target(node, paintContext)` | shader.js | Patterns freeze on their first frame | No |
 | `Cogl.SnippetHook.FRAGMENT` | shader.js | Every pattern fails to build | No |
@@ -452,37 +453,46 @@ and joining nothing, so the other extension's wrap survives either order of
 enabling and disabling. `InjectionManager.clear()` is not used: it would put back
 the method seen at enable over the other wrap.
 
-### `this._switchData.monitors`, `strip._monitor`, `strip._workspaceGroups`, `group._background`
+### `this._switchData.monitors`, `strip._monitor`, `strip._workspaceGroups`, `group._background`, `strip.progress`
 
-`_joinSlide()`:
+`_joinSlide()` / `ParallaxManager.joinSlide()`:
 
 ```js
 for (const strip of switchData.monitors ?? []) {
-    const index = strip._monitor?.index;
+    const monitor = strip._monitor;
+    const groups = strip._workspaceGroups ?? [];
     ...
-    for (const group of strip._workspaceGroups ?? []) {
-        const wallpaper = group._background?.get_first_child();
-        if (wallpaper)
-            group._background.insert_child_above(this._cloneOf(source), wallpaper);
+    // When parallax is active:
+    const firstBg = groups[0]._background;
+    if (firstBg) {
+        groups[0].remove_child(firstBg);
+        strip.insert_child_at_index(firstBg, 0);
     }
+    for (let i = 1; i < groups.length; i++)
+        if (groups[i]._background) groups[i]._background.visible = false;
+    strip.insert_child_above(patternClone, firstBg);
+    strip.connect('notify::progress', update);
 }
 ```
 
 **What for.** `switchData.monitors` are the per-monitor `MonitorGroup` strips,
-each with its `_monitor` and its `_workspaceGroups`. The clone goes above each
-group's wallpaper and below that workspace's windows.
+each with its `_monitor` and its `_workspaceGroups`. When parallax is enabled,
+the first workspace's background is reparented to the strip at index 0 (below
+the sliding container), other group backgrounds are hidden, and a pattern clone is
+placed directly above the wallpaper. As `strip.progress` updates, the wallpaper
+and pattern layer translate at their respective parallax rates while windows slide
+at 100%. When parallax is disabled, pattern clones are inserted into each group
+above the wallpaper as before.
 
 **The structure differs by version.** In 45 through 49, `group._background` is a
 `Meta.BackgroundGroup` whose first child is the wallpaper actor (49 also puts
 desktop-window clones in it, after the wallpaper). In 50 and 51 it is a
 `WorkspaceBackground`, a new class whose first child is a `Meta.BackgroundGroup`
-holding the wallpaper, followed by desktop-window clones. Either way
-`get_first_child()` is the wallpaper and the clone lands just above it, under
-desktop icons. Only 50 has been seen working.
+holding the wallpaper, followed by desktop-window clones.
 
 **If it changes.** Every step is optional-chained or checked, so a change means
-no clones: the patterns vanish during the slide only. The clones belong to the
-strip and die with it; they are not tracked.
+no clones or parallax slide: the patterns or wallpaper slide degrades quietly.
+Clones and reparented actors belong to the strip and die with it.
 
 ## The renderer (shader.js, engine.js)
 

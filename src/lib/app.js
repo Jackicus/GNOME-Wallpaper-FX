@@ -6,6 +6,7 @@ import { SystemState } from './system.js';
 import { OverviewCanvas } from './overview.js';
 import { ShellBackground } from './background.js';
 import { WeatherWatcher } from './weather.js';
+import { ParallaxManager } from './parallax.js';
 
 const BASE_KEYS = new Set([
     'background-mode', 'color-palette', 'custom-image', 'span-monitors', 'weather', 'weather-background',
@@ -29,7 +30,10 @@ export class WallpaperFxApp {
 
         this._build();
 
-        this._overview = new OverviewCanvas(index => this._renderers.get(index)?.actor ?? null);
+        this._parallax = new ParallaxManager(() => this._renderers);
+        this._parallax.enable(this._state());
+
+        this._overview = new OverviewCanvas(index => this._renderers.get(index)?.actor ?? null, this._parallax);
         this._overview.enable();
 
         Main.layoutManager.connectObject('monitors-changed', () => this._rebuild(), this);
@@ -59,6 +63,9 @@ export class WallpaperFxApp {
 
         this._overview.destroy();
         this._overview = null;
+
+        this._parallax?.destroy();
+        this._parallax = null;
 
         this._weather?.destroy();
         this._weather = null;
@@ -109,6 +116,8 @@ export class WallpaperFxApp {
             opacity: s.get_double('opacity'),
             pauseWhenCovered: s.get_boolean('pause-when-covered'),
             pauseOnBattery: s.get_boolean('pause-on-battery'),
+            parallax: s.get_boolean('parallax'),
+            parallaxAmount: s.get_double('parallax-amount'),
             onBattery: this._system.onBattery,
             powerSaver: this._system.powerSaver,
             animations: this._system.animations,
@@ -169,12 +178,14 @@ export class WallpaperFxApp {
         this._background.update(this._state());
         this._build();
         this._overview.invalidate();
+        this._parallax?.update(this._state());
     }
 
     _push(state) {
         this._tuneClock(state);
         for (const renderer of this._renderers.values())
             renderer.setState(state);
+        this._parallax?.update(state);
     }
 
     _tuneClock(state) {

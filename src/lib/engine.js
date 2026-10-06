@@ -62,11 +62,31 @@ export class MonitorRenderer {
             clip_to_allocation: true,
         });
 
+        this.canvas = new Clutter.Actor({ reactive: false });
+        this.actor.add_child(this.canvas);
+
         this.setState(state);
     }
 
     setState(state) {
         this._state = state;
+
+        const vertical = global.workspace_manager.layout_rows === -1;
+        const mDim = vertical ? this.monitor.height : this.monitor.width;
+        const extra = state.parallax ? Math.ceil(2.5 * state.parallaxAmount * mDim) : 0;
+        const canvasWidth = this.monitor.width + (vertical ? 0 : extra);
+        const canvasHeight = this.monitor.height + (vertical ? extra : 0);
+        if (canvasWidth !== this._canvasWidth || canvasHeight !== this._canvasHeight) {
+            this._canvasWidth = canvasWidth;
+            this._canvasHeight = canvasHeight;
+            this.canvas.width = canvasWidth;
+            this.canvas.height = canvasHeight;
+            for (const layer of this._layers.values()) {
+                layer.actor.width = canvasWidth;
+                layer.actor.height = canvasHeight;
+                layer.effect.setUniform('u_res', 2, [canvasWidth, canvasHeight]);
+            }
+        }
 
         const wanted = EFFECTS.filter(e => state.enabledEffects.includes(e.id));
         for (const [id, layer] of this._layers) {
@@ -88,7 +108,7 @@ export class MonitorRenderer {
                 layer = this._createLayer(effect);
                 this._layers.set(effect.id, layer);
             }
-            this.actor.set_child_at_index(layer.actor, index);
+            this.canvas.set_child_at_index(layer.actor, index);
 
             const tuning = state.tuning[effect.id] ?? {};
             const [low, high] = effect.density ?? [1, 1];
@@ -105,7 +125,8 @@ export class MonitorRenderer {
 
     _createLayer(effect) {
         const { canvas, unit, seed } = this._view;
-        const { width, height } = this.monitor;
+        const width = this._canvasWidth ?? this.monitor.width;
+        const height = this.monitor.height;
         const origin = [this.monitor.x - canvas.x, this.monitor.y - canvas.y];
         const Effect = effectClass(effect);
         const layer = {
@@ -133,7 +154,7 @@ export class MonitorRenderer {
         fx.setUniform('u_seed', 1, [seed]);
         fx.onPaint = () => this._onPaint(layer);
         layer.actor.add_effect(fx);
-        this.actor.add_child(layer.actor);
+        this.canvas.add_child(layer.actor);
 
         layer.actor.ease({ opacity: 255, duration: FADE_ANIMATION_TIME, mode: Clutter.AnimationMode.EASE_OUT_QUAD });
         return layer;

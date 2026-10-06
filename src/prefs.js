@@ -424,6 +424,40 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
         applyMode();
         ui.watch('background-mode', applyMode);
 
+        const parallaxGroup = new Adw.PreferencesGroup({
+            title: 'Parallax',
+            description: 'Slide the wallpaper and pattern layers with workspace switches.',
+        });
+        page.add(parallaxGroup);
+
+        parallaxGroup.add(this._switchRow(ui, 'parallax', {
+            title: 'Workspace Parallax',
+            subtitle: 'Wallpaper slides behind windows during workspace transitions',
+        }));
+
+        const amountRow = new Adw.ActionRow({
+            title: 'Parallax Amount',
+            subtitle: 'Total travel across workspaces as a share of monitor width',
+        });
+        const scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 2, 25, 1);
+        scale.set({
+            width_request: 200,
+            valign: Gtk.Align.CENTER,
+            draw_value: true,
+            value_pos: Gtk.PositionType.LEFT,
+            digits: 0,
+        });
+        scale.set_format_value_func((_scale, value) => `${Math.round(value)}%`);
+        scale.connect('value-changed', this._follow(ui, 'parallax-amount',
+            () => scale.set_value(Math.round(settings.get_double('parallax-amount') * 100)),
+            () => settings.set_double('parallax-amount', scale.get_value() / 100)));
+        amountRow.add_suffix(scale);
+        parallaxGroup.add(amountRow);
+
+        const syncParallax = () => (amountRow.sensitive = settings.get_boolean('parallax'));
+        syncParallax();
+        ui.watch('parallax', syncParallax);
+
         return page;
     }
 
