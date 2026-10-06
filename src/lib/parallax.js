@@ -125,6 +125,7 @@ export class Parallax {
                 actor.request_mode = Clutter.RequestMode.CONTENT_SIZE;
                 actor.set_size(-1, -1);
                 actor.set_translation(0, 0, 0);
+                actor.remove_clip();
             }
         }
         this._managers = [];
@@ -391,6 +392,12 @@ export class Parallax {
                 const across = (drawnAcross - sizeAcross) / 2 + tilt * tiltAcross * sizeAcross;
                 return (vertical ? [across, along] : [along, across]).map(v => -Math.round(v));
             };
+            // Clipped to its monitor: grown past it, it would paint over the next one.
+            const move = (actor, size) => {
+                const [x, y] = offset(size);
+                actor.set_translation(x, y, 0);
+                actor.set_clip(-x, -y, monitor.width, monitor.height);
+            };
 
             // Grown evenly, so the picture keeps its shape. The content's own size wins
             // over a set one until the request mode changes.
@@ -399,11 +406,11 @@ export class Parallax {
                 const size = this._size(monitor, index, false);
                 actor.request_mode = Clutter.RequestMode.HEIGHT_FOR_WIDTH;
                 actor.set_size(...size);
-                actor.set_translation(...offset(size), 0);
+                move(actor, size);
             }
             for (const panorama of this._panoramas) {
                 if (panorama.index === index)
-                    panorama.actor.set_translation(...offset(panorama.actor.get_size()), 0);
+                    move(panorama.actor, panorama.actor.get_size());
             }
 
             const along = (tilt + amount * at + tilt * tiltAlong) / spare;
