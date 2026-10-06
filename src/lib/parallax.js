@@ -328,7 +328,7 @@ export class Parallax {
             const under = this._managers[index]?.backgroundActor;
             const old = this._panoramaOn(index);
             if (!room || !under) {
-                if (old) this._retire(old);
+                this._retire(index);
                 return;
             }
             const [drawnWidth, drawnHeight] = this._size(monitor, index, true).map(Math.round);
@@ -354,7 +354,10 @@ export class Parallax {
                 opacity: 255,
                 duration: FADE_ANIMATION_TIME,
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-                onStopped: finished => finished && old?.actor.destroy(),
+                // Every panorama it covers, including one whose own fade-in was cut short.
+                onStopped: finished => finished && this._panoramas
+                    .filter(p => p.index === index && p.retiring && p !== panorama)
+                    .forEach(p => p.actor.destroy()),
             });
             if (image.content) reveal();
             else image.connect('notify::content', reveal);
@@ -362,14 +365,17 @@ export class Parallax {
         if (this._workspaces) this._place();
     }
 
-    _retire(panorama) {
-        panorama.retiring = true;
-        panorama.actor.ease({
-            opacity: 0,
-            duration: FADE_ANIMATION_TIME,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            onStopped: finished => finished && panorama.actor.destroy(),
-        });
+    // Fades out every panorama on the monitor, the ones already replaced included.
+    _retire(index) {
+        for (const panorama of this._panoramas.filter(p => p.index === index)) {
+            panorama.retiring = true;
+            panorama.actor.ease({
+                opacity: 0,
+                duration: FADE_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onStopped: finished => finished && panorama.actor.destroy(),
+            });
+        }
     }
 
     _place() {
