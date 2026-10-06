@@ -522,7 +522,8 @@ kept while its file, place and drawn size hold (a change of travel a wide
 picture has the room for), and crossfaded with its replacement otherwise, as
 the shell crossfades beneath. The slide clones it in place of the shell's. A new
 wallpaper from the shell goes to the bottom of the group, so the panorama stays
-above it. Spanned monitors and the overview's previews keep the shell's.
+above it. Spanned monitors, a monitor with nothing to move (no travel where only
+the primary switches, and no tilt) and the overview's previews keep the shell's.
 
 **If it changes.** With no `_bgManagers` the wallpaper stays still and the
 patterns still pan.
