@@ -125,8 +125,9 @@ compositor thread does the same work whichever patterns are on.
 (a gradient in GNOME's accent colour, which it follows as it changes), `color` (a palette
 from `palettes.js`), `image` (a file the user chose) or `daytime` (one of `daytime-images`
 for the period of the day). In all but the first,
-`background.js` makes it the shell's own wallpaper, spanned across the monitors when the
-patterns are. `enabled-effects` is a list of catalog ids, drawn over
+`background.js` makes it the shell's own wallpaper. A gradient is spanned across the
+monitors when the patterns are; a picture is zoomed on each monitor, since spanning
+would stretch it. `enabled-effects` is a list of catalog ids, drawn over
 that base in catalog order, each tuned by `pattern-tuning` (brightness, speed, Amount, as
 multipliers of its design). `speed` scales every clock and `opacity` is the monitor
 actor's opacity, which each shader multiplies in.
