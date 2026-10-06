@@ -503,7 +503,11 @@ for (const manager of this._managers)
 ```
 
 **What for.** Each manager's `backgroundActor` is the desktop's wallpaper on one
-monitor. Parallax grows it evenly by the travel and translates it.
+monitor. Parallax grows it evenly by the travel and translates it, clipped to
+its monitor. Spanned, each holds its monitor's part of one picture, so each is
+grown and placed where that part falls in the whole canvas grown, and clipped
+to the canvas instead: the parts then meet at every seam, each reaching over its
+neighbour where the view does, and the slide gets a clone of every part.
 `request_mode` goes from `CONTENT_SIZE` to `HEIGHT_FOR_WIDTH` while it does,
 since the content's own size otherwise wins over a set one; `destroy()` puts
 back `CONTENT_SIZE`, no fixed size and no translation. A new wallpaper is a new
