@@ -23,8 +23,8 @@
 #                               'make check' runs after 'make lint', and what CI runs;
 #                               ends with 'size'
 #   ./scripts/dev.sh size       lines of JavaScript under src/, the share that is
-#                               comments and the try count, against EXT_BUDGET_LINES
-#                               (.claude/rules/simplicity.md in the kit); warns, never fails
+#                               comments and the try count (.claude/rules/simplicity.md
+#                               in the kit); warns when comments reach 10%, never fails
 #   ./scripts/dev.sh status     what is installed, and its state in the running shell
 #   ./scripts/dev.sh uninstall  remove the extension
 #   ./scripts/dev.sh clean      remove dist/, and the compiled schema unless a link
@@ -109,14 +109,7 @@ print(lines, comments, tries)
 PY
 )
     local share=$(( lines ? 100 * comments / lines : 0 ))
-    local summary="src/ JavaScript: $lines lines, $share% comment lines, $tries try blocks"
-    if [[ -z "${EXT_BUDGET_LINES:-}" ]]; then
-        warn "$summary; no EXT_BUDGET_LINES in scripts/ext.conf."
-    elif (( lines > EXT_BUDGET_LINES )); then
-        warn "$summary: over the budget of $EXT_BUDGET_LINES by $(( lines - EXT_BUDGET_LINES ))."
-    else
-        ok "$summary (budget $EXT_BUDGET_LINES)."
-    fi
+    ok "src/ JavaScript: $lines lines, $share% comment lines, $tries try blocks."
     (( share < 10 )) || warn "Comment lines are $share% of src/: the kit's simplicity rule keeps them well under 10%."
 }
 
