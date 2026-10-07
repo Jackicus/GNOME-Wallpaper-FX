@@ -102,7 +102,7 @@ the link afterwards. This is also the only way to run the shipped
 | `settings-schema` | set | Correct; `getSettings()` is called without arguments, which is what Best Practices asks |
 | `url` | GitHub repo | Correct |
 | `version` | absent | Correct: "This field SHOULD NOT be set by extension developers" ([Anatomy](https://gjs.guide/extensions/overview/anatomy.html)); EGO assigns it |
-| `version-name` | `1.0` | Bump with each upload |
+| `version-name` | `1.1` | Bump with each upload |
 | `session-modes` | absent | Correct ("MUST be dropped if you are only using `user` mode") |
 | `donations`, `gettext-domain` | absent | Correct. The schema carries no `gettext-domain` attribute either |
 
@@ -110,7 +110,7 @@ the link afterwards. This is also the only way to run the shipped
 counter. From the Anatomy page it "MUST be a string that only contains letters,
 numbers, space and period with a length between 1 and 16 characters",
 matching `/^(?!^[. ]+$)[a-zA-Z0-9 .]{1,16}$/`. So `"1.0"` or `"1.0 beta"` is
-fine, but `"v1.0-beta"` is not, because of the dash. It is `"1.0"`; bump it
+fine, but `"v1.0-beta"` is not, because of the dash. It is `"1.1"`; bump it
 with each upload.
 
 **`shell-version`**: the guideline is that it "MUST only contain stable releases
@@ -138,8 +138,9 @@ that could look like a bug. It says:
 
 ## The review guidelines, item by item
 
-Checked against both pages as read on 2026-10-02, before the 1.0 release; no
-blocker was found.
+Checked against both pages as read on 2026-10-02, before the 1.0 release, and
+again as read on 2026-10-07, before 1.1 (the lists had not changed); no blocker
+was found either time.
 
 ### Only use initialization for static resources: meets
 
@@ -214,7 +215,14 @@ a module, so moving it is optional tidying.
 ### Avoid interfering with the extension system: meets
 
 The code that works around the shell's module cache is the development entry
-point, `scripts/dev-extension.js`, and it is not in the zip. See
+point, `scripts/dev-extension.js`, and it is not in the zip.
+
+The one reach toward another extension is Blur My Shell Compatibility
+(`parallax-blur-my-shell`): off by default, and while off nothing of it runs.
+On, parallax moves the wallpaper actors Blur My Shell's static blur makes (found
+by its `bms-…` widget names) as it moves the desktop's, and puts them back on
+disable; it calls nothing of Blur My Shell's and changes none of its settings
+([private-api.md](private-api.md)). Say so in the upload notes. See
 [the development path in extension.js](#the-development-path-in-extensionjs).
 
 ### Code must not be obfuscated: meets
@@ -262,15 +270,15 @@ lists the patterns reviewers look for. In this code:
 - **try/catch that only swallows** ("Avoid Unnecessary try-catch Wrappers"):
   gone from the shipped `extension.js`, so a failed load shows as an error in
   the Extensions app. Those that remain handle real failures: rendering a
-  gradient (disk I/O), a saved weather report that will not parse, and a
-  dismissed file chooser in the preferences.
+  gradient (disk I/O), a saved weather report that will not parse, a picture
+  file parallax cannot read, and a dismissed file chooser in the preferences.
 - **A lifecycle flag** ("Lifecycle and Destruction State"): `this._enabling`
   exists only in `scripts/dev-extension.js`, whose `enable()` is async. The
   shipped entry point has none.
 
 The comments explain *why* rather than restating the code, which is what the
-guidelines want, and are 6% of the lines (`./scripts/dev.sh size`: 3445 lines of
-JavaScript, 3 `try` blocks).
+guidelines want, and are 7% of the lines (`./scripts/dev.sh size`: 4666 lines of
+JavaScript, 4 `try` blocks).
 
 ### metadata.json must be well-formed: meets
 
