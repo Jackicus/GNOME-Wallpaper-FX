@@ -17,6 +17,10 @@ path that depends on the shell's version, and what a port to another version
   bus), for screenshots and multi-monitor layouts, including the overview on a
   second monitor.
 
+- **Blur My Shell 74** beside it, in the nested shell on 50.5, for the
+  `parallax-blur-my-shell` switch: its static blur on a window and the top bar,
+  before and after, across a workspace slide and with the pointer tilt.
+
 Both of those mostly ran the development link, whose entry point is
 `scripts/dev-extension.js`. The shipped `src/extension.js` runs only from a real
 install; it has been run once that way on the main desktop's 50.5, from a plain copy of `src/` in

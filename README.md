@@ -118,7 +118,8 @@ the pointer is, never a click or a key, and only while one of them is on.
   each by its own depth. It follows a touchpad swipe as it goes, and the overview's
   previews each show their own workspace's part. A picture wider than your screen pans
   across its own width with no zoom (Travel goes up to 100% to cross all of it). Pointer
-  Tilt adds a small lean away from the pointer on the desktop.
+  Tilt adds a small lean away from the pointer on the desktop. With Blur My Shell's static
+  blur, turn on Blur My Shell Compatibility so its blur moves with the wallpaper too.
 - **Wherever your wallpaper shows.** The desktop, the overview, the workspace switcher and
   extensions that blur the background all show the patterns. The lock screen keeps your
   own wallpaper.
@@ -222,7 +223,8 @@ Open them in the Extensions app, or with `gnome-extensions prefs wallpaper-fx@ja
 - **Background**: what the patterns are drawn over: Desktop Wallpaper, Accent Color, Color
   Gradient (with its palette), Custom Picture (PNG, JPEG or WebP) or Time of Day (a
   picture for dawn, day, dusk and night; a time without one uses the nearest). Under Parallax:
-  Workspace Parallax and its Travel, Pointer Tilt and its reach, and Pattern Depth.
+  Workspace Parallax and its Travel, Pointer Tilt and its reach, Pattern Depth, and Blur My
+  Shell Compatibility (off by default).
 - **Performance**: the frame rate (every frame, every other frame, or about 60 or 30 a
   second, in step with each display), Pause While Covered (on by default) and Pause on
   Battery Power (off by default).

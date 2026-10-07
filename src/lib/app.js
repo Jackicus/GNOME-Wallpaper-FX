@@ -194,6 +194,7 @@ export class WallpaperFxApp {
             tilt: s.get_boolean('pointer-tilt') ? s.get_double('pointer-tilt-amount') : 0,
             span: this._movesAsOne,
             picture: pictureOf(this._state()),
+            blurMyShell: s.get_boolean('parallax-blur-my-shell'),
         };
     }
 
