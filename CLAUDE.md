@@ -82,7 +82,9 @@ offline tools) and `background.md` (the base and the overview's clones).
   over the others, so the parts meet; a picture zoomed on each monitor moves by that
   monitor's own workspaces, so one whose workspaces stay put holds still. The patterns
   move further through `MonitorRenderer.pan()`, each its catalog `depth` times the wallpaper, scaled by
-  `parallax-depth`, across a canvas of its own made that much longer. A picture base wider
+  `parallax-depth`, across a canvas of its own made that much longer. With
+  `parallax-blur-my-shell`, Blur My Shell's static-blur wallpapers (`bms-…` widgets) are
+  moved as the desktop's is (`docs/private-api.md`); off, nothing of it runs. A picture base wider
   than the monitor's shape is shown on a panorama actor of its own, unzoomed where it has
   the room, since the shell's wallpaper crops it to the monitor; a new picture
   (`setPicture()`) crossfades its panorama and keeps the adjustments. The tilt rests while

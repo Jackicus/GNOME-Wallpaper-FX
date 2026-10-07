@@ -492,10 +492,17 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
         });
         parallax.add(depth);
 
+        const blurMyShell = this._switchRow(ui, 'parallax-blur-my-shell', {
+            title: 'Blur My Shell Compatibility',
+            subtitle: 'Move Blur My Shell’s static blur with the background, so it matches what is behind it',
+        });
+        parallax.add(blurMyShell);
+
         const syncParallax = () => {
             travel.sensitive = settings.get_boolean('parallax');
             reach.sensitive = settings.get_boolean('pointer-tilt');
             depth.sensitive = travel.sensitive || reach.sensitive;
+            blurMyShell.sensitive = depth.sensitive;
         };
         syncParallax();
         ui.watch('parallax', syncParallax);

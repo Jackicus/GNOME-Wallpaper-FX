@@ -98,6 +98,11 @@
       <summary>Workspace parallax pattern depth</summary>
       <description>How far the patterns pan, as a multiple of each one's own depth; 0 holds them still.</description>
     </key>
+    <key name="parallax-blur-my-shell" type="b">
+      <default>false</default>
+      <summary>Move Blur My Shell's wallpaper with the parallax</summary>
+      <description>Blur My Shell's static blur paints a wallpaper of its own; this moves it with the desktop's, so the blur matches what is behind it.</description>
+    </key>
     <key name="pointer-tilt" type="b">
       <default>false</default>
       <summary>Pointer tilt</summary>

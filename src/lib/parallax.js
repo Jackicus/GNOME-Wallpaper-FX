@@ -6,7 +6,7 @@ import GLib from 'gi://GLib';
 import Graphene from 'gi://Graphene';
 import Meta from 'gi://Meta';
 import St from 'gi://St';
-import { FADE_ANIMATION_TIME } from 'resource:///org/gnome/shell/ui/background.js';
+import { BackgroundManager, FADE_ANIMATION_TIME } from 'resource:///org/gnome/shell/ui/background.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { WINDOW_ANIMATION_TIME } from 'resource:///org/gnome/shell/ui/workspaceAnimation.js';
 
@@ -18,12 +18,14 @@ import { canvasAround, desktopCovered } from './engine.js';
 export class Parallax {
     constructor(renderers) {
         this._renderers = renderers;
-        this._options = { amount: 0, tilt: 0, span: false, picture: null };
+        this._options = { amount: 0, tilt: 0, span: false, picture: null, blurMyShell: false };
         this._workspaces = null;
         this._pan = null;
         this._tilts = [];
         this._laterId = 0;
         this._managers = [];
+        this._blurs = [];
+        this._blurHook = null;
         this._panoramas = []; // { index, actor, file, width, height, retiring }
         this._image = null;
         this._loaded = null;
@@ -34,7 +36,7 @@ export class Parallax {
 
     // `amount` is the wallpaper's travel across the workspaces and `tilt` its reach
     // either side of centre, each a share of the monitor; both 0 is off. `picture` is
-    // the base's file, when it is one.
+    // the base's file, when it is one. `blurMyShell` moves Blur My Shell's wallpapers too.
     update(options) {
         this._release();
         this._options = options;
@@ -77,6 +79,7 @@ export class Parallax {
         this._managers = [...Main.layoutManager._bgManagers ?? []];
         for (const manager of this._managers)
             manager.connectObject('changed', () => this._place(), this);
+        if (options.blurMyShell) this._followBlurMyShell();
 
         this._load();
         this._place();
@@ -120,15 +123,18 @@ export class Parallax {
         for (const manager of this._managers) {
             manager.disconnectObject(this);
             // Null once the shell has destroyed the manager for a monitor change.
-            const actor = manager.backgroundActor;
-            if (actor) {
-                actor.request_mode = Clutter.RequestMode.CONTENT_SIZE;
-                actor.set_size(-1, -1);
-                actor.set_translation(0, 0, 0);
-                actor.remove_clip();
-            }
+            if (manager.backgroundActor) rest(manager.backgroundActor);
         }
         this._managers = [];
+
+        const { proto, previous, hook } = this._blurHook ?? {};
+        if (hook && proto._createBackgroundActor === hook) proto._createBackgroundActor = previous;
+        this._blurHook = null;
+        for (const actor of this._blurs) {
+            actor.disconnectObject(this);
+            rest(actor);
+        }
+        this._blurs = [];
 
         for (const renderer of this._renderers.values())
             renderer.pan(0, 0);
@@ -212,6 +218,33 @@ export class Parallax {
             actor.content.set_rounded_clip_bounds(clipBounds(index, [0, 0], 1));
         }
         this._previews = [];
+    }
+
+    // Blur My Shell's static blur paints the wallpaper again, from a BackgroundManager
+    // of its own in a widget named 'bms-…' at the monitor's corner. Those wallpapers,
+    // the ones there now and every one made later, are moved as the desktop's is.
+    _followBlurMyShell() {
+        const adopt = actor => {
+            if (!(actor instanceof Meta.BackgroundActor) || !actor.get_parent()?.name?.startsWith('bms-'))
+                return false;
+            this._blurs.push(actor);
+            actor.connectObject('destroy', () => drop(this._blurs, actor), this);
+            return true;
+        };
+        const walk = actor => actor.get_children().forEach(child => adopt(child) || walk(child));
+        walk(global.stage);
+
+        // Private: docs/private-api.md.
+        const proto = BackgroundManager.prototype;
+        const previous = proto._createBackgroundActor;
+        const self = this;
+        const hook = function (...args) {
+            const actor = previous.apply(this, args);
+            if (self._blurHook?.hook === hook && adopt(actor)) self._place();
+            return actor;
+        };
+        proto._createBackgroundActor = hook;
+        this._blurHook = { proto, previous, hook };
     }
 
     _panoramaOn(index) {
@@ -440,11 +473,15 @@ export class Parallax {
 
             // Grown evenly, so the picture keeps its shape. The content's own size wins
             // over a set one until the request mode changes.
-            const actor = this._managers[index]?.backgroundActor;
-            if (actor) {
+            const grow = actor => {
                 actor.request_mode = Clutter.RequestMode.HEIGHT_FOR_WIDTH;
                 actor.set_size(...this._size(monitor, index, false));
                 move(actor, [box.width * (1 + spare), box.height * (1 + spare)]);
+            };
+            const actor = this._managers[index]?.backgroundActor;
+            if (actor) grow(actor);
+            for (const blur of this._blurs) {
+                if (blur.monitor === index) grow(blur);
             }
             for (const panorama of this._panoramas) {
                 if (panorama.index === index)
@@ -458,6 +495,13 @@ export class Parallax {
             this._renderers.get(index)?.pan(...patterns);
         });
     }
+}
+
+function rest(actor) {
+    actor.request_mode = Clutter.RequestMode.CONTENT_SIZE;
+    actor.set_size(-1, -1);
+    actor.set_translation(0, 0, 0);
+    actor.remove_clip();
 }
 
 function drop(list, item) {

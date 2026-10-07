@@ -30,6 +30,7 @@ because `src/` is changing; functions are named instead.
 | `this._switchData.monitors`, `strip._monitor`, `strip._workspaceGroups`, `group._background` | overview.js | Same | Yes, silently |
 | `Main.layoutManager._bgManagers`, `manager.backgroundActor`, its `changed` signal, its parent | parallax.js | Parallax moves the patterns only, never the wallpaper, and a wide picture is zoomed as any other | Yes, silently |
 | `workspace._background._bgManager.backgroundActor`, `._monitorIndex` | parallax.js | The overview's previews show the whole wallpaper, as without parallax | Yes, silently |
+| `BackgroundManager.prototype._createBackgroundActor` (wrapped), Blur My Shell's `bms-…` widget names | parallax.js | With Blur My Shell Compatibility on, its static blur stays at rest under parallax | Yes, silently |
 | `class extends Shell.GLSLEffect` | shader.js | `enable()` throws and the extension shows as errored with the base taken over (below). **Removed in GNOME 51** | No |
 | `vfunc_paint_target(node, paintContext)` | shader.js | Patterns freeze on their first frame | No |
 | `Cogl.SnippetHook.FRAGMENT` | shader.js | Every pattern fails to build | No |
@@ -534,6 +535,44 @@ the primary switches, and no tilt) and the overview's previews keep the shell's.
 
 **If it changes.** With no `_bgManagers` the wallpaper stays still and the
 patterns still pan.
+
+### Blur My Shell's wallpapers (parallax.js, `parallax-blur-my-shell` only)
+
+```js
+const proto = BackgroundManager.prototype;
+const previous = proto._createBackgroundActor;
+proto._createBackgroundActor = hook;
+```
+
+**What for.** Blur My Shell's static blur (on windows, the top bar, the dash,
+popups, the overview and the workspace slide) does not read the screen: each one
+builds a `BackgroundManager` of its own and blurs the `Meta.BackgroundActor` it
+makes, in a widget named `bms-…-blurred-widget` that it keeps at its monitor's
+corner. Under parallax that copy of the wallpaper stays at rest while the
+desktop's is grown and moved, so the blur in a window shows a different part of
+the picture from the one behind it, and stays put as the workspaces slide. Its
+dynamic blur reads what is painted behind it and needs nothing.
+
+With the switch on, `update()` walks the stage once for every
+`Meta.BackgroundActor` whose parent's name starts with `bms-`, and wraps
+`_createBackgroundActor()`, which every `BackgroundManager` calls for each
+wallpaper it makes (on a new window, a new wallpaper, a monitor change), to take
+the ones made later. Each is grown, moved and clipped exactly as the desktop's
+wallpaper on its monitor (`actor.monitor`, a public property), which lines it up
+because its widget's origin is the monitor's corner. `_release()` puts the
+wrapper back while it is still the outermost (left in a chain, it does nothing)
+and puts each wallpaper back as it found it: `CONTENT_SIZE`, no fixed size, no
+translation, no clip. With the switch off none of this runs.
+
+Where parallax.js shows a panorama (a picture wider than the monitor's shape),
+the blur follows the shell's wallpaper under it, which is the picture cropped to
+the monitor, so the two differ there. The patterns are never in Blur My Shell's
+static blur, with or without the switch.
+
+**If it changes.** A renamed `_createBackgroundActor` leaves only the
+wallpapers there at `update()` moving; renamed widgets on Blur My Shell's side
+leave its static blur at rest, as with the switch off. Checked with Blur My
+Shell 74 on 50.5.
 
 ### `workspace._background._bgManager.backgroundActor` for the previews (parallax.js)
 
