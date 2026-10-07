@@ -504,7 +504,9 @@ for (const manager of this._managers)
 
 **What for.** Each manager's `backgroundActor` is the desktop's wallpaper on one
 monitor. Parallax grows it evenly by the travel and translates it, clipped to
-its monitor. Spanned, each holds its monitor's part of one picture, so each is
+its monitor. Where the wallpaper spans the monitors (a gradient with
+`span-monitors`, or a desktop wallpaper set to span), each holds its monitor's
+part of one picture, so each is
 grown and placed where that part falls in the whole canvas grown, and clipped
 to the canvas instead: the parts then meet at every seam, each reaching over its
 neighbour where the view does, and the slide gets a clone of every part.
@@ -527,7 +529,7 @@ kept while its file, place and drawn size hold (a change of travel a wide
 picture has the room for), and crossfaded with its replacement otherwise, as
 the shell crossfades beneath. The slide clones it in place of the shell's. A new
 wallpaper from the shell goes to the bottom of the group, so the panorama stays
-above it. Spanned monitors, a monitor with nothing to move (no travel where only
+above it. A spanned wallpaper, a monitor with nothing to move (no travel where only
 the primary switches, and no tilt) and the overview's previews keep the shell's.
 
 **If it changes.** With no `_bgManagers` the wallpaper stays still and the
