@@ -1,3 +1,4 @@
+import GDesktopEnums from 'gi://GDesktopEnums';
 import Gio from 'gi://Gio';
 import Meta from 'gi://Meta';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -25,6 +26,7 @@ export class WallpaperFxApp {
 
     enable() {
         this._interface = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' });
+        this._desktop = new Gio.Settings({ schema_id: 'org.gnome.desktop.background' });
         this._system = new SystemState(() => this._push(this._state()));
         this._weather = null;
         this._pointer = null;
@@ -61,6 +63,8 @@ export class WallpaperFxApp {
 
         this._interface.connectObject('changed::accent-color',
             () => this._background.update(this._state()), this);
+        // A desktop wallpaper set to span the monitors moves as one picture.
+        this._desktop.connectObject('changed::picture-options', () => this._baseChanged(), this);
 
         // Which monitors switch workspaces, and along which axis, set each one's travel.
         this._mutter = new Gio.Settings({ schema_id: 'org.gnome.mutter' });
@@ -75,6 +79,8 @@ export class WallpaperFxApp {
         this._interface = null;
         this._mutter.disconnectObject(this);
         this._mutter = null;
+        this._desktop.disconnectObject(this);
+        this._desktop = null;
         global.workspace_manager.disconnectObject(this);
 
         this._overview.destroy();
@@ -122,6 +128,10 @@ export class WallpaperFxApp {
     _baseChanged() {
         this._followDaytime();
         const state = this._state();
+        if (this._oneWallpaper(state) !== this._movesAsOne) {
+            this._reframe();
+            return;
+        }
         this._background.update(state);
         this._parallax.setPicture(pictureOf(state));
     }
@@ -182,13 +192,22 @@ export class WallpaperFxApp {
         return {
             amount: s.get_boolean('parallax') ? s.get_double('parallax-amount') : 0,
             tilt: s.get_boolean('pointer-tilt') ? s.get_double('pointer-tilt-amount') : 0,
-            span: this._spanning(),
+            span: this._movesAsOne,
             picture: pictureOf(this._state()),
         };
     }
 
     _spanning() {
         return this._settings.get_boolean('span-monitors') && Main.layoutManager.monitors.length > 1;
+    }
+
+    // Whether the wallpaper is one picture across the monitors: a gradient spanned with
+    // the patterns, or a desktop wallpaper set to span. A picture base is zoomed on each.
+    _oneWallpaper(state) {
+        if (Main.layoutManager.monitors.length < 2) return false;
+        if (state.mode === 'accent' || state.mode === 'color') return state.span;
+        return !pictureOf(state) &&
+            this._desktop.get_enum('picture-options') === GDesktopEnums.BackgroundStyle.SPANNED;
     }
 
     // One image serves every monitor: the whole canvas spanned, else the largest monitor.
@@ -216,19 +235,24 @@ export class WallpaperFxApp {
                 seed: m.index * 17.31,
             }));
 
+        // One wallpaper moves as one, with the primary's workspaces; otherwise a monitor
+        // whose workspaces stay put keeps its wallpaper and patterns still.
+        this._movesAsOne = this._oneWallpaper(this._state());
+        const onlyPrimary = !this._movesAsOne && Meta.prefs_get_workspaces_only_on_primary();
+
         // As the wallpaper's: the workspace travel plus the tilt's reach both ways along the
         // workspaces, the tilt's alone across them (parallax.js).
         const { amount, tilt } = this._parallaxOptions();
         const depth = this._settings.get_double('parallax-depth');
         const vertical = global.workspace_manager.layout_rows === -1;
-        // Spanned, one picture: every monitor moves with the primary's workspaces.
-        const onlyPrimary = !this._spanning() && Meta.prefs_get_workspaces_only_on_primary();
         for (const [index, view] of views.entries()) {
             const moves = !onlyPrimary || index === Main.layoutManager.primaryIndex;
             const along = ((moves ? amount : 0) + 2 * tilt) * depth;
             const across = 2 * tilt * depth;
             const [x, y] = vertical ? [across, along] : [along, across];
-            view.travel = [Math.round(x * view.canvas.width), Math.round(y * view.canvas.height)];
+            // A share of what the wallpaper under it moves across.
+            const box = this._movesAsOne ? view.canvas : monitors[index];
+            view.travel = [Math.round(x * box.width), Math.round(y * box.height)];
         }
         return views;
     }
