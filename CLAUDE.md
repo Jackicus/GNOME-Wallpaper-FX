@@ -20,9 +20,8 @@ the nested settings, and GNOME Weather's desktop entry under `--stand-in`).
   `make lint`, then `./scripts/dev.sh check`: the schema under `--strict`, and
   `./scripts/dev.sh shaders` (`node scripts/shaders.mjs check`), every pattern's shader
   compiled by `glslangValidator` in each GLSL dialect Cogl may use. CI installs
-  `glslang` through `.github/ci-packages`. It ends with `size` against `EXT_BUDGET_LINES`
-  (3600: the 3567 lines left after the simplify pass, rounded up to the next hundred,
-  so growth is noticed; raising it is the owner's call).
+  `glslang` through `.github/ci-packages`. It ends with `size`: the lines, comment share
+  and `try` count of `src/`, to compare before and after a change.
 - **Needs the GPU, so stays out of `make check`:** `make bench` (each pattern timed) and
   `node scripts/shaders.mjs render PATTERN` (frames of one pattern to a PNG, with no
   shell at all: the quick loop for a pattern's look).
