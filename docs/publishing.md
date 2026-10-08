@@ -103,7 +103,7 @@ the link afterwards. This is also the only way to run the shipped
 | `settings-schema` | set | Correct; `getSettings()` is called without arguments, which is what Best Practices asks |
 | `url` | GitHub repo | Correct |
 | `version` | absent | Correct: "This field SHOULD NOT be set by extension developers" ([Anatomy](https://gjs.guide/extensions/overview/anatomy.html)); EGO assigns it |
-| `version-name` | `1.1` | Bump with each upload |
+| `version-name` | `1.2` | Bump with each upload |
 | `session-modes` | absent | Correct ("MUST be dropped if you are only using `user` mode") |
 | `donations`, `gettext-domain` | absent | Correct. The schema carries no `gettext-domain` attribute either |
 
