@@ -63,10 +63,7 @@ Useful keys: `enabled-effects` (`as` of catalog ids), `background-mode`
 
 - **A pattern that is missing** while the others draw is usually a shader that did not
   compile: `make check` names the line.
-- **Headless without the mirror never paints**: with nothing consuming frames the
-  compositor does not draw, so a CPU or GPU reading under `start --headless` measures
-  nothing. Measure with the mirror on; it adds a constant screencast cost, so compare
-  readings with each other, not with zero.
+- **Measure with the mirror on**: headless never paints (`gnome-ext:nested-shell`).
 
 ## The README's screenshots
 
