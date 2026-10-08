@@ -40,11 +40,12 @@ metadata.json
 extension.js
 prefs.js
 schemas/org.gnome.shell.extensions.wallpaper-fx.gschema.xml
-lib/app.js  lib/background.js  lib/catalog.js  lib/engine.js  lib/layer.js
-lib/looks.js  lib/overview.js  lib/palettes.js  lib/scenes.js
-lib/shader.js  lib/sun.js  lib/system.js  lib/weather.js
+lib/app.js  lib/background.js  lib/catalog.js  lib/daytime.js  lib/engine.js
+lib/layer.js  lib/looks.js  lib/overview.js  lib/palettes.js  lib/parallax.js
+lib/pointer.js  lib/scenes.js  lib/shader.js  lib/sun.js  lib/system.js  lib/weather.js
 lib/layers/{aurora,bokeh,clouds,constellation,contours,embers,fireflies,fog,
-            lightning,nebula,rain,snow,sparkles,starfield,sunbeams,wave}.js
+            lightning,nebula,rain,ripples,snow,sparkles,stardust,starfield,
+            sunbeams,swarm,wave}.js
 ```
 
 What it leaves out: `src/schemas/gschemas.compiled` (a local artefact of
@@ -139,8 +140,10 @@ that could look like a bug. It says:
 ## The review guidelines, item by item
 
 Checked against both pages as read on 2026-10-02, before the 1.0 release, and
-again as read on 2026-10-07, before 1.1 (the lists had not changed); no blocker
-was found either time.
+again as read on 2026-10-07, before 1.1 (the lists had not changed), and on
+2026-10-08, after 1.1 (one addition: Best Practices now asks that the schema id
+not be repeated in the code or kept as a constant; it is only in `metadata.json`
+and the schema). No blocker was found any time.
 
 ### Only use initialization for static resources: meets
 
@@ -149,8 +152,8 @@ the module scope of everything under `lib/` runs when the extension is loaded,
 before `enable()`. All of it is definitions: the `WallpaperFxPreviewHost` class, the
 D-Bus interfaces from `makeProxyWrapper()` in `system.js`, the catalog and its
 shader strings, an empty `Map` in `shader.js`, a `Set` of
-key names in `app.js`, and in `weather.js` the tables from GWeather's enums to
-plain words. Nothing is instantiated, connected or scheduled.
+key names in `app.js`, a constant `fireflies.js` works out from its own numbers,
+and in `weather.js` the tables from GWeather's enums to plain words. Nothing is instantiated, connected or scheduled.
 That is what the guideline allows ("static data structures and instances of
 built-in JavaScript objects"). `WallpaperFxApp` calls `getSettings()` in its
 constructor, but it is constructed inside `enable()`.
@@ -159,9 +162,14 @@ constructor, but it is constructed inside `enable()`.
 
 `disable()` tears down, in order: the layout-manager, settings and interface
 signal connections; the overview clones and the slide override (put back
-while it is still the outermost wrap); the `WeatherWatcher`, if the weather is
+while it is still the outermost wrap); `Parallax` (its picture load cancelled,
+its panoramas destroyed, the wallpaper and Blur My Shell's actors put back and
+its hook on Blur My Shell's prototype taken back while it is still its own, its
+workspace, cursor and background connections dropped); the `WeatherWatcher`, if the weather is
 on (its timer is removed, its GWeather request aborted, and its GWeather and settings
-connections dropped); `SystemState` (its
+connections dropped); the `PointerTrail` and `Daytime`, if they are kept (the
+cursor tracker connection; the timer, the login1 subscription and the weather
+settings connection); `SystemState` (its
 `Gio.Cancellable` is cancelled and its D-Bus proxies and `St.Settings`
 connection are dropped); the wallpaper
 takeover, including the holder `BackgroundManager` and its container actor; and
@@ -193,9 +201,12 @@ There is one source per monitor: `GLib.timeout_add()` in
 `MonitorRenderer._onPaint()`, guarded by `if (this._timerId || ...) return;` on
 the start of the line that books it, and removed in `MonitorRenderer.destroy()`.
 The others are the `WeatherWatcher`'s five-minute `GLib.timeout_add_seconds()`,
-added in its constructor and removed in its `destroy()`, and `ShellBackground`'s
+added in its constructor and removed in its `destroy()`, `Daytime`'s one timer to
+the next period of the day, removed before each new one and in its `destroy()`,
+and `ShellBackground`'s
 one-shot `GLib.idle_add()` that takes a replaced background source back
-(`_retakeId`), removed in `release()`. Nothing else adds one.
+(`_retakeId`), removed in `release()`. `Parallax` books a compositor later
+(`_laterId`), removed in its `destroy()`. Nothing else adds one.
 
 ### Do not use deprecated modules: meets
 
