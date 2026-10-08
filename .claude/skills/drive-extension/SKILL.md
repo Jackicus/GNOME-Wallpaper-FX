@@ -18,16 +18,11 @@ to click: everything visible is a GSettings key. Crop `shot`s to the part being 
 
 ## In the nested shell
 
-`./scripts/nested.sh` is the kit's, plus `scripts/nested.d/wallpaper-fx.sh`. What
-matters here:
-
-- **`start --clean`** resets the nested settings (kept between starts otherwise) to
-  Wallpaper FX alone and every one of its keys at its default. Use it when the result
-  must not depend on an earlier run (an enable-path check). A shell already running is
-  reused as it is: `stop` before `start --clean`.
-- **`start --monitors N`** puts N monitors side by side (shots, the mirror and pointer
-  coordinates then span all of them). It is the only way to check `span-monitors`, the
-  seam between two monitors, or the overview's previews on a secondary monitor.
+- **`start --clean`** after a `stop` (a running shell is reused as it is) for an
+  enable-path check that must not depend on an earlier run.
+- **`start --monitors N`** is the only way to check `span-monitors`, the seam between two
+  monitors, or the overview's previews on a secondary monitor. Shots and pointer
+  coordinates then span all of them.
 - **`start --stand-in`** runs a copy of `src/` with a scratch home and fresh settings:
   the `desktop` base is GNOME's default wallpaper and `~/.cache/wallpaper-fx` is the
   scratch one. For screenshots that are kept.
@@ -36,8 +31,8 @@ matters here:
   stand-in one (Bergen by default; `LATITUDE LONGITUDE` for the nearest GWeather city;
   `none` to clear) into the nested settings only, never a real location. Under
   `--stand-in` a GNOME Weather desktop entry that runs nothing lets the Place row open it.
-- **`/prefs`** opens the preferences in the nested shell (`window` shoots the dialog
-  alone); `make prefs` opens the user's own, never used to test.
+- **`/prefs`** opens the preferences in the nested shell; `make prefs` opens the user's
+  own, never used to test.
 - **No shell at all**: `node scripts/shaders.mjs render PATTERN --out $S/x.png
   --frames 3 [--span 2] [--density D]` draws frames of one pattern straight to a PNG
   (`.claude/rules/shaders.md`). Use it for a pattern's look, and while another session
@@ -46,18 +41,17 @@ matters here:
 ## Changing what is drawn
 
 `app.js` repaints on a key change, without a reload. The schema is not installed
-system-wide, so every `gsettings` call names it:
+system-wide, so every `gsettings` call names its directory:
 
 ```bash
 ./scripts/nested.sh run timeout 5 gsettings --schemadir src/schemas \
     set org.gnome.shell.extensions.wallpaper-fx enabled-effects "['aurora']"
 ```
 
-Through `run` it reads and writes the nested shell's own settings (the keyfile backend
-in its own `XDG_CONFIG_HOME`); the same command without `./scripts/nested.sh run` is the
-user's real settings, which a test never writes. Useful keys: `enabled-effects` (`as` of catalog ids),
-`background-mode` (`desktop`/`accent`/`color`/`image`), `color-palette`, `speed`,
-`opacity`, `target-fps`, `pause-when-covered`, `span-monitors`.
+Useful keys: `enabled-effects` (`as` of catalog ids), `background-mode`
+(`desktop`/`accent`/`color`/`image`/`daytime`), `color-palette`, `speed`, `opacity`,
+`target-fps`, `pause-when-covered`, `span-monitors`, `parallax`, `pointer-tilt`,
+`weather`.
 
 - **Two frames of the same animation are not a comparison.** The patterns move, so a
   before/after pair always differs a little. Judge shape, colour, density and
