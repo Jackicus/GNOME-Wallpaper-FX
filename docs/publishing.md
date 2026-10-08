@@ -277,8 +277,8 @@ lists the patterns reviewers look for. In this code:
   shipped entry point has none.
 
 The comments explain *why* rather than restating the code, which is what the
-guidelines want, and are 7% of the lines (`./scripts/dev.sh size`: 4666 lines of
-JavaScript, 4 `try` blocks).
+guidelines want, and stay under 10% of the lines (`./scripts/dev.sh size`, which
+`make check` runs, prints the lines, the comment share and the `try` count).
 
 ### metadata.json must be well-formed: meets
 
