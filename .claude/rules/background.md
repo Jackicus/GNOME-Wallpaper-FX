@@ -41,4 +41,4 @@ new one goes there in the same pull request.
   vanish in the overview or during a workspace switch, check `overview.js`.
 - **`Main.overview.visible` is not to be trusted on its own**: in the nested shell it
   has read true on a plain desktop, so `overview.js` clears its clones before adding
-  them.
+  them, and the engine's pausing asks whether a paint came through a clone instead.

@@ -699,7 +699,7 @@ shell sets `GObject.gtypeNameBasedOnJSPath = true` (`ui/environment.js`), and
 gjs 1.88 then names a class `Gjs_<module's directory>_<module>_<class name>`
 (`_createGTypeName()` in its `GObject.js` override): installed,
 `Gjs_lib_shader_WallpaperFx_aurora` and `Gjs_lib_overview_WallpaperFxPreviewHost`;
-staged for development, `Gjs_lib-<checksum>_shader_WallpaperFx_aurora`. The 16
+staged for development, `Gjs_lib-<checksum>_shader_WallpaperFx_aurora`. The 19
 pattern classes come from one definition in `buildEffectClass()`, so each is given
 its JS name, with the extension's prefix, before it is registered.
 

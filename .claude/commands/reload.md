@@ -23,9 +23,7 @@ names the line.
    reload ends with `[WallpaperFx] Enabled from
    /run/user/1000/wallpaper-fx/shell-<pid>/lib-<checksum>` (the development entry
    point's only line, a new checksum after each edit; the shipped code logs
-   nothing on a good enable). A link made before the kit's scripts has no
-   `dev-extension.json`, and the line reads `[Wallpaper FX]` until the user runs
-   `make link` again (`./scripts/dev.sh status` says so). Anything with `Failed to load`, `Error during disable`, a warning
+   nothing on a good enable). Anything with `Failed to load`, `Error during disable`, a warning
    from Wallpaper FX, or a JS stack trace under a `[WallpaperFx]` line is a real
    failure: quote it and say which file it points at. A shader that failed to
    compile shows as a Cogl warning at best. Other extensions' errors at startup

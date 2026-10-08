@@ -10,8 +10,7 @@ path that depends on the shell's version, and what a port to another version
 - **The main desktop: GNOME Shell 50.5** on CachyOS (Arch-based), Wayland, with
   an NVIDIA GeForce GTX 1080 on the proprietary driver 580.178.04. The rest of
   the stack on that machine: mutter 50.5, GJS 1.88.1, GLib 2.88.3, GTK 4.22.5,
-  libadwaita 1.9.4, power-profiles-daemon 0.30, libgweather 4.6.0. A bare `50.5` on this page is that machine's installed shell (the Intel
-  all-in-one runs 50.5 too, as of 2026-10-02).
+  libadwaita 1.9.4, power-profiles-daemon 0.30, libgweather 4.6.0. A bare `50.5` on this page is that machine's installed shell.
 - **The same shell headless and nested** (`make nested`, which runs
   `gnome-shell --wayland --headless --virtual-monitor ...` on its own session
   bus), for screenshots and multi-monitor layouts, including the overview on a
