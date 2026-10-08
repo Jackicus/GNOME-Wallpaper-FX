@@ -344,10 +344,13 @@ cmd_start() {
     kill_strays
 
     # A nested shell discovers UUIDs at its own startup, so the extension is
-    # installed first. --no-enable: the link alone, never an enable or a reload
-    # of the real shell.
-    if (( ! standin )) && [[ ! -e "$HOME/.local/share/gnome-shell/extensions/$EXT_UUID" ]]; then
+    # installed first, and a link is made again for any entry src/ gained since.
+    # --no-enable: the link alone, never an enable or a reload of the real shell.
+    local installed="$HOME/.local/share/gnome-shell/extensions/$EXT_UUID"
+    if (( ! standin )) && [[ ! -e "$installed" ]]; then
         warn "$EXT_UUID is not installed; linking it first (as 'make link', without enabling it here)."
+        "$REPO_DIR/scripts/dev.sh" link --no-enable >/dev/null 2>&1 || true
+    elif [[ -L "$installed/extension.js" ]]; then
         "$REPO_DIR/scripts/dev.sh" link --no-enable >/dev/null 2>&1 || true
     fi
 

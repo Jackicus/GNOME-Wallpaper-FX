@@ -213,9 +213,17 @@ wait_for_state() {
     return 1
 }
 
+# A link is made of src/'s entries as they were: made again, it has any added since.
+refresh_link() {
+    [[ -L "$EXT_DIR/extension.js" ]] || return 0
+    remove_installed
+    link_tree
+}
+
 cmd_reload() {
     require gnome-extensions
     compile_schemas
+    refresh_link
     info "Reloading $EXT_UUID..."
     gnome-extensions disable "$EXT_UUID" 2>/dev/null || true
     # The shell applies a disable asynchronously; an enable before it lands is a
