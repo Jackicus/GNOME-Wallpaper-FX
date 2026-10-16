@@ -1,6 +1,6 @@
 # Wallpaper FX
 
-Shared rules for every extension come from the GNOME-EXTENSIONS kit: `../CLAUDE.md` and `../.claude/rules/` (loaded with this file), and the `gnome-ext:*` skills. `.claude/kit.sh` pulls the kit at session start, or, with no kit beside this repository, fetches it and prints its rules into the session.
+Shared rules for every extension come from gnome-ai-kit: `../CLAUDE.md` and `../.claude/rules/` (loaded with this file), and the `gnome-ext:*` skills. `.claude/kit.sh` pulls the kit at session start, or, with no kit beside this repository, fetches it and prints its rules into the session.
 
 A GNOME Shell extension (UUID `wallpaper-fx@jackicus`; written for and claiming GNOME
 Shell 50) that paints stackable animated patterns over the desktop: GPU shaders

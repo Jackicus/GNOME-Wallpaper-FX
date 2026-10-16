@@ -16,7 +16,7 @@ You need a GNOME Shell session of a version `src/metadata.json` lists, and `make
 else the checks need is listed one package per line in `.github/ci-packages`, by its Arch
 Linux name. The development tools some commands use (a demo library's Pillow, a virtual
 pad's evdev, VLC, glslang) are `EXT_TOOLS` in `scripts/ext.conf`; with the
-[kit](https://github.com/Jackicus/GNOME-EXTENSIONS) beside the repository,
+[kit](https://github.com/Jackicus/gnome-ai-kit) beside the repository,
 `../.gnome-ai-kit/scripts/setup.sh --tools` lists what this machine lacks and the command to install it.
 
 ```bash
@@ -49,7 +49,7 @@ rest.
 ## Conventions
 
 The design and the traps are in CLAUDE.md and `.claude/rules/`, and the rules shared by
-all these extensions in the [GNOME-EXTENSIONS](https://github.com/Jackicus/GNOME-EXTENSIONS)
+all these extensions in the [gnome-ai-kit](https://github.com/Jackicus/gnome-ai-kit)
 repository's CLAUDE.md and `.claude/rules/`. In short:
 
 - Follow the [GNOME HIG](https://developer.gnome.org/hig/): the shell's own widgets and

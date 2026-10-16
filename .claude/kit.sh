@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SessionStart hook: brings the GNOME-EXTENSIONS kit, and this repository, up to date for
+# SessionStart hook: brings gnome-ai-kit, and this repository, up to date for
 # this session.
 #
 # Beside the kit (the usual workspace, where Claude Code has already loaded ../CLAUDE.md
@@ -13,7 +13,7 @@
 # Copied from the kit (template/.claude/kit.sh) by its scripts/sync.sh: change it there.
 # It never fails the session: every problem is one line of output and exit 0.
 
-KIT_REPO=Jackicus/GNOME-EXTENSIONS
+KIT_REPO=Jackicus/gnome-ai-kit
 KIT_URL=https://github.com/$KIT_REPO.git
 project=${CLAUDE_PROJECT_DIR:-$(pwd)}
 parent=$(dirname "$project")
@@ -111,11 +111,11 @@ if [ -d "$cache/.git" ]; then
     timeout 15 git -C "$cache" pull --ff-only -q >/dev/null 2>&1 \
         || echo "Kit: could not update $cache; using it as last fetched."
 elif ! timeout 20 git clone -q --depth 1 "$KIT_URL" "$cache" >/dev/null 2>&1; then
-    echo "Kit: no GNOME-EXTENSIONS kit beside this repository and none could be fetched; its shared rules are at https://github.com/$KIT_REPO (CLAUDE.md and .claude/rules/)."
+    echo "Kit: no gnome-ai-kit beside this repository and none could be fetched; its shared rules are at https://github.com/$KIT_REPO (CLAUDE.md and .claude/rules/)."
     exit 0
 fi
 
-echo "# The GNOME-EXTENSIONS kit (fetched to $cache: no kit beside this repository)"
+echo "# gnome-ai-kit (fetched to $cache: no kit beside this repository)"
 echo
 skills=$(cd "$cache/.gnome-ai-kit/plugin/skills" 2>/dev/null && printf '%s\n' */ | tr -d / | paste -sd ',' - | sed 's/,/, /g')
 echo "Its skills are not installed here; read them as playbooks when one applies: $cache/.gnome-ai-kit/plugin/skills/<name>/SKILL.md ($skills)."

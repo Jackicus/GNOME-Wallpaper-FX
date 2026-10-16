@@ -30,7 +30,7 @@
 #                                     of its session, remove what it made, and say if
 #                                     anything survived
 #
-# Copied from the GNOME-EXTENSIONS kit (template/scripts/nested.sh) by its
+# Copied from gnome-ai-kit (template/scripts/nested.sh) by its
 # scripts/sync.sh: change it there. What is particular to this extension is in
 # scripts/ext.conf, and its own commands and hooks are in scripts/nested.d/*.sh.
 #
