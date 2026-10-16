@@ -27,7 +27,7 @@
     "gnome-extensions": {
       "source": {
         "source": "directory",
-        "path": ".."
+        "path": "../.gnome-ai-kit"
       }
     }
   },
