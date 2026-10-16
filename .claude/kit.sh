@@ -5,7 +5,7 @@
 # Beside the kit (the usual workspace, where Claude Code has already loaded ../CLAUDE.md
 # and ../.claude/rules/), it pulls the kit and says when that changed anything; then it
 # fast-forwards this repository if it is on a clean main, or says why it left it; then it
-# starts the kit's scripts/pull.sh for the other extensions in the background, and reports
+# starts the kit's .gnome-ai-kit/scripts/pull.sh for the other extensions in the background, and reports
 # what the previous background pull found. With no kit beside the repository (a cloud
 # session, a fresh clone), it fetches the kit into the cache and prints its rules, which a
 # SessionStart hook's output puts into the session.
@@ -84,7 +84,7 @@ pull_project() {
 # Pulls the other extensions in the background, detached so the session never waits for
 # it; the next session reports what it found.
 pull_others() {
-    local pull=$parent/scripts/pull.sh
+    local pull=$parent/.gnome-ai-kit/scripts/pull.sh
     local log=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/gnome-extensions-pull.log
     [ -x "$pull" ] || return
     if [ -s "$log" ]; then
@@ -117,8 +117,8 @@ fi
 
 echo "# The GNOME-EXTENSIONS kit (fetched to $cache: no kit beside this repository)"
 echo
-skills=$(cd "$cache/plugin/skills" 2>/dev/null && printf '%s\n' */ | tr -d / | paste -sd ',' - | sed 's/,/, /g')
-echo "Its skills are not installed here; read them as playbooks when one applies: $cache/plugin/skills/<name>/SKILL.md ($skills)."
+skills=$(cd "$cache/.gnome-ai-kit/plugin/skills" 2>/dev/null && printf '%s\n' */ | tr -d / | paste -sd ',' - | sed 's/,/, /g')
+echo "Its skills are not installed here; read them as playbooks when one applies: $cache/.gnome-ai-kit/plugin/skills/<name>/SKILL.md ($skills)."
 for f in "$cache/CLAUDE.md" "$cache"/.claude/rules/*.md; do
     [ -f "$f" ] || continue
     echo

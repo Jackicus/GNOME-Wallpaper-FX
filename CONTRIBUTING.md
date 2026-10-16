@@ -17,7 +17,7 @@ else the checks need is listed one package per line in `.github/ci-packages`, by
 Linux name. The development tools some commands use (a demo library's Pillow, a virtual
 pad's evdev, VLC, glslang) are `EXT_TOOLS` in `scripts/ext.conf`; with the
 [kit](https://github.com/Jackicus/GNOME-EXTENSIONS) beside the repository,
-`../scripts/setup.sh --tools` lists what this machine lacks and the command to install it.
+`../.gnome-ai-kit/scripts/setup.sh --tools` lists what this machine lacks and the command to install it.
 
 ```bash
 # Arch Linux
