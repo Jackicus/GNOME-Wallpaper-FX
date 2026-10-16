@@ -6,7 +6,7 @@ the nested shell's private bus and exports NESTED_GEOMETRY / NESTED_RUN_DIR.
 Running it against your real session is pointless (and the name-ownership step
 below would fail there anyway).
 
-Copied from the GNOME-EXTENSIONS kit (template/scripts/nested_driver.py) by its
+Copied from gnome-ai-kit (template/scripts/nested_driver.py) by its
 scripts/sync.sh: change it there.
 
     nested_driver.py step CMD ARGS...       one step, argv form

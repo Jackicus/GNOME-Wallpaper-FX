@@ -7,7 +7,7 @@
 # Run it again for an existing tag from the Actions tab (workflow_dispatch): it rebuilds the
 # zip and replaces the release's notes and asset rather than failing.
 #
-# Copied from the GNOME-EXTENSIONS kit (template/.github/workflows/release.yml) by its
+# Copied from gnome-ai-kit (template/.github/workflows/release.yml) by its
 # scripts/sync.sh: change it there. Packages beyond the base go in .github/ci-packages.
 name: Release
 

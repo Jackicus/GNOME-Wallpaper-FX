@@ -1,7 +1,7 @@
 # The make targets every extension shares, included by its Makefile
 # (`include scripts/kit.mk`), which adds its own after the include.
 #
-# Copied from the GNOME-EXTENSIONS kit (template/scripts/kit.mk) by its
+# Copied from gnome-ai-kit (template/scripts/kit.mk) by its
 # scripts/sync.sh: change it there. Every target is a front door: the work is
 # in scripts/dev.sh and scripts/nested.sh.
 

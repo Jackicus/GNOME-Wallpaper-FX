@@ -30,7 +30,7 @@
 #   ./scripts/dev.sh clean      remove dist/, and the compiled schema unless a link
 #                               install reads it
 #
-# Copied from the GNOME-EXTENSIONS kit (template/scripts/dev.sh) by its
+# Copied from gnome-ai-kit (template/scripts/dev.sh) by its
 # scripts/sync.sh: change it there. What is particular to this extension is in
 # scripts/ext.conf, and its own commands are in scripts/dev.d/*.sh.
 #

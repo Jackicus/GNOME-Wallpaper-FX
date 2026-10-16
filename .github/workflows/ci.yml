@@ -2,7 +2,7 @@
 # Shell) on every push to main and every pull request. The job's name, `make check`, is
 # the status check main's protection requires.
 #
-# Copied from the GNOME-EXTENSIONS kit (template/.github/workflows/ci.yml) by its
+# Copied from gnome-ai-kit (template/.github/workflows/ci.yml) by its
 # scripts/sync.sh: change it there. Packages this repository needs beyond the base go in
 # .github/ci-packages, one Arch package per line.
 #
