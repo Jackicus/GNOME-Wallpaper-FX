@@ -168,7 +168,7 @@ menu uses from 48 (`BUS_NAME` in `js/ui/status/powerProfiles.js`; it was
 stop. Run `powerprofilesctl set balanced` and they start again on the next
 repaint of the desktop.
 
-### Pausing while animations are off (system.js)
+### Pausing while animations are off or motion is reduced (system.js)
 
 This path follows `St.Settings.get().enable_animations` and its
 `notify::enable-animations`, which are present in 45 to 51. That property is
@@ -182,13 +182,20 @@ and in 50.5). So the patterns are still in a virtual machine without 3D
 acceleration, which is worth saying in the description, since reviewers often
 test in one ([publishing.md](publishing.md)).
 
-GNOME 51 adds `St.Settings` `reduced-motion` and moves some of the shell's own
-animations to it (gjs.guide, "Port Extensions to GNOME Shell 51"). The patterns
-do not follow it yet: they still pause only for `enable-animations`. Whether
-reduced motion should pause them too is open.
+GNOME 51 adds `St.Settings` `reduced-motion`, which follows
+`org.gnome.desktop.a11y.interface reduced-motion` (`no-preference` or
+`reduce`), and moves some of the shell's own animations to it (gjs.guide,
+"Port Extensions to GNOME Shell 51"). The shell reads it as
+`St.Settings.get().reducedMotion !== St.ReducedMotion.REDUCE` (`ui/boxpointer.js`,
+`ui/windowManager.js`, `ui/screenShield.js` at `51.1`). `system.js` reads it the
+same way, with `notify::reduced-motion`, and pauses the patterns while it is
+`reduce`, as it does while animations are off. Checked on 51.1 in the nested
+shell. A port to 50 or earlier drops it: neither the property nor the key is
+there.
 
-*Check first:* set `org.gnome.desktop.interface enable-animations` to false and
-the patterns should stop. Set it back and they resume.
+*Check first:* set `org.gnome.desktop.interface enable-animations` to false, or
+`org.gnome.desktop.a11y.interface reduced-motion` to `reduce`, and the patterns
+should stop. Set it back and they resume.
 
 ### The weather (weather.js, sun.js)
 
@@ -289,7 +296,7 @@ should open the file chooser, and you should be able to save and delete a scene.
 9. Switch workspaces with the keyboard and with a touchpad swipe.
 10. Lock and unlock the screen.
 11. Test each pause: a fullscreen window, maximized windows, power-saver,
-    animations off, and battery on a laptop.
+    animations off, reduced motion, and battery on a laptop.
 12. Open the preferences, go through every page, choose a picture, and save
     and delete a scene. Follow the weather for the place in GNOME Weather,
     then change it there. Lock and unlock while it is on:

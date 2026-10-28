@@ -127,8 +127,9 @@ that could look like a bug. It says:
 - in the Accent, Color and Custom Picture modes it replaces the wallpaper
   the shell shows (the desktop, the overview, and extensions that blur it)
   without changing the user's wallpaper setting;
-- it stays still when animations are off. GNOME also turns animations off in
-  virtual machines without 3D acceleration and during remote-desktop sessions;
+- it stays still when animations are off or reduced motion is on. GNOME also
+  turns animations off in virtual machines without 3D acceleration and during
+  remote-desktop sessions;
 - it stays still in power-saver, and optionally on battery;
 - gradients are cached as images in `~/.cache/wallpaper-fx`;
 - Follow the Weather, off until the user turns it on, is the only thing that

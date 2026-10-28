@@ -22,12 +22,16 @@ export class SystemState {
         this._cancellable = new Gio.Cancellable();
 
         const settings = St.Settings.get();
-        this.animations = settings.enable_animations;
+        const animations = () =>
+            settings.enable_animations && settings.reduced_motion !== St.ReducedMotion.REDUCE;
+        this.animations = animations();
         this.onBattery = false;
         this.powerSaver = false;
 
-        settings.connectObject('notify::enable-animations',
-            () => this._set('animations', settings.enable_animations), this);
+        settings.connectObject(
+            'notify::enable-animations', () => this._set('animations', animations()),
+            'notify::reduced-motion', () => this._set('animations', animations()),
+            this);
 
         this._watch(UPower, 'org.freedesktop.UPower', '/org/freedesktop/UPower',
             proxy => this._set('onBattery', !!proxy.OnBattery));
