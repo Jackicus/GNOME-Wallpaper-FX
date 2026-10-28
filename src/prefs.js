@@ -516,8 +516,8 @@ export default class WallpaperFxPreferences extends ExtensionPreferences {
         const group = new Adw.PreferencesGroup({
             title: 'Frame Rate and Power',
             description: 'The patterns are drawn by the GPU, in step with each display. They also rest while ' +
-                'the power saver mode is on, or animations are turned off, since those are choices made for ' +
-                'the whole system.',
+                'the power saver mode is on, animations are turned off or reduced motion is on, since those are ' +
+                'choices made for the whole system.',
         });
         page.add(group);
 

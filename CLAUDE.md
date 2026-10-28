@@ -74,7 +74,7 @@ offline tools), `background.md` (the base and the overview's clones), `parallax.
   and moved by the workspace position and the pointer, and the patterns panned further
   by their catalog `depth` (`MonitorRenderer.pan()`); `.claude/rules/parallax.md`.
 - `lib/system.js`: the system's say: UPower's `OnBattery` (for `pause-on-battery`),
-  power-profiles-daemon's active profile, and St's `enable-animations`.
+  power-profiles-daemon's active profile, and St's `enable-animations` and `reduced-motion`.
 - `lib/daytime.js`: `Daytime`, kept by app.js only while the base is `daytime`: the period
   of the day at GNOME Weather's place, with one timer to the next change.
 - `lib/pointer.js`: `PointerTrail`, kept by app.js only while a React pattern (catalog
@@ -134,8 +134,8 @@ positive rate rounded to the nearest whole divisor (a rate that does not divide 
 refresh would judder). Time is read at paint, so motion is even however the timer lands.
 
 **A paint that never comes books nothing**, which is how the patterns rest: with nothing
-to show, while the power-saver profile is on or animations are off (always: those are
-the user's choices for the whole system), on battery with `pause-on-battery`, or, with
+to show, while the power-saver profile is on, animations are off or reduced motion is on
+(always: those are the user's choices for the whole system), on battery with `pause-on-battery`, or, with
 `pause-when-covered`, while fullscreen, maximized or tiled windows hide the monitor's
 desktop. The next paint of the desktop (a window moving away, the overview opening, a
 setting changing) starts the frames again, so none of those cases needs a signal of its

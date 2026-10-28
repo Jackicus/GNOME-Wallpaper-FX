@@ -20,7 +20,7 @@ GNOME desktop behind your windows and in the overview.
 - **No window and no video.** The patterns are drawn on the wallpaper itself, so they
   show in the overview and the workspace switcher too.
 - **Rests when nobody can see it.** Nothing is drawn while windows cover the desktop, in
-  power-saver mode or with animations off.
+  power-saver mode, with animations off or with reduced motion on.
 
 ## Weather
 
@@ -131,7 +131,7 @@ the pointer is, never a click or a key, and only while one of them is on.
   of one CPU core at 60 frames a second, whichever patterns were on.
 - **Rests when it cannot be seen.** Nothing is drawn on a monitor while fullscreen,
   maximized or tiled windows cover its desktop, in power-saver mode, while animations are
-  off, or on battery if you choose.
+  off or reduced motion is on, or on battery if you choose.
 
 ## Requirements
 
@@ -249,7 +249,7 @@ journalctl -f -o cat SYSLOG_IDENTIFIER=org.gnome.Shell.Extensions
 From a clone, `make status` says whether the extension is installed and active, and
 `make logs` follows the first of those.
 
-- **The patterns hold still.** They rest while animations are off, in power-saver mode,
+- **The patterns hold still.** They rest while animations are off or reduced motion is on, in power-saver mode,
   on battery with Pause on Battery Power, and while windows cover the desktop with Pause
   While Covered. Once a window moves off the desktop, or the overview opens, they start
   again.
