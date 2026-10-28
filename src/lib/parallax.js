@@ -11,6 +11,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { WINDOW_ANIMATION_TIME } from 'resource:///org/gnome/shell/ui/workspaceAnimation.js';
 
 import { canvasAround, desktopCovered } from './engine.js';
+import { motionAllowed } from './system.js';
 
 // Moves each monitor's wallpaper inside an even zoom, and the patterns further, by the
 // shell's own workspace position (a switch, a swipe and the overview's scrolling all
@@ -48,7 +49,12 @@ export class Parallax {
         this._count = global.workspace_manager.n_workspaces;
         this._workspaces = Main.createWorkspacesAdjustment(global.stage);
         this._workspaces.connectObject('notify::value', () => this._follow(), this);
-        global.workspace_manager.connectObject('notify::n-workspaces', () => this._follow(), this);
+        global.workspace_manager.connectObject(
+            'notify::n-workspaces', () => this._follow(),
+            'active-workspace-changed', () => this._follow(), this);
+        St.Settings.get().connectObject(
+            'notify::enable-animations', () => this._follow(),
+            'notify::reduced-motion', () => this._follow(), this);
 
         this._pan = new St.Adjustment({ actor: global.stage, upper: 1, value: this._target() });
         this._pan.connectObject('notify::value', () => this._place(), this);
@@ -107,6 +113,7 @@ export class Parallax {
         if (!this._workspaces) return;
 
         global.workspace_manager.disconnectObject(this);
+        St.Settings.get().disconnectObject(this);
         global.backend.get_cursor_tracker().disconnectObject(this);
         if (this._laterId) global.compositor.get_laters().remove(this._laterId);
         this._laterId = 0;
@@ -258,8 +265,12 @@ export class Parallax {
         return onlyPrimary && index !== Main.layoutManager.primaryIndex ? 0 : this._options.amount;
     }
 
+    // Without motion the pan cuts to the workspace being switched to, rather than
+    // travelling with a slide (which reduced motion still animates).
     _target() {
-        return this._fraction(this._workspaces.value);
+        const at = motionAllowed()
+            ? this._workspaces.value : global.workspace_manager.get_active_workspace_index();
+        return this._fraction(at);
     }
 
     // Where a workspace position sits along the panorama, 0 to 1.
@@ -273,7 +284,7 @@ export class Parallax {
     // A slide follows frame by frame; a workspace added or removed eases to its new place.
     _follow() {
         const count = global.workspace_manager.n_workspaces;
-        const easing = count !== this._count || this._pan.get_transition('value');
+        const easing = motionAllowed() && (count !== this._count || this._pan.get_transition('value'));
         this._count = count;
 
         this._pan.remove_transition('value');
@@ -289,11 +300,12 @@ export class Parallax {
 
     // The pointer's place on its monitor (or across them all, spanned), -1 to 1 each
     // way; the others go back to centre. A monitor whose desktop is covered holds
-    // still, and nothing moves during a slide, in the overview or with animations off.
+    // still, and nothing moves during a slide, in the overview, with animations off or
+    // with reduced motion.
     // A slide is asked for, not read off the position: in a column of workspaces the
     // shell's slide comes to rest short of the index (private: docs/private-api.md).
     _aim() {
-        if (!St.Settings.get().enable_animations || Main.overview.visible ||
+        if (!motionAllowed() || Main.overview.visible ||
             Main.wm._workspaceAnimation?._switchData)
             return;
 

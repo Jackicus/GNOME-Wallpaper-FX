@@ -28,7 +28,10 @@ makes are in `docs/private-api.md`.
   adjustments.
 - **Blur My Shell**: with `parallax-blur-my-shell`, its static-blur wallpapers (`bms-…`
   widgets) are moved as the desktop's is. Off, nothing of it runs.
-- **The tilt rests** while the desktop is covered, in a slide, in the overview and with
-  animations off.
+- **The tilt rests** while the desktop is covered, in a slide, in the overview, and
+  whenever `motionAllowed()` (`system.js`, the check the patterns pause on) is false:
+  animations off or reduced motion on. Then the pan, too, cuts to the active workspace
+  instead of travelling with a slide or a swipe, which 51 still animates under reduced
+  motion.
 - **The overview**: `overview.js` puts the moved wallpaper under the slide's strip, and
   has each overview preview zoomed to its own workspace's part (`placePreviews()`).

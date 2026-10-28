@@ -15,22 +15,24 @@ const PowerProfiles = Gio.DBusProxy.makeProxyWrapper(`
   </interface>
 </node>`);
 
+export function motionAllowed() {
+    const settings = St.Settings.get();
+    return settings.enable_animations && settings.reduced_motion !== St.ReducedMotion.REDUCE;
+}
+
 export class SystemState {
     constructor(onChanged) {
         this._onChanged = onChanged;
         this._proxies = [];
         this._cancellable = new Gio.Cancellable();
 
-        const settings = St.Settings.get();
-        const animations = () =>
-            settings.enable_animations && settings.reduced_motion !== St.ReducedMotion.REDUCE;
-        this.animations = animations();
+        this.animations = motionAllowed();
         this.onBattery = false;
         this.powerSaver = false;
 
-        settings.connectObject(
-            'notify::enable-animations', () => this._set('animations', animations()),
-            'notify::reduced-motion', () => this._set('animations', animations()),
+        St.Settings.get().connectObject(
+            'notify::enable-animations', () => this._set('animations', motionAllowed()),
+            'notify::reduced-motion', () => this._set('animations', motionAllowed()),
             this);
 
         this._watch(UPower, 'org.freedesktop.UPower', '/org/freedesktop/UPower',
