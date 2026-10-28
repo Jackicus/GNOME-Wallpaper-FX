@@ -3,7 +3,7 @@
 Shared rules for every extension come from gnome-ai-kit: `../CLAUDE.md` and `../.claude/rules/` (loaded with this file), and the `gnome-ext:*` skills. `.claude/kit.sh` pulls the kit at session start, or, with no kit beside this repository, fetches it and prints its rules into the session.
 
 A GNOME Shell extension (UUID `wallpaper-fx@jackicus`; written for and claiming GNOME
-Shell 50) that paints stackable animated patterns over the desktop: GPU shaders
+Shell 51) that paints stackable animated patterns over the desktop: GPU shaders
 on actors sitting on the wallpaper itself, no window. Settings are a libadwaita prefs
 dialog. The log prefix is `[WallpaperFx]`.
 
@@ -58,9 +58,9 @@ offline tools), `background.md` (the base and the overview's clones), `parallax.
   pattern, each painted by that pattern's shader effect and faded in and out as it is
   switched; the frame pacing; and `SceneClock`, one clock per pattern (for its own
   speed), shared by every monitor.
-- `lib/shader.js`: wraps a pattern's GLSL in a `Shell.GLSLEffect` class (one per
-  pattern, compiled on first use and shared by every monitor), plus the GLSL prelude
-  every pattern gets.
+- `lib/shader.js`: wraps a pattern's GLSL in a `Clutter.ShaderEffect` class (one per
+  pattern, its snippet built on first use and shared by every monitor), plus the GLSL
+  prelude every pattern gets.
 - `lib/catalog.js`: **the single list of patterns** (id, title, description, layer
   module), in the order they are drawn (sky first, weather last). `prefs.js` builds its
   rows from it and the engine draws in its order, so adding a pattern is a file in
@@ -110,7 +110,7 @@ that base in catalog order, each tuned by `pattern-tuning` (brightness, speed, A
 multipliers of its design). `speed` scales every clock and `opacity` is the monitor
 actor's opacity, which each shader multiplies in.
 A pattern switched on or off fades over the shell's own wallpaper crossfade
-(`FADE_ANIMATION_TIME` from `ui/background.js`, 1000 ms on 50), not the kit's 100–250 ms:
+(`FADE_ANIMATION_TIME` from `ui/background.js`, 1000 ms on 51), not the kit's 100–250 ms:
 a new base crossfades at the same moment, and the two land together.
 
 With `span-monitors`, every monitor draws its part of one canvas (the box around them

@@ -1,59 +1,58 @@
 # Compatibility
 
-`metadata.json` claims GNOME Shell 50, the one version that has been run, and the
-code is written for it alone. This page lists what has been tested, every code
+`metadata.json` claims GNOME Shell 51, and the code is written for it alone.
+Release 1.2 was the last for GNOME 50. This page lists what has been tested, every code
 path that depends on the shell's version, and what a port to another version
 (`gnome-ext:port-shell-version`) has to change or check first.
 
 ## What has been tested
 
-- **The main desktop: GNOME Shell 50.5** on CachyOS (Arch-based), Wayland, with
+- **The main desktop: GNOME Shell 51.1** on CachyOS (Arch-based), Wayland, with
   an NVIDIA GeForce GTX 1080 on the proprietary driver 580.178.04. The rest of
-  the stack on that machine: mutter 50.5, GJS 1.88.1, GLib 2.88.3, GTK 4.22.5,
-  libadwaita 1.9.4, power-profiles-daemon 0.30, libgweather 4.6.0. A bare `50.5` on this page is that machine's installed shell.
-- **The same shell headless and nested** (`make nested`, which runs
-  `gnome-shell --wayland --headless --virtual-monitor ...` on its own session
-  bus), for screenshots and multi-monitor layouts, including the overview on a
-  second monitor.
-
-- **Blur My Shell 74** beside it, in the nested shell on 50.5, for the
-  `parallax-blur-my-shell` switch: its static blur on a window and the top bar,
-  before and after, across a workspace slide and with the pointer tilt.
-
-Both of those mostly ran the development link, whose entry point is
-`scripts/dev-extension.js`. The shipped `src/extension.js` runs only from a real
-install; it has been run once that way on the main desktop's 50.5, from a plain copy of `src/` in
-the nested shell, through three disable/enable cycles. Install the zip before
-trusting any other version (checklist step 4).
+  the stack on that machine: mutter 51.1, GJS 1.90.1, GLib 2.90.1, GTK 4.24.1,
+  libadwaita 1.10.0, power-profiles-daemon 0.30, libgweather 4.6.0. Run there
+  in the nested shell (`./scripts/nested.sh`, a headless `gnome-shell` on its own
+  session bus) on 2026-10-28, through the development link: enable from a clean
+  start, all 19 patterns at once and the array-driven ones alone, the pointer
+  patterns following the pointer, the overview and a workspace slide, the
+  `accent`, `color` and `image` bases (a `.jxl` picture, through 51's new
+  loader), the shell's own wallpaper back on disable, six disable and enable
+  cycles, a `stop` and `start`, and the preferences. No errors with the
+  `[WallpaperFx]` prefix or from Cogl.
+- **GNOME Shell 50.5**, on the same machine until 2026-10-28, with mutter 50.5
+  and GJS 1.88.1: everything below marked 50.5, two monitors in the nested
+  shell, and Blur My Shell 74 beside it for the `parallax-blur-my-shell` switch.
+  The shipped `src/extension.js` (rather than the development link's
+  `scripts/dev-extension.js`) ran there once, from a plain copy of `src/` in the
+  nested shell, through three disable/enable cycles. On 51 it has not yet run
+  from an installed zip (checklist step 4).
 
 Nothing else has been tested:
 
-- **GNOME 45, 46, 47, 48 and 49** have never been run, so they are not claimed.
-- **GNOME 51** (tag `51.0`) is not claimed, and it will not work: it removed
-  `Shell.GLSLEffect`, which draws every pattern.
+- **GNOME 45 to 50** are not claimed. 50 ran release 1.2; this code needs
+  `Clutter.ShaderEffect.get_static_snippet`, which mutter 50 lacks.
+- **Two monitors, the pauses and the weather have not been run on 51**: the paths
+  under them are unchanged at `51.1` (below), but only 50.5 has shown them.
 - **No Mesa GPU** (AMD, Intel), no GLES2-only GPU, no virtual machine.
 - **No X11 session.** 45 to 48 have one, 49 turns it off by default, and 50
   removed it (gjs.guide, "Port Extensions to GNOME Shell 49" and "... 50").
 
 ## Version-sensitive code paths
 
-### The snippet hook (shader.js)
+### The effect (shader.js)
 
-`Shell.GLSLEffect.add_glsl_snippet()` takes a `Cogl.SnippetHook` from 48 and a
-`Shell.SnippetHook` up to 47 (`src/shell-glsl-effect.h` at the gnome-shell tags
-`47.0` and `48.0`). The code passes `Cogl.SnippetHook.FRAGMENT`; a port to 47 or
-earlier passes `Shell.SnippetHook.FRAGMENT`.
+`Shell.GLSLEffect` drew every pattern from 45 to 50 and is gone in 51
+(gjs.guide, "Port Extensions to GNOME Shell 51"; `src/shell-glsl-effect.c` is
+absent at `51.0`). On 51 each pattern is a `Clutter.ShaderEffect` returning its
+snippet from `vfunc_get_static_snippet()`, which mutter 50's
+`clutter-shader-effect.c` does not have. Its own uniform setters hold at most
+four floats, so the uniforms are written straight to the effect's pipeline
+([private-api.md](private-api.md), "The uniforms, on the pipeline").
 
-### `Shell.GLSLEffect` itself (shader.js)
-
-It is present from 45 to 50 and removed in 51 (gjs.guide, "Port Extensions to
-GNOME Shell 51"; `src/shell-glsl-effect.c` is absent at the `51.0` tag). The
-replacement is `Clutter.ShaderEffect`, with the snippet returned from
-`vfunc_get_static_snippet()`. Mutter 51's `clutter-shader-effect.c` has that
-vfunc and mutter 50's does not, so supporting 50 and 51 means two code paths or
-two releases. Every other private path in
-[private-api.md](private-api.md) is still there at `51.0`, so this is the one
-blocker for 51.
+The look is unchanged: `Shell.GLSLEffect` asked for a blend Cogl rejects, so it
+drew with Cogl's default premultiplied "over", which is what
+`Clutter.ShaderEffect` draws with. Checked on 51.1 by putting the old blend
+string back for one reload: Cogl threw on it.
 
 ### GLSL dialects (shader.js, `make check`)
 
@@ -64,10 +63,10 @@ drivers is in use:
 | mutter | desktop GL driver | GLES2 driver |
 |---|---|---|
 | 45, 46 | GLSL 1.20 (`#version 120`), GL 2.1 or later | GLSL ES 1.00 |
-| 47 to 50 | GLSL 1.40, GL 3.1 or later | GLSL ES 1.00 |
+| 47 to 51 | GLSL 1.40, GL 3.1 or later | GLSL ES 1.00 |
 
 (From `cogl/cogl/driver/gl/gl/cogl-driver-gl.c` at `45.0`, `46.0` and `47.0`,
-`gl3/cogl-driver-gl3.c` at `48.0` and `50.0`, and the `gles`/`gles2` drivers
+`gl3/cogl-driver-gl3.c` at `48.0`, `50.0` and `51.1`, and the `gles`/`gles2` drivers
 beside them.) On GLES, Cogl's fragment boilerplate starts with `precision highp
 float;` (`cogl-glsl-shader-boilerplate.h`).
 
@@ -104,7 +103,7 @@ shader warnings.
 `Meta.BackgroundGroup` whose first child is the wallpaper; in 50 and 51 it is a
 `WorkspaceBackground` whose first child is a `Meta.BackgroundGroup`. The clone
 goes above `get_first_child()` in both cases, which is above the wallpaper either
-way, but only 50 has been seen working.
+way. Seen working on 50.5 and on 51.1 (Super+Page Down in the nested shell).
 
 *Check first on 49 and earlier:* switch workspaces with Super+Page Down and with
 a touchpad swipe. The patterns should travel with the workspace rather than
@@ -115,7 +114,8 @@ blink back when it lands.
 The paths into the workspace previews and the thumbnail strip are unchanged
 from `45.0` to `51.0`, including the `SecondaryMonitorDisplay._workspacesView`
 wrapper that secondary monitors are reached through (see
-[private-api.md](private-api.md)). Only the main desktop's 50.5 has been seen, with two monitors.
+[private-api.md](private-api.md)), and still at `51.1`. Seen with two monitors on
+the main desktop's 50.5, and with one on 51.1.
 
 *Check first:* open the overview. The patterns should be in the workspace
 preview and in the thumbnails, on each monitor.
@@ -124,9 +124,11 @@ preview and in the thumbnails, on each monitor.
 
 `BackgroundManager._backgroundSource`, `BackgroundSource._settings`,
 `BackgroundSource._backgrounds` and `Background._emitChangedSignal()` are present
-from `45.0` to `51.0`. GNOME 51 moves image loading to an async
-`_loadImage()` and a new `BackgroundTextureCache`, so the loading underneath the
-swap is new there even though the fields are not.
+from `45.0` to `51.1`. GNOME 51 moves image loading to an async
+`_loadImage()` and a new `BackgroundTextureCache` (glycin), so the loading
+underneath the swap is new there even though the fields are not. On 51.1 the
+gradient bases and a `.jxl` picture took over, and the shell's own wallpaper came
+back on disable.
 
 *Check first:* go through every base mode, switch the extension off in each,
 and confirm the user's own wallpaper comes back. A `No background source to take
@@ -180,9 +182,10 @@ and in 50.5). So the patterns are still in a virtual machine without 3D
 acceleration, which is worth saying in the description, since reviewers often
 test in one ([publishing.md](publishing.md)).
 
-GNOME 51 adds `St.Settings` `reduced-motion` and moves the shell's own
-animations to it (gjs.guide, "Port Extensions to GNOME Shell 51"). A port to 51
-should decide whether reduced motion pauses the patterns too.
+GNOME 51 adds `St.Settings` `reduced-motion` and moves some of the shell's own
+animations to it (gjs.guide, "Port Extensions to GNOME Shell 51"). The patterns
+do not follow it yet: they still pause only for `enable-animations`. Whether
+reduced motion should pause them too is open.
 
 *Check first:* set `org.gnome.desktop.interface enable-animations` to false and
 the patterns should stop. Set it back and they resume.
@@ -245,8 +248,8 @@ should open the file chooser, and you should be able to save and delete a scene.
   `src/extension.js`. Only the development entry point,
   `scripts/dev-extension.js`, has an `async enable()`. The shell awaits
   `enable()` from 45 onward (`extensionSystem.js`,
-  `await extension.stateObj.enable()` at `45.0` and in 50.5), so both work.
-  GNOME 51 throws if `disable()` is async; neither one's is.
+  `await extension.stateObj.enable()` at `45.0`, in 50.5 and at `51.1`), so both
+  work. GNOME 51 throws if `disable()` is async; neither one's is.
 - **Refresh rate per monitor** (engine.js) comes from `peek_stage_views()`.
   On X11 mutter uses one stage view for the whole screen, so expect every monitor
   to pace at the same rate there.
@@ -262,7 +265,8 @@ should open the file chooser, and you should be able to save and delete a scene.
 2. Diff the shell between the last working tag and the new one, over the files
    [private-api.md](private-api.md) reaches into:
    `js/ui/{background,layout,workspace,workspacesView,workspaceThumbnail,workspaceAnimation,overview,overviewControls,windowManager,main}.js`
-   and `src/shell-glsl-effect.h`. Search for every name in its table.
+   and mutter's `clutter/clutter/clutter-shader-effect.{c,h}` and
+   `clutter-offscreen-effect.c`. Search for every name in its table.
 3. Check Cogl's GLSL version for the new mutter (the driver files above). If it
    changed, add it to `DIALECTS`, then run `make check`.
 4. Install the zip rather than the development link: `make uninstall`, then

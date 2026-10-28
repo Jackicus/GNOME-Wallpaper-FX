@@ -7,9 +7,10 @@ into, for reviewers on extensions.gnome.org and for whoever ports it to the next
 GNOME.
 
 Every entry was checked against the GNOME Shell 50.5 JavaScript on the main
-desktop (extracted from `/usr/lib/gnome-shell/libshell-18.so`; a bare `50.5` below is that) and against the
+desktop (extracted from `/usr/lib/gnome-shell/libshell-18.so`; a bare `50.5` below is that), against the
 `45.0`, `47.0`, `49.0` and `51.0` tags of `GNOME/gnome-shell` and `GNOME/mutter`
-on gitlab.gnome.org. Unless an entry says otherwise, the field or method exists
+on gitlab.gnome.org, and, for the port to 51, against the `51.1` tags, the
+version the main desktop runs now (2026-10-28). Unless an entry says otherwise, the field or method exists
 with the same meaning in all of them. Line numbers are left out on purpose,
 because `src/` is changing; functions are named instead.
 
@@ -31,9 +32,9 @@ because `src/` is changing; functions are named instead.
 | `Main.layoutManager._bgManagers`, `manager.backgroundActor`, its `changed` signal, its parent | parallax.js | Parallax moves the patterns only, never the wallpaper, and a wide picture is zoomed as any other | Yes, silently |
 | `workspace._background._bgManager.backgroundActor`, `._monitorIndex` | parallax.js | The overview's previews show the whole wallpaper, as without parallax | Yes, silently |
 | `BackgroundManager.prototype._createBackgroundActor` (wrapped), Blur My Shell's `bms-…` widget names | parallax.js | With Blur My Shell Compatibility on, its static blur stays at rest under parallax | Yes, silently |
-| `class extends Shell.GLSLEffect` | shader.js | `enable()` throws and the extension shows as errored with the base taken over (below). **Removed in GNOME 51** | No |
-| `vfunc_paint_target(node, paintContext)` | shader.js | Patterns freeze on their first frame | No |
-| `Cogl.SnippetHook.FRAGMENT` | shader.js | Every pattern fails to build | No |
+| `class extends Clutter.ShaderEffect`, `vfunc_get_static_snippet()` | shader.js | `enable()` throws and the extension shows as errored with the base taken over (below) | No |
+| `vfunc_paint_target(node, paintContext)`, `this.get_pipeline()` | shader.js | Patterns freeze on their first frame, or draw with no uniforms | No |
+| `Cogl.Pipeline.set_uniform_float()` from GJS | shader.js | Every pattern draws as at time 0 with a zero canvas | No |
 
 "Silently" means it degrades without a line in the journal, so the symptom is
 the only sign.
@@ -610,57 +611,68 @@ slide too, moving the slide's wallpaper with it.
 
 ## The renderer (shader.js, engine.js)
 
-### Subclassing `Shell.GLSLEffect`
+### Subclassing `Clutter.ShaderEffect`
 
 `buildEffectClass()`:
 
 ```js
-const Effect = class extends Shell.GLSLEffect {
-    vfunc_build_pipeline() {
-        this.add_glsl_snippet(Cogl.SnippetHook.FRAGMENT, declarations, code, true);
+const Effect = class extends Clutter.ShaderEffect {
+    vfunc_get_static_snippet() {
+        const snippet = Cogl.Snippet.new(Cogl.SnippetHook.FRAGMENT, declarations, null);
+        snippet.set_replace(code);
+        return snippet;
     }
-    ...
-    setUniform(name, components, values) { ... this.get_uniform_location(name) ... this.set_uniform_float(location, components, values) ... }
+    vfunc_paint_target(node, paintContext) { ... pipeline.set_uniform_float(...) ... }
+    setUniform(name, components, values) { ... }
 };
 Object.defineProperty(Effect, 'name', { value: `WallpaperFx_${effect.id}` });
 return GObject.registerClass(Effect);
 ```
 
-**What for.** Each pattern is a fragment shader. `Shell.GLSLEffect` is the
-shell's own way of running one over an actor (the shell's `RadialShaderEffect`
-in `lightbox.js` is one), and its `build_pipeline` vfunc, `add_glsl_snippet()`
-and the uniform setters are public, introspected API. The shader replaces the
-fragment stage (`is_replace` true).
+**What for.** Each pattern is a fragment shader. `Clutter.ShaderEffect` with
+`vfunc_get_static_snippet()` is how GNOME 51 runs one over an actor (the shell's
+own `RadialShaderEffect` in `lightbox.js` and `FadeEffect` in `messageList.js`
+at `51.1`), all public, introspected API. The snippet replaces the fragment
+stage, as `set_replace()` does in `lightbox.js`.
 
-The design leans on one behaviour of it: the shell compiles the pipeline once
-per class, on the first instance, and shares it between instances. So there is
-one class per pattern, and every monitor's copy of a pattern shares one
-compiled program. `Shell.GLSLEffect` is a `Clutter.OffscreenEffect`, so each
-layer on each monitor also redirects its (empty) actor into an offscreen texture
-of the actor's size before the shader runs over it.
+The design leans on one behaviour of it: Clutter asks for the snippet once per
+class, on the first paint of the first instance, and shares it between
+instances (`clutter_shader_effect_try_static_snippet()` in mutter `51.1`), and
+Cogl caches the program by its snippets. So there is one class per pattern, and
+every monitor's copy of a pattern shares one compiled program.
+`Clutter.ShaderEffect` is a `Clutter.OffscreenEffect`, so each layer on each
+monitor also redirects its (empty) actor into an offscreen texture of the
+actor's size before the shader runs over it.
 
-**If it changes.** GNOME 51 removed it (gjs.guide, "Port Extensions to GNOME
-Shell 51"; `src/shell-glsl-effect.c` is gone at the `51.0` tag). The replacement
-is `Clutter.ShaderEffect` with the snippet returned from
-`vfunc_get_static_snippet()`, which mutter 51's `clutter-shader-effect.c` has
-and mutter 50's does not, so one zip for 50 and 51 needs two code paths. On 51
-as written, `class extends Shell.GLSLEffect` throws when the first pattern is
-built, inside `_build()`. That is inside `enable()`, after
-`ShellBackground.update()` has taken the wallpaper over. The throw reaches the
-shell, which marks the extension as errored and does not call `disable()`: it
-only disables an extension whose state is `ACTIVE` (`extensionSystem.js` in
-50.5). The base stays taken over, with no patterns, until the shell restarts.
-With no pattern on at enable, `enable()` succeeds, and the first pattern switched
-on later throws from the settings handler instead, with the same result. A port
-to 51 replaces the effect; nothing in 50 throws there.
+GNOME 50 had `Shell.GLSLEffect` for this; 51 removed it (gjs.guide, "Port
+Extensions to GNOME Shell 51"; `src/shell-glsl-effect.c` is gone at `51.0`),
+and mutter 50's `ClutterShaderEffect` had no `get_static_snippet`, which is why
+the 51 port dropped 50. `Shell.GLSLEffect` also set a blend string with only an
+RGB statement, which Cogl rejects at `50.5` and `51.1` alike ("You need to also
+give a blend statement for the Alpha channel", `cogl-blend-string.c`), so it
+always drew with Cogl's default premultiplied "over", as
+`Clutter.ShaderEffect`'s pipeline does: the patterns look the same on 51.
 
-**Checked.** No. `metadata.json` does not claim 51.
+**If it changes.** A throw while a pattern's class is built or first painted
+happens inside `enable()` (in `_build()`), after `ShellBackground.update()` has
+taken the wallpaper over. The shell then marks the extension as errored and
+does not call `disable()`: it only disables an extension whose state is
+`ACTIVE` (`extensionSystem.js` in 51.1). The base stays taken over, with no
+patterns, until the shell restarts.
 
-### Overriding `vfunc_paint_target`
+**Checked.** In the nested shell on the main desktop's 51.1 (2026-10-28): all 19
+patterns on together, and the array-driven nebula, wave, ripples, swarm and
+stardust each seen drawing as its `State` says (lightning, the sixth, was on
+but no strike was caught).
+
+### The uniforms, on the pipeline
 
 ```js
 vfunc_paint_target(node, paintContext) {
     this.onPaint();
+    const pipeline = this.get_pipeline();
+    for (const [name, [components, values]] of this._uniforms)
+        pipeline.set_uniform_float(location, components, values.length / components, values);
     super.vfunc_paint_target(node, paintContext);
 }
 ```
@@ -672,31 +684,37 @@ the time it is painted rather than the time it was asked for, and books the
 next frame from there. A paint that never happens (Clutter culls an actor
 nothing can see) books nothing, which is what makes a covered desktop cost
 nothing. The signature `(effect, node, paint_context)` is the same in the
-`45.0` and `51.0` headers.
+`45.0` and `51.1` headers.
+
+The uniforms go on the pipeline itself rather than through
+`Clutter.ShaderEffect.set_uniform_float()`, because that stores at most four
+floats per uniform (`clutter_value_set_shader_float()` in mutter `51.1`), and
+nebula, wave, ripples, swarm, stardust and lightning pass arrays. They are
+written on every paint, since the offscreen effect builds a new pipeline
+whenever its texture is resized.
+`get_pipeline()` and `Cogl.Pipeline.set_uniform_float()` are public;
+`set_uniform_float()`'s `value` has no length annotation in `Cogl-51.gir`, and
+GJS 1.90 passes the whole JS array. A uniform's location is cached by name for
+the module, since Cogl numbers names once per context
+(`cogl_pipeline_get_uniform_location()` in `cogl-pipeline.c`).
 
 **If it changes.** If the signature changed, or the effect stopped painting
 through this vfunc, `onPaint` would never run: each pattern would freeze on its
 first frame and no timer would be booked. That is a still desktop, idle CPU and
 nothing in the log.
 
-### `Cogl.SnippetHook`
-
-`add_glsl_snippet(Cogl.SnippetHook.FRAGMENT, ...)`: `shell-glsl-effect.h` takes a
-`CoglSnippetHook` from `48.0`; at `45.0` and `47.0` it took a `ShellSnippetHook`,
-so a port to 47 or earlier passes `Shell.SnippetHook.FRAGMENT` (the same values).
-
 ### GType names, one set per load
 
 ```js
-// Kept across disable and enable: a GType cannot be unregistered, and a class compiles
-// its pipeline once.
+// Kept across disable and enable: a GType cannot be unregistered, and a class builds
+// its snippet once.
 const classes = new Map();
 ```
 
 A GType can never be unregistered, and registering a name twice throws
 ("Type name ... is already registered"). No class here sets a `GTypeName`. The
 shell sets `GObject.gtypeNameBasedOnJSPath = true` (`ui/environment.js`), and
-gjs 1.88 then names a class `Gjs_<module's directory>_<module>_<class name>`
+gjs 1.88 and 1.90 then name a class `Gjs_<module's directory>_<module>_<class name>`
 (`_createGTypeName()` in its `GObject.js` override): installed,
 `Gjs_lib_shader_WallpaperFx_aurora` and `Gjs_lib_overview_WallpaperFxPreviewHost`;
 staged for development, `Gjs_lib-<checksum>_shader_WallpaperFx_aurora`. The 19
@@ -718,7 +736,8 @@ its JS name, with the extension's prefix, before it is registered.
   for the life of the shell: a small, bounded, development-only leak. An enable
   with no edit between (an unlock) imports the same stage and so the same module,
   whose `classes` it reuses. Checked in the nested shell on 50.5: two edits and
-  reloads registered three sets of names, with no "already registered".
+  reloads registered three sets of names, with no "already registered"; on 51.1,
+  an edit, a reload and six disable and enable cycles, the same.
 
 ### `Clutter.Actor.is_in_clone_paint()`
 
