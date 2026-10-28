@@ -56,6 +56,13 @@ EXT_SLUG="${EXT_SLUG:-${EXT_UUID%@*}}"
 EXT_LOG_PREFIX="${EXT_LOG_PREFIX:-[$EXT_NAME]}"
 EXT_DIR="$HOME/.local/share/gnome-shell/extensions/$EXT_UUID"
 
+# A linked git worktree (.git is a file) shares the UUID, so the installed extension, with
+# the main checkout: link, install, reload and uninstall stay there.
+not_in_worktree() {
+    [[ -f "$REPO_DIR/.git" ]] || return 0
+    die "This is a git worktree: the installed $EXT_UUID belongs to the main checkout ($(git -C "$REPO_DIR" worktree list | head -1 | cut -d' ' -f1))."
+}
+
 require() {
     command -v "$1" >/dev/null 2>&1 || die "'$1' not found in PATH."
 }
@@ -170,6 +177,7 @@ link_tree() {
 # --no-enable leaves the running shell alone: what nested.sh start uses, so a
 # nested session never enables (or reloads) the extension in the real one.
 cmd_link() {
+    not_in_worktree
     compile_schemas
     remove_installed
     link_tree
@@ -180,6 +188,7 @@ cmd_link() {
 }
 
 cmd_install() {
+    not_in_worktree
     remove_installed
     stage_ship "$EXT_DIR"
     glib-compile-schemas "$EXT_DIR/schemas" || die "The schema does not compile."
@@ -221,6 +230,7 @@ refresh_link() {
 }
 
 cmd_reload() {
+    not_in_worktree
     require gnome-extensions
     compile_schemas
     refresh_link
@@ -293,6 +303,7 @@ cmd_pack() {
 }
 
 cmd_uninstall() {
+    not_in_worktree
     remove_installed
     ok "Removed $EXT_DIR"
 }

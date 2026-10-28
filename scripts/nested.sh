@@ -88,6 +88,17 @@ source "$REPO_DIR/scripts/ext.conf"
 : "${EXT_UUID:?scripts/ext.conf sets EXT_UUID}" "${EXT_NAME:?scripts/ext.conf sets EXT_NAME}"
 EXT_SLUG="${EXT_SLUG:-${EXT_UUID%@*}}"
 
+# A linked git worktree (.git is a file) shares the UUID, so the installed extension and
+# every name below, with the main checkout: run here, it would repoint that install and
+# drive or stop the main checkout's nested shell.
+if [[ -f "$REPO_DIR/.git" ]]; then
+    case "${1:-}" in
+        session-end) exit 0 ;;
+        ""|-h|--help|help) ;;
+        *) die "This is a git worktree: the nested shell and the install belong to the main checkout ($(git -C "$REPO_DIR" worktree list | head -1 | cut -d' ' -f1)). Try the change there." ;;
+    esac
+fi
+
 RUNTIME="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 RUN_DIR="$RUNTIME/$EXT_SLUG-nested"
 BUS_FILE="$RUN_DIR/bus"

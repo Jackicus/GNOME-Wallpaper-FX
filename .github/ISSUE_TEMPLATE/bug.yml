@@ -35,7 +35,7 @@ body:
     id: system
     attributes:
       label: GNOME Shell version and distribution
-      description: "`gnome-shell --version` prints the first; for example \"GNOME Shell 50.4, Arch Linux\"."
+      description: "`gnome-shell --version` prints the first; for example \"GNOME Shell 51.1, Arch Linux\"."
     validations:
       required: true
   - type: textarea
