@@ -120,6 +120,8 @@ the pointer is, never a click or a key, and only while one of them is on.
   across its own width with no zoom (Travel goes up to 100% to cross all of it). Pointer
   Tilt adds a small lean away from the pointer on the desktop. With Blur My Shell's static
   blur, turn on Blur My Shell Compatibility so its blur moves with the wallpaper too.
+  With reduced motion or animations off, the tilt rests and the pan jumps straight to the
+  new workspace.
 - **Wherever your wallpaper shows.** The desktop, the overview, the workspace switcher and
   extensions that blur the background all show the patterns. The lock screen keeps your
   own wallpaper.
