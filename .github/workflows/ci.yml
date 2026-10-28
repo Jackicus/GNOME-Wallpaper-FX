@@ -6,7 +6,7 @@
 # scripts/sync.sh: change it there. Packages this repository needs beyond the base go in
 # .github/ci-packages, one Arch package per line.
 #
-# GNOME Shell 50's gjs and GLib are not in the Ubuntu runner images, so the job runs in an
+# GNOME Shell 51's gjs and GLib are not in the Ubuntu runner images, so the job runs in an
 # Arch Linux container, the distribution the extensions are developed on.
 name: CI
 
