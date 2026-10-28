@@ -1,8 +1,8 @@
-// Each pattern's GLSL as a Shell.GLSLEffect, and the prelude they share (docs/patterns.md).
+// Each pattern's GLSL as a Clutter.ShaderEffect, and the prelude they share (docs/patterns.md).
 
+import Clutter from 'gi://Clutter';
 import Cogl from 'gi://Cogl';
 import GObject from 'gi://GObject';
-import Shell from 'gi://Shell';
 
 export const EPOCH_S = 1024;
 
@@ -122,9 +122,12 @@ float segmentDistance(vec2 p, vec2 a, vec2 b) {
 }
 `;
 
-// Kept across disable and enable: a GType cannot be unregistered, and a class compiles
-// its pipeline once.
+// Kept across disable and enable: a GType cannot be unregistered, and a class builds
+// its snippet once.
 const classes = new Map();
+
+// Cogl numbers a uniform name once for the whole context, not per pipeline.
+const locations = new Map();
 
 export function effectClass(effect) {
     if (!classes.has(effect.id)) classes.set(effect.id, buildEffectClass(effect));
@@ -145,25 +148,37 @@ export function shaderSource(effect) {
 function buildEffectClass(effect) {
     const { declarations, code } = shaderSource(effect);
 
-    const Effect = class extends Shell.GLSLEffect {
-        vfunc_build_pipeline() {
-            this.add_glsl_snippet(Cogl.SnippetHook.FRAGMENT, declarations, code, true);
+    const Effect = class extends Clutter.ShaderEffect {
+        constructor(params) {
+            super(params);
+            this._uniforms = new Map();
+        }
+
+        vfunc_get_static_snippet() {
+            const snippet = Cogl.Snippet.new(Cogl.SnippetHook.FRAGMENT, declarations, null);
+            snippet.set_replace(code);
+            return snippet;
         }
 
         // The last moment before the frame, so a pattern shows the time it is painted.
+        // The uniforms are written to the pipeline itself, every paint: the effect's own
+        // set_uniform_float() holds at most four floats, and a resize replaces the pipeline.
         vfunc_paint_target(node, paintContext) {
             this.onPaint();
+            const pipeline = this.get_pipeline();
+            for (const [name, [components, values]] of this._uniforms) {
+                let location = locations.get(name);
+                if (location === undefined) {
+                    location = pipeline.get_uniform_location(name);
+                    locations.set(name, location);
+                }
+                pipeline.set_uniform_float(location, components, values.length / components, values);
+            }
             super.vfunc_paint_target(node, paintContext);
         }
 
         setUniform(name, components, values) {
-            let location = this._locations?.get(name);
-            if (location === undefined) {
-                this._locations ??= new Map();
-                location = this.get_uniform_location(name);
-                this._locations.set(name, location);
-            }
-            if (location >= 0) this.set_uniform_float(location, components, values);
+            this._uniforms.set(name, [components, values]);
         }
     };
     // GJS names the GType after this module's path and the class name, so a staged

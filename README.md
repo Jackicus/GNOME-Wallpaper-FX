@@ -135,7 +135,7 @@ the pointer is, never a click or a key, and only while one of them is on.
 
 ## Requirements
 
-- GNOME Shell 50.
+- GNOME Shell 51.
 - A GPU with 3D acceleration. Without it GNOME turns animations off (as it does in virtual
   machines without 3D acceleration and in remote-desktop sessions), and the patterns hold
   still.
@@ -202,8 +202,8 @@ gnome-extensions enable wallpaper-fx@jackicus
 To update, run `git pull && make install`, then log out and back in. To remove it, run
 `make uninstall`.
 
-It is written for GNOME Shell 50, the only version it has been run on; an older shell, or
-51, which removed the effect that draws the patterns, needs a port. [docs/compatibility.md](docs/compatibility.md) has the detail.
+It is written for GNOME Shell 51, the only version it claims; an older shell needs a port
+(1.2, the last release for 50, still runs there). [docs/compatibility.md](docs/compatibility.md) has the detail.
 
 ## Preferences
 

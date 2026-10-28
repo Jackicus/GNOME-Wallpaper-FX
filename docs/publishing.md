@@ -70,11 +70,11 @@ here, because the whole of `lib/` is packed.
   MUST be included in the extension ZIP file".
 - In the shell, `extensionDownloader.js` runs
   `glib-compile-schemas --strict <extension>/schemas` after unzipping an EGO
-  download (both at `45.0` and in 50.5). `--strict` means a schema warning is
+  download (at `45.0`, `50.5` and `51.1`). `--strict` means a schema warning is
   an install failure, so run `glib-compile-schemas --strict --dry-run src/schemas`
   before uploading.
 
-GNOME 50 compiles it on install, so the zip carries no compiled schema.
+GNOME 51 compiles it on install, so the zip carries no compiled schema.
 
 ### Testing the zip before uploading
 
@@ -99,7 +99,7 @@ the link afterwards. This is also the only way to run the shipped
 | `uuid` | `wallpaper-fx@jackicus` | Valid characters and not `gnome.org`. It is the extension's identity on EGO and cannot change after the first upload |
 | `name` | `Wallpaper FX` | See [the name](#copyrights-and-trademarks-meets) |
 | `description` | two paragraphs | Covers the points below |
-| `shell-version` | 50 | The one version that has been run, and the one the code is written for |
+| `shell-version` | 51 | The one version that has been run, and the one the code is written for |
 | `settings-schema` | set | Correct; `getSettings()` is called without arguments, which is what Best Practices asks |
 | `url` | GitHub repo | Correct |
 | `version` | absent | Correct: "This field SHOULD NOT be set by extension developers" ([Anatomy](https://gjs.guide/extensions/overview/anatomy.html)); EGO assigns it |
@@ -117,10 +117,9 @@ with each upload.
 **`shell-version`**: the guideline is that it "MUST only contain stable releases
 and up to one development release. Extensions must not claim to support future
 GNOME Shell versions." It is also a promise: "if an extension is tested and found to be fundamentally broken
-it will be rejected". So the first upload claims only what has been run (50).
-Add versions as they pass the checklist in [compatibility.md](compatibility.md);
-a new upload can widen the list. GNOME 51 needs the renderer ported off
-`Shell.GLSLEffect` first.
+it will be rejected". So an upload claims only what has been run (51; 1.2 was
+the release for 50). Add versions as they pass the checklist in
+[compatibility.md](compatibility.md); a new upload can widen the list.
 
 **`description`** is the only place a user or reviewer learns about behaviour
 that could look like a bug. It says:
@@ -182,10 +181,8 @@ the map is declared says so, which answers the reviewer who applies "all
 dynamically stored memory must be cleared or freed in disable()".
 
 `enable()` is not wrapped. If it threw, the shell would mark the extension as
-errored without calling `disable()` (`extensionSystem.js` in 50.5); on 50 nothing
-in it throws (`_backgroundGroup` and the background source are checked), and the
-known way to get there is a GNOME without `Shell.GLSLEffect`, which is not
-claimed.
+errored without calling `disable()` (`extensionSystem.js` in 51.1); on 51 nothing
+in it throws (`_backgroundGroup` and the background source are checked).
 
 ### Disconnect all signals: meets
 
@@ -387,14 +384,10 @@ that could drift, so packing does not do that.
 
 ## Still open
 
-1. **The GNOME 51 port.** `Shell.GLSLEffect` is gone in 51; the replacement is
-   `Clutter.ShaderEffect` with `vfunc_get_static_snippet()`, which mutter 50
-   lacks, so 50 and 51 need two code paths or two releases
-   ([compatibility.md](compatibility.md)). Until then, do not claim 51.
-2. **More versions.** Another version is a port (`gnome-ext:port-shell-version`):
+1. **More versions.** Another version is a port (`gnome-ext:port-shell-version`):
    it adds what that version needs, and joins `shell-version` once the zip has
    been through the checklist in [compatibility.md](compatibility.md) on it.
-3. **Optional tidying.** Move `lib/scenes.js`, which only the preferences use,
+2. **Optional tidying.** Move `lib/scenes.js`, which only the preferences use,
    into a `prefs/` directory, as Best Practices suggests (and add it to the
    `pack` step's sources).
 
