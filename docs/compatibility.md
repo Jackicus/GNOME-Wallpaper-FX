@@ -19,6 +19,26 @@ path that depends on the shell's version, and what a port to another version
   loader), the shell's own wallpaper back on disable, six disable and enable
   cycles, a `stop` and `start`, and the preferences. No errors with the
   `[WallpaperFx]` prefix or from Cogl.
+
+  Later the same day, on the same machine and in the nested shell, these ran
+  as well:
+  - **Two monitors** (`start --monitors 2`): `span-monitors` off (a canvas per
+    monitor) and on (one canvas across both, with no bright line at the seam),
+    the overview's previews on both monitors, and a workspace slide.
+  - **The pauses**, judged by two shots a second apart: `enable-animations`
+    false and `reduced-motion` `reduce` both left 0 pixels changed, against
+    about 1,700 with motion allowed. That held from a `stop` and `start` with
+    `reduce` already set, and on two monitors.
+  - **`pause-when-covered`**, with all 19 patterns on and the mirror running:
+    the nested `gnome-shell` used 28.6% of one core with the desktop showing,
+    0.6% with a window covering it, and 29.8% when the window stayed but the
+    switch was turned off. These numbers are from the NVIDIA desktop.
+  - **Lightning** on its own: its flashes and a forked bolt.
+  - **Reduced motion and parallax**: with `reduce` set, the pointer tilt rests
+    (0 pixels changed between the pointer at either side, against 7,373), and
+    the pan ends each switch where it would with motion allowed.
+
+  The extension printed no deprecation warnings in the nested log.
 - **GNOME Shell 50.5**, on the same machine until 2026-10-28, with mutter 50.5
   and GJS 1.88.1: everything below marked 50.5, two monitors in the nested
   shell, and Blur My Shell 74 beside it for the `parallax-blur-my-shell` switch.
@@ -31,8 +51,11 @@ Nothing else has been tested:
 
 - **GNOME 45 to 50** are not claimed. 50 ran release 1.2; this code needs
   `Clutter.ShaderEffect.get_static_snippet`, which mutter 50 lacks.
-- **Two monitors, the pauses and the weather have not been run on 51**: the paths
-  under them are unchanged at `51.1` (below), but only 50.5 has shown them.
+- **On 51, the weather, power-saver, battery and plugging a monitor in or out
+  have not been run.** Only 50.5 has shown them. The paths under them are
+  unchanged at `51.1` (below). The nested shell's monitors are fixed at start,
+  `powerprofilesctl` would change the real machine, the desktop has no battery,
+  and the weather goes to the network.
 - **No Mesa GPU** (AMD, Intel), no GLES2-only GPU, no virtual machine.
 - **No X11 session.** 45 to 48 have one, 49 turns it off by default, and 50
   removed it (gjs.guide, "Port Extensions to GNOME Shell 49" and "... 50").
@@ -115,7 +138,7 @@ The paths into the workspace previews and the thumbnail strip are unchanged
 from `45.0` to `51.0`, including the `SecondaryMonitorDisplay._workspacesView`
 wrapper that secondary monitors are reached through (see
 [private-api.md](private-api.md)), and still at `51.1`. Seen with two monitors on
-the main desktop's 50.5, and with one on 51.1.
+the main desktop's 50.5 and 51.1.
 
 *Check first:* open the overview. The patterns should be in the workspace
 preview and in the thumbnails, on each monitor.
@@ -189,7 +212,9 @@ GNOME 51 adds `St.Settings` `reduced-motion`, which follows
 `St.Settings.get().reducedMotion !== St.ReducedMotion.REDUCE` (`ui/boxpointer.js`,
 `ui/windowManager.js`, `ui/screenShield.js` at `51.1`). `system.js` reads it the
 same way, with `notify::reduced-motion`, and pauses the patterns while it is
-`reduce`, as it does while animations are off. Checked on 51.1 in the nested
+`reduce`, as it does while animations are off. `parallax.js` uses the same
+check (`motionAllowed()` in `system.js`): without motion the pointer tilt rests
+and the pan cuts to the active workspace. Both were checked on 51.1 in the nested
 shell. A port to 50 or earlier drops it: neither the property nor the key is
 there.
 
